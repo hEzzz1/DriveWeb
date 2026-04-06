@@ -50,6 +50,21 @@
 | 测试体系 | Vitest + Playwright | 单测 + E2E，覆盖关键页面流程 |
 | 部署方式 | Nginx + Docker | 与后端 Stage/Prod-like 部署方式一致 |
 
+## 4.2 工程初始化与本地运行（补充）
+初始化状态（2026-04-07）：
+1. 已在仓库根目录下创建 `web/` 前端工程。
+2. 已完成核心依赖安装：`vue-router`、`pinia`、`element-plus`、`echarts`、`axios`、`async-validator`。
+3. 已完成质量与测试工具安装：`eslint`、`prettier`、`husky`、`lint-staged`、`vitest`、`playwright`。
+
+本地启动步骤：
+1. 进入目录：`cd web`
+2. 安装依赖：`npm install`
+3. 启动开发环境：`npm run dev`
+
+构建验证命令：
+1. 生产构建：`npm run build`
+2. 产物预览：`npm run preview`
+
 ## 5. 页面功能设计
 
 ### 5.1 登录页
