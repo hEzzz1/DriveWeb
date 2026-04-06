@@ -35,6 +35,21 @@
 5. 时间显示：页面按本地时区展示，筛选传参按接口规范提交 ISO-8601。
 6. 状态反馈：所有写操作必须有 `加载中`、`成功`、`失败` 三态。
 
+## 4.1 Web端技术栈（补充）
+| 层级 | 技术选型 | 说明 |
+|---|---|---|
+| 前端框架 | Vue 3 + TypeScript + Vite | 快速开发与类型安全，适合中后台场景 |
+| 路由与状态 | Vue Router + Pinia | 支持多页面权限路由与全局状态管理 |
+| UI组件 | Element Plus | 表格、表单、弹窗、分页等组件成熟 |
+| 图表可视化 | Apache ECharts | 趋势图、排行图、告警分布图能力完整 |
+| 数据请求 | Axios | 统一封装鉴权、错误码、traceId 处理 |
+| 实时通信 | WebSocket（原生） | 对接 `/ws/alerts` 实时告警推送 |
+| 表单校验 | async-validator | 与 Element Plus 配合用于规则配置/处置输入 |
+| 权限控制 | JWT + RBAC 路由守卫 | 对齐 `ADMIN/OPERATOR/VIEWER` 权限模型 |
+| 质量保障 | ESLint + Prettier + Husky + lint-staged | 统一代码规范与提交前检查 |
+| 测试体系 | Vitest + Playwright | 单测 + E2E，覆盖关键页面流程 |
+| 部署方式 | Nginx + Docker | 与后端 Stage/Prod-like 部署方式一致 |
+
 ## 5. 页面功能设计
 
 ### 5.1 登录页
