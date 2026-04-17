@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ElMessageBox } from 'element-plus'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import type { UserRole } from '../types/api'
 
-const router = useRouter()
 const authStore = useAuthStore()
 authStore.hydrate()
 
@@ -43,21 +40,6 @@ const expireInfo = computed(() => {
 
   return `剩余 ${(authStore.minutesLeft ?? 0).toString()} 分钟`
 })
-
-async function logout(): Promise<void> {
-  try {
-    await ElMessageBox.confirm('退出后将清除本地 token，是否继续？', '确认退出', {
-      confirmButtonText: '退出登录',
-      cancelButtonText: '取消',
-      type: 'warning',
-    })
-  } catch {
-    return
-  }
-
-  authStore.logout()
-  await router.replace('/login')
-}
 </script>
 
 <template>
@@ -68,7 +50,6 @@ async function logout(): Promise<void> {
         <h1>登录会话与鉴权状态</h1>
         <p class="subhead">已按 DriveServer 文档完成登录状态保持、路由拦截与 Bearer 自动注入。</p>
       </div>
-      <el-button type="danger" plain @click="logout">退出登录</el-button>
     </div>
 
     <el-alert
@@ -127,8 +108,8 @@ async function logout(): Promise<void> {
 
 .page-head {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  justify-content: flex-start;
+  align-items: flex-end;
   gap: 16px;
   margin-bottom: 20px;
 }

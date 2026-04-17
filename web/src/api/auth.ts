@@ -6,5 +6,6 @@ export function login(payload: LoginRequest): Promise<LoginData> {
     method: 'POST',
     url: '/auth/login',
     data: payload,
+    silentError: true,
   })
 }

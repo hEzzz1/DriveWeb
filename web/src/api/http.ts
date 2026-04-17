@@ -1,4 +1,5 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
+import { ElMessage } from 'element-plus'
 import type { ApiResponse } from '../types/api'
 import { ApiError } from '../types/api'
 
@@ -10,6 +11,11 @@ const http = axios.create({
 })
 
 let tokenGetter: (() => string) | null = null
+let lastErrorToast = ''
+
+interface RequestConfig extends AxiosRequestConfig {
+  silentError?: boolean
+}
 
 export function setAuthTokenGetter(getter: () => string): void {
   tokenGetter = getter
@@ -45,14 +51,23 @@ function normalizeError(error: unknown): ApiError {
 
   if (error instanceof AxiosError) {
     const payload = error.response?.data as ApiResponse<unknown> | undefined
+    const status = error.response?.status
 
     if (payload && typeof payload.code === 'number') {
       return new ApiError(
         payload.message || '请求失败',
         payload.code,
         payload.traceId,
-        error.response?.status,
+        status,
       )
+    }
+
+    if (status === 401) {
+      return new ApiError('登录状态失效，请重新登录', 40101, undefined, status)
+    }
+
+    if (status === 403) {
+      return new ApiError('当前账号无权限执行该操作', 40301, undefined, status)
     }
 
     if (error.code === 'ECONNABORTED') {
@@ -65,11 +80,36 @@ function normalizeError(error: unknown): ApiError {
   return new ApiError(error instanceof Error ? error.message : '未知错误')
 }
 
-export async function request<T>(config: AxiosRequestConfig): Promise<T> {
+function showGlobalError(error: ApiError): void {
+  const message = error.traceId
+    ? `${error.message}（traceId: ${error.traceId}）`
+    : error.message || '请求失败'
+
+  // Avoid showing the same toast repeatedly when a request retries quickly.
+  if (lastErrorToast === message) {
+    return
+  }
+
+  lastErrorToast = message
+  ElMessage.error(message)
+  window.setTimeout(() => {
+    if (lastErrorToast === message) {
+      lastErrorToast = ''
+    }
+  }, 1800)
+}
+
+export async function request<T>(config: RequestConfig): Promise<T> {
   try {
     const response = await http.request<ApiResponse<T>>(config)
     return unwrapResponse(response.data, response.status)
   } catch (error) {
-    throw normalizeError(error)
+    const normalizedError = normalizeError(error)
+
+    if (!config.silentError) {
+      showGlobalError(normalizedError)
+    }
+
+    throw normalizedError
   }
 }
