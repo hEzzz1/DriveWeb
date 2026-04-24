@@ -2,6 +2,8 @@ export type AlertRiskLevel = 1 | 2 | 3
 
 export type AlertStatus = 0 | 1 | 2 | 3
 
+export type AlertActionType = 'CONFIRM' | 'FALSE_POSITIVE' | 'CLOSE'
+
 export interface AlertListQuery {
   page: number
   size: number

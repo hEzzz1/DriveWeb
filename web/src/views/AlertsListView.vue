@@ -1,16 +1,27 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getAlertList } from '../api/alerts'
+import { ElMessage } from 'element-plus'
+import AlertActionDialog from '../components/AlertActionDialog.vue'
+import { disposeAlert, getAlertList } from '../api/alerts'
+import { useAuthStore } from '../stores/auth'
 import {
   riskLevelLabelMap,
   statusLabelMap,
+  type AlertActionType,
   type AlertListQuery,
   type AlertRiskLevel,
   type AlertStatus,
   type AlertSummary,
 } from '../types/alerts'
-import { formatDateTime, formatScore, getRiskTagType, getStatusTagType } from '../utils/alerts'
+import {
+  formatDateTime,
+  formatScore,
+  getAlertActionLabel,
+  getAvailableAlertActions,
+  getRiskTagType,
+  getStatusTagType,
+} from '../utils/alerts'
 
 interface FilterModel {
   fleetId: string
@@ -23,12 +34,17 @@ interface FilterModel {
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const loading = ref(false)
 const tableData = ref<AlertSummary[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
+const dialogVisible = ref(false)
+const actionSubmitting = ref(false)
+const activeAction = ref<AlertActionType>('CONFIRM')
+const activeRowId = ref<number | null>(null)
 
 const filterModel = reactive<FilterModel>({
   fleetId: '',
@@ -53,6 +69,7 @@ const statusOptions = [
 ]
 
 const totalText = computed(() => `共 ${total.value} 条告警`)
+const canDispose = computed(() => authStore.hasRole('ADMIN') || authStore.hasRole('OPERATOR'))
 
 onMounted(async () => {
   hydrateFromRoute()
@@ -192,6 +209,40 @@ function handleOpenDetail(row: AlertSummary): void {
     params: { id: String(row.id) },
     query: route.query,
   })
+}
+
+function getRowActions(row: AlertSummary): AlertActionType[] {
+  return getAvailableAlertActions(row.status)
+}
+
+function handleOpenAction(row: AlertSummary, actionType: AlertActionType): void {
+  activeRowId.value = row.id
+  activeAction.value = actionType
+  dialogVisible.value = true
+}
+
+async function handleSubmitAction(payload: { remark: string }): Promise<void> {
+  if (activeRowId.value === null || actionSubmitting.value) {
+    return
+  }
+
+  actionSubmitting.value = true
+
+  try {
+    await disposeAlert(activeRowId.value, activeAction.value, payload.remark || undefined)
+    dialogVisible.value = false
+    ElMessage.success(`${getAlertActionLabel(activeAction.value)}成功`)
+    await fetchList(false)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+
+    if (message.includes('状态')) {
+      ElMessage.warning('状态已更新，请刷新后重试')
+      await fetchList(false)
+    }
+  } finally {
+    actionSubmitting.value = false
+  }
 }
 
 function getDefaultRange(): [Date, Date] {
@@ -348,6 +399,22 @@ function getStatusLabel(status: number): string {
         <el-table-column label="触发时间" min-width="170">
           <template #default="{ row }">{{ formatDateTime(row.triggerTime) }}</template>
         </el-table-column>
+        <el-table-column v-if="canDispose" label="操作" min-width="240" fixed="right">
+          <template #default="{ row }">
+            <div v-if="getRowActions(row).length" class="row-actions">
+              <el-button
+                v-for="action in getRowActions(row)"
+                :key="action"
+                link
+                :type="action === 'CONFIRM' ? 'primary' : action === 'FALSE_POSITIVE' ? 'warning' : 'info'"
+                @click.stop="handleOpenAction(row, action)"
+              >
+                {{ getAlertActionLabel(action) }}
+              </el-button>
+            </div>
+            <span v-else class="row-action-empty">-</span>
+          </template>
+        </el-table-column>
       </el-table>
 
       <div class="pager-wrap">
@@ -363,6 +430,13 @@ function getStatusLabel(status: number): string {
         />
       </div>
     </el-card>
+
+    <AlertActionDialog
+      v-model="dialogVisible"
+      :action-type="activeAction"
+      :submitting="actionSubmitting"
+      @submit="handleSubmitAction"
+    />
   </div>
 </template>
 
@@ -451,6 +525,16 @@ h1 {
   cursor: pointer;
 }
 
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.row-action-empty {
+  color: #93a6ab;
+}
+
 .pager-wrap {
   margin-top: 16px;
   display: flex;
@@ -483,6 +567,10 @@ h1 {
   .action-row,
   .pager-wrap {
     justify-content: flex-start;
+  }
+
+  .row-actions {
+    gap: 0 8px;
   }
 }
 </style>

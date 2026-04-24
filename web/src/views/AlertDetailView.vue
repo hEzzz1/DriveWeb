@@ -1,11 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getAlertDetail } from '../api/alerts'
-import { riskLevelLabelMap, statusLabelMap, type AlertDetail } from '../types/alerts'
+import { ElMessage } from 'element-plus'
+import AlertActionDialog from '../components/AlertActionDialog.vue'
+import { disposeAlert, getAlertDetail } from '../api/alerts'
+import { useAuthStore } from '../stores/auth'
+import {
+  riskLevelLabelMap,
+  statusLabelMap,
+  type AlertActionType,
+  type AlertDetail,
+} from '../types/alerts'
 import {
   extractAlertTimeline,
   formatDateTime,
+  getAlertActionLabel,
+  getAvailableAlertActions,
   formatNumber,
   formatScore,
   getRiskTagType,
@@ -14,9 +24,13 @@ import {
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const loading = ref(false)
 const detail = ref<AlertDetail | null>(null)
+const dialogVisible = ref(false)
+const activeAction = ref<AlertActionType>('CONFIRM')
+const actionSubmitting = ref(false)
 
 const alertId = computed(() => {
   const value = route.params.id
@@ -35,6 +49,10 @@ const alertId = computed(() => {
 const timeline = computed(() => {
   return detail.value ? extractAlertTimeline(detail.value) : []
 })
+
+const canDispose = computed(() => authStore.hasRole('ADMIN') || authStore.hasRole('OPERATOR'))
+
+const availableActions = computed(() => getAvailableAlertActions(detail.value?.status))
 
 onMounted(() => {
   void fetchDetail()
@@ -59,6 +77,35 @@ async function fetchDetail(): Promise<void> {
     detail.value = await getAlertDetail(alertId.value)
   } finally {
     loading.value = false
+  }
+}
+
+function handleOpenAction(actionType: AlertActionType): void {
+  activeAction.value = actionType
+  dialogVisible.value = true
+}
+
+async function handleSubmitAction(payload: { remark: string }): Promise<void> {
+  if (!detail.value || actionSubmitting.value) {
+    return
+  }
+
+  actionSubmitting.value = true
+
+  try {
+    await disposeAlert(detail.value.id, activeAction.value, payload.remark || undefined)
+    dialogVisible.value = false
+    ElMessage.success(`${getAlertActionLabel(activeAction.value)}成功`)
+    await fetchDetail()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+
+    if (message.includes('状态')) {
+      ElMessage.warning('状态已更新，请刷新后重试')
+      await fetchDetail()
+    }
+  } finally {
+    actionSubmitting.value = false
   }
 }
 
@@ -101,6 +148,32 @@ function showValue(value: unknown): string {
     <el-skeleton v-if="loading && !detail" :rows="8" animated />
 
     <template v-else-if="detail">
+      <el-card v-if="canDispose" class="panel-card action-card" shadow="never">
+        <template #header>
+          <div class="card-title">处置操作</div>
+        </template>
+
+        <div class="action-panel">
+          <p class="action-hint">
+            当前状态为“{{ statusLabelMap[detail.status] }}”，可执行的处置动作如下。
+          </p>
+
+          <div v-if="availableActions.length" class="action-buttons">
+            <el-button
+              v-for="action in availableActions"
+              :key="action"
+              :type="action === 'CONFIRM' ? 'primary' : action === 'FALSE_POSITIVE' ? 'warning' : 'info'"
+              plain
+              @click="handleOpenAction(action)"
+            >
+              {{ getAlertActionLabel(action) }}
+            </el-button>
+          </div>
+
+          <el-empty v-else description="当前状态不可继续处置" :image-size="88" />
+        </div>
+      </el-card>
+
       <section class="card-grid">
         <el-card class="panel-card" shadow="never">
           <template #header>
@@ -191,6 +264,13 @@ function showValue(value: unknown): string {
     </template>
 
     <el-empty v-else description="未获取到告警详情" />
+
+    <AlertActionDialog
+      v-model="dialogVisible"
+      :action-type="activeAction"
+      :submitting="actionSubmitting"
+      @submit="handleSubmitAction"
+    />
   </div>
 </template>
 
@@ -248,9 +328,30 @@ h1 {
   background: rgba(255, 255, 255, 0.9);
 }
 
+.action-card {
+  overflow: hidden;
+}
+
 .card-title {
   font-weight: 700;
   color: #184148;
+}
+
+.action-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.action-hint {
+  margin: 0;
+  color: #58737b;
+  line-height: 1.6;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .metrics-grid {
@@ -308,6 +409,10 @@ h1 {
   .page-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .action-buttons {
+    flex-direction: column;
   }
 
   .metrics-grid {

@@ -1,4 +1,10 @@
-import type { AlertActionRecord, AlertDetail, AlertRiskLevel, AlertStatus } from '../types/alerts'
+import type {
+  AlertActionRecord,
+  AlertActionType,
+  AlertDetail,
+  AlertRiskLevel,
+  AlertStatus,
+} from '../types/alerts'
 
 export type UiTagType = '' | 'success' | 'warning' | 'danger' | 'info' | 'primary'
 
@@ -87,6 +93,32 @@ export function extractAlertTimeline(detail: AlertDetail): AlertActionRecord[] {
   }
 
   return []
+}
+
+export function getAvailableAlertActions(
+  status: AlertStatus | number | null | undefined,
+): AlertActionType[] {
+  if (status === 0) {
+    return ['CONFIRM', 'FALSE_POSITIVE', 'CLOSE']
+  }
+
+  if (status === 1) {
+    return ['FALSE_POSITIVE', 'CLOSE']
+  }
+
+  return []
+}
+
+export function getAlertActionLabel(actionType: AlertActionType): string {
+  if (actionType === 'CONFIRM') {
+    return '确认告警'
+  }
+
+  if (actionType === 'FALSE_POSITIVE') {
+    return '标记误报'
+  }
+
+  return '关闭告警'
 }
 
 function normalizeTimelineItem(value: unknown): AlertActionRecord | null {
