@@ -16,10 +16,11 @@ import {
 import {
   extractAlertTimeline,
   formatDateTime,
-  getAlertActionLabel,
-  getAvailableAlertActions,
   formatNumber,
   formatScore,
+  formatTimestampMs,
+  getAlertActionLabel,
+  getAvailableAlertActions,
   getRiskTagType,
   getStatusTagType,
 } from '../utils/alerts'
@@ -35,6 +36,7 @@ const dialogVisible = ref(false)
 const activeAction = ref<AlertActionType>('CONFIRM')
 const actionSubmitting = ref(false)
 const pendingRealtimeRefresh = ref(false)
+const latestRealtimeTraceId = ref('')
 const localMutationAtMap = new Map<number, number>()
 let unsubscribeRealtime: (() => void) | null = null
 
@@ -59,6 +61,56 @@ const timeline = computed(() => {
 const canDispose = computed(() => authStore.hasRole('ADMIN') || authStore.hasRole('OPERATOR'))
 
 const availableActions = computed(() => getAvailableAlertActions(detail.value?.status))
+const realtimeEventTypeText = computed(() => {
+  if (!latestRealtimeTraceId.value) {
+    return '-'
+  }
+
+  return pendingRealtimeRefresh.value ? '等待同步' : '已同步'
+})
+const observabilityRows = computed(() => {
+  if (!detail.value) {
+    return []
+  }
+
+  const rows = [
+    { label: '规则ID', value: showValue(detail.value.ruleId) },
+    { label: '综合风险分', value: formatScore(detail.value.riskScore) },
+    { label: '最新操作人', value: showValue(detail.value.latestActionBy) },
+    { label: '最新操作时间', value: formatDateTime(detail.value.latestActionTime) },
+    { label: '备注', value: showValue(detail.value.remark), span: 2 },
+    { label: '实时消息 traceId', value: showValue(latestRealtimeTraceId.value || detail.value.traceId || detail.value.serverTraceId) },
+    { label: '实时同步状态', value: realtimeEventTypeText.value },
+    { label: '事件ID', value: showValue(detail.value.eventId) },
+    { label: '接入 traceId', value: showValue(detail.value.ingestTraceId) },
+    { label: '设备 Token', value: showValue(detail.value.deviceToken) },
+  ]
+
+  return rows.filter((item) => item.value !== '-')
+})
+const edgeDebugRows = computed(() => {
+  if (!detail.value) {
+    return []
+  }
+
+  const reasonText = Array.isArray(detail.value.edgeTriggerReasons) && detail.value.edgeTriggerReasons.length
+    ? detail.value.edgeTriggerReasons.join(' / ')
+    : '-'
+
+  const rows = [
+    { label: '边缘风险等级', value: showValue(detail.value.edgeRiskLevel) },
+    { label: '主导风险类型', value: showValue(detail.value.edgeDominantRiskType) },
+    { label: '触发原因', value: reasonText, span: 2 },
+    { label: '边缘窗口开始', value: formatTimestampMs(detail.value.edgeWindowStartMs) },
+    { label: '边缘窗口结束', value: formatTimestampMs(detail.value.edgeWindowEndMs) },
+    { label: '边缘创建时间', value: formatTimestampMs(detail.value.edgeCreatedAtMs) },
+    { label: '算法版本', value: showValue(detail.value.algorithmVer) },
+    { label: '头姿态', value: showValue(detail.value.headPose) },
+    { label: '事件时间', value: formatDateTime(detail.value.eventTime) },
+  ]
+
+  return rows.filter((item) => item.value !== '-')
+})
 
 onMounted(() => {
   unsubscribeRealtime = realtimeStore.subscribe((event) => {
@@ -149,6 +201,8 @@ async function handleRealtimeEvent(event: NormalizedAlertRealtimeEvent): Promise
   if (!detail.value || detail.value.id !== event.alertId || shouldIgnoreRealtimeEvent(event)) {
     return
   }
+
+  latestRealtimeTraceId.value = event.traceId || latestRealtimeTraceId.value
 
   if (dialogVisible.value || actionSubmitting.value) {
     pendingRealtimeRefresh.value = true
@@ -300,6 +354,46 @@ watch(
         </el-descriptions>
       </el-card>
 
+      <section class="card-grid">
+        <el-card class="panel-card" shadow="never">
+          <template #header>
+            <div class="card-title">联调与排查</div>
+          </template>
+
+          <el-empty v-if="observabilityRows.length === 0" description="暂无联调态字段" />
+
+          <el-descriptions v-else :column="2" border>
+            <el-descriptions-item
+              v-for="item in observabilityRows"
+              :key="item.label"
+              :label="item.label"
+              :span="item.span || 1"
+            >
+              <span class="mono-text">{{ item.value }}</span>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+
+        <el-card class="panel-card" shadow="never">
+          <template #header>
+            <div class="card-title">边缘透传字段</div>
+          </template>
+
+          <el-empty v-if="edgeDebugRows.length === 0" description="暂无边缘联调字段" />
+
+          <el-descriptions v-else :column="2" border>
+            <el-descriptions-item
+              v-for="item in edgeDebugRows"
+              :key="item.label"
+              :label="item.label"
+              :span="item.span || 1"
+            >
+              <span class="mono-text">{{ item.value }}</span>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+      </section>
+
       <el-card class="panel-card" shadow="never">
         <template #header>
           <div class="card-title">处置记录时间轴</div>
@@ -447,6 +541,11 @@ h1 {
   margin: 0;
   color: #57737a;
   line-height: 1.5;
+}
+
+.mono-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  word-break: break-all;
 }
 
 @media (max-width: 1080px) {

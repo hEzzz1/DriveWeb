@@ -67,6 +67,13 @@ export interface AlertRealtimePayload {
   latestActionTime?: string | null
   actionType?: string | null
   remark?: string | null
+  ruleId?: number | null
+  edgeRiskLevel?: string | null
+  edgeDominantRiskType?: string | null
+  edgeTriggerReasons?: string[] | null
+  edgeWindowStartMs?: number | null
+  edgeWindowEndMs?: number | null
+  edgeCreatedAtMs?: number | null
 }
 
 export interface AlertRealtimeEnvelope {
@@ -88,13 +95,28 @@ export interface NormalizedAlertRealtimeEvent {
 }
 
 export interface AlertDetail extends AlertSummary {
+  ruleId?: number | null
+  riskScore?: number | null
   perclos?: number | null
   blinkRate?: number | null
   yawnCount?: number | null
   headPose?: string | null
   algorithmVer?: string | null
   eventTime?: string | null
+  latestActionBy?: number | string | null
+  latestActionTime?: string | null
   remark?: string | null
+  edgeRiskLevel?: string | null
+  edgeDominantRiskType?: string | null
+  edgeTriggerReasons?: string[] | null
+  edgeWindowStartMs?: number | null
+  edgeWindowEndMs?: number | null
+  edgeCreatedAtMs?: number | null
+  eventId?: string | null
+  traceId?: string | null
+  serverTraceId?: string | null
+  deviceToken?: string | null
+  ingestTraceId?: string | null
   timeline?: AlertActionRecord[]
   logs?: AlertActionRecord[]
   history?: AlertActionRecord[]

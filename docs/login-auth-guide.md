@@ -17,7 +17,7 @@
 ## 3. 接口映射
 Base URL：
 - 默认：`/api/v1`（开发环境推荐配合 Vite 代理）
-- 可通过 `VITE_API_BASE_URL` 覆盖
+- 生产或跨域部署时可通过 `VITE_API_BASE_URL` 覆盖
 
 登录接口：
 - 方法：`POST`
@@ -78,17 +78,20 @@ cp .env.development.example .env.development
 2. 修改 `.env.development`：
 ```env
 VITE_API_BASE_URL=/api/v1
-VITE_PROXY_TARGET=http://localhost:8080
+VITE_PROXY_TARGET=http://<your-server-host>:8080
+# 仅在前后端不共域时才需要
+# VITE_WS_BASE_URL=ws://<your-server-host>:8080/ws/alerts
 ```
 
 说明：
 - `VITE_PROXY_TARGET` 需要改成 DriveServer 实际地址和端口。
+- 不要把真实公网 IP、域名或内网地址提交到仓库。
 - 修改后需要重启 `npm run dev`。
 
 ## 7. 联调检查步骤
 1. 确认后端可访问（按实际端口调整）：
 ```bash
-curl -X POST http://localhost:8080/api/v1/auth/login \
+curl -X POST http://<your-server-host>:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"123456"}'
 ```

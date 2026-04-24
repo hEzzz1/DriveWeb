@@ -71,6 +71,20 @@ export function formatNumber(value: number | null | undefined, digits = 2): stri
   return value.toFixed(digits)
 }
 
+export function formatTimestampMs(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === '') {
+    return '-'
+  }
+
+  const ms = typeof value === 'number' ? value : Number(value)
+
+  if (Number.isNaN(ms) || ms <= 0) {
+    return '-'
+  }
+
+  return new Date(ms).toLocaleString()
+}
+
 export function extractAlertTimeline(detail: AlertDetail): AlertActionRecord[] {
   const candidates: unknown[] = [
     detail.timeline,
