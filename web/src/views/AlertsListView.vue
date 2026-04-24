@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AlertActionDialog from '../components/AlertActionDialog.vue'
-import { disposeAlert, getAlertList } from '../api/alerts'
+import { disposeAlert, getAlertDetail, getAlertList } from '../api/alerts'
 import { useAuthStore } from '../stores/auth'
+import { useRealtimeStore } from '../stores/realtime'
 import {
   riskLevelLabelMap,
   statusLabelMap,
   type AlertActionType,
   type AlertListQuery,
+  type NormalizedAlertRealtimeEvent,
   type AlertRiskLevel,
   type AlertStatus,
   type AlertSummary,
@@ -21,6 +23,9 @@ import {
   getAvailableAlertActions,
   getRiskTagType,
   getStatusTagType,
+  matchesAlertFilters,
+  mergeAlertSummaryFromRealtime,
+  toAlertSummaryFromRealtime,
 } from '../utils/alerts'
 
 interface FilterModel {
@@ -35,6 +40,7 @@ interface FilterModel {
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const realtimeStore = useRealtimeStore()
 
 const loading = ref(false)
 const tableData = ref<AlertSummary[]>([])
@@ -45,6 +51,9 @@ const dialogVisible = ref(false)
 const actionSubmitting = ref(false)
 const activeAction = ref<AlertActionType>('CONFIRM')
 const activeRowId = ref<number | null>(null)
+const pendingRealtimeMatches = ref(0)
+const localMutationAtMap = new Map<number, number>()
+let unsubscribeRealtime: (() => void) | null = null
 
 const filterModel = reactive<FilterModel>({
   fleetId: '',
@@ -73,7 +82,15 @@ const canDispose = computed(() => authStore.hasRole('ADMIN') || authStore.hasRol
 
 onMounted(async () => {
   hydrateFromRoute()
+  unsubscribeRealtime = realtimeStore.subscribe((event) => {
+    void handleRealtimeEvent(event)
+  })
   await fetchList(false)
+})
+
+onBeforeUnmount(() => {
+  unsubscribeRealtime?.()
+  unsubscribeRealtime = null
 })
 
 async function fetchList(syncRoute = true): Promise<void> {
@@ -91,6 +108,7 @@ async function fetchList(syncRoute = true): Promise<void> {
     total.value = Number(data.total) || 0
     currentPage.value = Number(data.page) || query.page
     pageSize.value = Number(data.size) || query.size
+    pendingRealtimeMatches.value = 0
   } finally {
     loading.value = false
   }
@@ -230,6 +248,7 @@ async function handleSubmitAction(payload: { remark: string }): Promise<void> {
 
   try {
     await disposeAlert(activeRowId.value, activeAction.value, payload.remark || undefined)
+    localMutationAtMap.set(activeRowId.value, Date.now())
     dialogVisible.value = false
     ElMessage.success(`${getAlertActionLabel(activeAction.value)}成功`)
     await fetchList(false)
@@ -243,6 +262,91 @@ async function handleSubmitAction(payload: { remark: string }): Promise<void> {
   } finally {
     actionSubmitting.value = false
   }
+}
+
+async function handleRealtimeEvent(event: NormalizedAlertRealtimeEvent): Promise<void> {
+  if (shouldIgnoreRealtimeEvent(event)) {
+    return
+  }
+
+  if (event.eventType === 'ALERT_CREATED') {
+    await handleAlertCreated(event)
+    return
+  }
+
+  handleAlertUpdated(event)
+}
+
+async function handleAlertCreated(event: NormalizedAlertRealtimeEvent): Promise<void> {
+  const summary = toAlertSummaryFromRealtime(event.payload) || (await loadAlertSummary(event.alertId))
+
+  if (!summary || !matchesCurrentFilters(summary)) {
+    return
+  }
+
+  total.value += 1
+
+  if (currentPage.value !== 1) {
+    pendingRealtimeMatches.value += 1
+    return
+  }
+
+  tableData.value = [summary, ...tableData.value.filter((item) => item.id !== summary.id)].slice(
+    0,
+    pageSize.value,
+  )
+}
+
+function handleAlertUpdated(event: NormalizedAlertRealtimeEvent): void {
+  const rowIndex = tableData.value.findIndex((item) => item.id === event.alertId)
+
+  if (rowIndex === -1) {
+    return
+  }
+
+  const current = tableData.value[rowIndex]
+  const next = mergeAlertSummaryFromRealtime(current, event.payload)
+
+  if (!matchesCurrentFilters(next)) {
+    tableData.value.splice(rowIndex, 1)
+    total.value = Math.max(0, total.value - 1)
+    return
+  }
+
+  tableData.value.splice(rowIndex, 1, next)
+}
+
+async function loadAlertSummary(alertId: number): Promise<AlertSummary | null> {
+  try {
+    return await getAlertDetail(alertId)
+  } catch {
+    return null
+  }
+}
+
+function shouldIgnoreRealtimeEvent(event: NormalizedAlertRealtimeEvent): boolean {
+  const localMutationAt = localMutationAtMap.get(event.alertId)
+
+  if (!localMutationAt || !event.eventAt) {
+    return false
+  }
+
+  const eventAt = Date.parse(event.eventAt)
+  return !Number.isNaN(eventAt) && eventAt < localMutationAt
+}
+
+function matchesCurrentFilters(summary: AlertSummary): boolean {
+  const query = buildListQuery()
+
+  return matchesAlertFilters(summary, {
+    fleetId: query.fleetId,
+    vehicleId: query.vehicleId,
+    driverId: query.driverId,
+    riskLevel: query.riskLevel,
+    status: query.status,
+    startTime: query.startTime,
+    endTime: query.endTime,
+  })
 }
 
 function getDefaultRange(): [Date, Date] {
@@ -361,7 +465,12 @@ function getStatusLabel(status: number): string {
       <template #header>
         <div class="table-head">
           <span>告警列表</span>
-          <span class="count">{{ totalText }}</span>
+          <div class="table-meta">
+            <span v-if="pendingRealtimeMatches" class="realtime-tip">
+              有 {{ pendingRealtimeMatches }} 条新告警符合当前筛选
+            </span>
+            <span class="count">{{ totalText }}</span>
+          </div>
         </div>
       </template>
 
@@ -511,10 +620,22 @@ h1 {
   color: #184148;
 }
 
+.table-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .count {
   font-size: 13px;
   color: #648087;
   font-weight: 500;
+}
+
+.realtime-tip {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f755f;
 }
 
 .alert-table {

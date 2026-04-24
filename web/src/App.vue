@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { useRealtimeStore } from './stores/realtime'
+import { formatDateTime } from './utils/alerts'
 import type { UserRole } from './types/api'
 
 interface NavItem {
@@ -16,6 +18,7 @@ interface NavItem {
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const realtimeStore = useRealtimeStore()
 authStore.hydrate()
 
 const navItems: NavItem[] = [
@@ -71,6 +74,39 @@ const activeNavKey = computed(
       return item.path === '/' ? route.path === '/' : route.path.startsWith(item.path)
     })?.key || '',
 )
+const showRealtimeStatus = computed(() => authStore.isAuthenticated && !isPublicPage.value)
+const realtimeHint = computed(() => {
+  if (realtimeStore.status === 'connected' && realtimeStore.lastMessageAt) {
+    return `最近消息 ${formatDateTime(realtimeStore.lastMessageAt)}`
+  }
+
+  if (realtimeStore.status === 'disconnected') {
+    return '实时更新已中断，可手动重连或刷新页面'
+  }
+
+  if (realtimeStore.status === 'reconnecting') {
+    return '正在自动重连，不影响手动查询'
+  }
+
+  return '告警列表与详情页会自动消费实时更新'
+})
+
+watch(
+  () => authStore.isAuthenticated,
+  (isAuthenticated) => {
+    if (isAuthenticated) {
+      realtimeStore.ensureConnected()
+      return
+    }
+
+    realtimeStore.disconnect()
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  realtimeStore.disconnect()
+})
 
 function hasMenuAccess(roles: UserRole[]): boolean {
   if (authStore.hasRole('ADMIN')) {
@@ -102,6 +138,10 @@ function handleNavigate(item: NavItem): void {
 
   router.push(item.path)
 }
+
+function handleReconnect(): void {
+  realtimeStore.reconnect()
+}
 </script>
 
 <template>
@@ -115,6 +155,19 @@ function handleNavigate(item: NavItem): void {
       </div>
 
       <div class="user-wrap">
+        <div v-if="showRealtimeStatus" class="realtime-status">
+          <el-tag effect="plain" :type="realtimeStore.statusTagType">{{ realtimeStore.statusText }}</el-tag>
+          <p class="realtime-hint">{{ realtimeHint }}</p>
+          <el-button
+            v-if="realtimeStore.status !== 'connected'"
+            link
+            type="primary"
+            @click="handleReconnect"
+          >
+            重新连接
+          </el-button>
+        </div>
+
         <div class="user-meta">
           <p class="name">{{ authStore.username || '未登录用户' }}</p>
           <p class="role">{{ authStore.roleText }}</p>
@@ -187,6 +240,19 @@ function handleNavigate(item: NavItem): void {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.realtime-status {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.realtime-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #5f7a81;
 }
 
 .user-meta {
@@ -285,10 +351,16 @@ function handleNavigate(item: NavItem): void {
   .user-wrap {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
 
   .user-meta {
     text-align: left;
+  }
+
+  .realtime-status {
+    justify-items: start;
+    width: 100%;
   }
 
   .global-body {

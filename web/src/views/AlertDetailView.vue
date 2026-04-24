@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AlertActionDialog from '../components/AlertActionDialog.vue'
 import { disposeAlert, getAlertDetail } from '../api/alerts'
 import { useAuthStore } from '../stores/auth'
+import { useRealtimeStore } from '../stores/realtime'
 import {
   riskLevelLabelMap,
   statusLabelMap,
   type AlertActionType,
   type AlertDetail,
+  type NormalizedAlertRealtimeEvent,
 } from '../types/alerts'
 import {
   extractAlertTimeline,
@@ -25,12 +27,16 @@ import {
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const realtimeStore = useRealtimeStore()
 
 const loading = ref(false)
 const detail = ref<AlertDetail | null>(null)
 const dialogVisible = ref(false)
 const activeAction = ref<AlertActionType>('CONFIRM')
 const actionSubmitting = ref(false)
+const pendingRealtimeRefresh = ref(false)
+const localMutationAtMap = new Map<number, number>()
+let unsubscribeRealtime: (() => void) | null = null
 
 const alertId = computed(() => {
   const value = route.params.id
@@ -55,7 +61,15 @@ const canDispose = computed(() => authStore.hasRole('ADMIN') || authStore.hasRol
 const availableActions = computed(() => getAvailableAlertActions(detail.value?.status))
 
 onMounted(() => {
+  unsubscribeRealtime = realtimeStore.subscribe((event) => {
+    void handleRealtimeEvent(event)
+  })
   void fetchDetail()
+})
+
+onBeforeUnmount(() => {
+  unsubscribeRealtime?.()
+  unsubscribeRealtime = null
 })
 
 watch(
@@ -75,6 +89,7 @@ async function fetchDetail(): Promise<void> {
 
   try {
     detail.value = await getAlertDetail(alertId.value)
+    pendingRealtimeRefresh.value = false
   } finally {
     loading.value = false
   }
@@ -94,6 +109,7 @@ async function handleSubmitAction(payload: { remark: string }): Promise<void> {
 
   try {
     await disposeAlert(detail.value.id, activeAction.value, payload.remark || undefined)
+    localMutationAtMap.set(detail.value.id, Date.now())
     dialogVisible.value = false
     ElMessage.success(`${getAlertActionLabel(activeAction.value)}成功`)
     await fetchDetail()
@@ -128,6 +144,40 @@ function showValue(value: unknown): string {
 
   return String(value)
 }
+
+async function handleRealtimeEvent(event: NormalizedAlertRealtimeEvent): Promise<void> {
+  if (!detail.value || detail.value.id !== event.alertId || shouldIgnoreRealtimeEvent(event)) {
+    return
+  }
+
+  if (dialogVisible.value || actionSubmitting.value) {
+    pendingRealtimeRefresh.value = true
+    return
+  }
+
+  await fetchDetail()
+}
+
+function shouldIgnoreRealtimeEvent(event: NormalizedAlertRealtimeEvent): boolean {
+  const localMutationAt = localMutationAtMap.get(event.alertId)
+
+  if (!localMutationAt || !event.eventAt) {
+    return false
+  }
+
+  const eventAt = Date.parse(event.eventAt)
+  return !Number.isNaN(eventAt) && eventAt < localMutationAt
+}
+
+watch(
+  () => dialogVisible.value,
+  (visible) => {
+    if (!visible && pendingRealtimeRefresh.value) {
+      pendingRealtimeRefresh.value = false
+      void fetchDetail()
+    }
+  },
+)
 </script>
 
 <template>
@@ -148,6 +198,14 @@ function showValue(value: unknown): string {
     <el-skeleton v-if="loading && !detail" :rows="8" animated />
 
     <template v-else-if="detail">
+      <el-alert
+        v-if="pendingRealtimeRefresh"
+        title="告警数据已更新，完成当前输入后会自动同步"
+        type="info"
+        :closable="false"
+        show-icon
+      />
+
       <el-card v-if="canDispose" class="panel-card action-card" shadow="never">
         <template #header>
           <div class="card-title">处置操作</div>

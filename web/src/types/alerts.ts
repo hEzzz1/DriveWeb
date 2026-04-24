@@ -4,6 +4,14 @@ export type AlertStatus = 0 | 1 | 2 | 3
 
 export type AlertActionType = 'CONFIRM' | 'FALSE_POSITIVE' | 'CLOSE'
 
+export type AlertRealtimeEventType = 'ALERT_CREATED' | 'ALERT_UPDATED'
+
+export type RealtimeConnectionStatus =
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'disconnected'
+
 export interface AlertListQuery {
   page: number
   size: number
@@ -41,6 +49,42 @@ export interface AlertActionRecord {
   actionTime: string
   operator?: string
   remark?: string
+}
+
+export interface AlertRealtimePayload {
+  alertId: number
+  alertNo?: string
+  status?: AlertStatus
+  riskLevel?: AlertRiskLevel
+  riskScore?: number | null
+  fatigueScore?: number | null
+  distractionScore?: number | null
+  triggerTime?: string | null
+  fleetId?: string | number | null
+  vehicleId?: string | number | null
+  driverId?: string | number | null
+  latestActionBy?: number | string | null
+  latestActionTime?: string | null
+  actionType?: string | null
+  remark?: string | null
+}
+
+export interface AlertRealtimeEnvelope {
+  eventType?: string
+  traceId?: string
+  data?: AlertRealtimePayload
+  type?: string
+  timestamp?: string
+  payload?: AlertRealtimePayload
+}
+
+export interface NormalizedAlertRealtimeEvent {
+  eventType: AlertRealtimeEventType
+  traceId?: string
+  alertId: number
+  eventAt?: string
+  dedupeKey: string
+  payload: AlertRealtimePayload
 }
 
 export interface AlertDetail extends AlertSummary {
