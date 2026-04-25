@@ -33,3 +33,104 @@ body {
 #app {
   min-height: 100vh;
 }
+
+.page-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.94), rgba(233, 246, 241, 0.92));
+  box-shadow: 0 16px 28px rgba(14, 72, 64, 0.08);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.subhead {
+  margin: 10px 0 0;
+  color: var(--text-soft);
+  line-height: 1.7;
+}
+
+.head-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  border-radius: 18px;
+}
+
+.metric-card strong {
+  display: block;
+  margin-top: 12px;
+  font-size: 28px;
+  color: var(--brand-strong);
+}
+
+.metric-label {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.status-card {
+  border-radius: 18px;
+}
+
+.status-card .card-label {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.status-card strong {
+  display: block;
+  font-size: 24px;
+  color: var(--text-main);
+}
+
+.status-card p {
+  margin: 10px 0 0;
+  color: var(--text-soft);
+  line-height: 1.7;
+}
+
+.status-card span {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .page-head {
+    flex-direction: column;
+  }
+}

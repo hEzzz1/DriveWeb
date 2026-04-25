@@ -7,6 +7,9 @@ import AlertsListView from '../views/AlertsListView.vue'
 import AlertDetailView from '../views/AlertDetailView.vue'
 import TrendAnalysisView from '../views/TrendAnalysisView.vue'
 import RiskRankingView from '../views/RiskRankingView.vue'
+import RulesManagementView from '../views/RulesManagementView.vue'
+import AuditStatusView from '../views/AuditStatusView.vue'
+import SystemManagementView from '../views/SystemManagementView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -21,37 +24,55 @@ const router = createRouter({
       path: '/',
       name: 'realtime-overview',
       component: RealtimeOverviewView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
     },
     {
       path: '/session',
       name: 'auth-status',
       component: AuthStatusView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
     },
     {
       path: '/alerts',
       name: 'alerts-list',
       component: AlertsListView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
     },
     {
       path: '/alerts/:id',
       name: 'alert-detail',
       component: AlertDetailView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
     },
     {
       path: '/stats/trend',
       name: 'trend-analysis',
       component: TrendAnalysisView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
     },
     {
       path: '/stats/ranking',
       name: 'risk-ranking',
       component: RiskRankingView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
+    },
+    {
+      path: '/rules',
+      name: 'rules-management',
+      component: RulesManagementView,
+      meta: { requiresAuth: true, roles: ['ADMIN'] },
+    },
+    {
+      path: '/audit',
+      name: 'audit-status',
+      component: AuditStatusView,
+      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR'] },
+    },
+    {
+      path: '/system',
+      name: 'system-management',
+      component: SystemManagementView,
+      meta: { requiresAuth: true, roles: ['ADMIN'] },
     },
     {
       path: '/:pathMatch(.*)*',
@@ -75,6 +96,15 @@ router.beforeEach((to) => {
       name: 'login',
       query: { redirect: to.fullPath },
     }
+  }
+
+  const requiredRoles = Array.isArray(to.meta.roles) ? to.meta.roles : []
+
+  if (
+    requiredRoles.length &&
+    !requiredRoles.some((role) => authStore.hasRole(role))
+  ) {
+    return { name: 'realtime-overview' }
   }
 
   return true

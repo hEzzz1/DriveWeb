@@ -1,4 +1,5 @@
 export type UserRole = 'ADMIN' | 'OPERATOR' | 'VIEWER'
+export type SortOrder = 'ASC' | 'DESC'
 
 export interface ApiResponse<T> {
   code: number
@@ -17,6 +18,20 @@ export interface LoginData {
   expireAt: string
   roles: UserRole[]
 }
+
+export interface PageQuery {
+  page?: number
+  size?: number
+  sortBy?: string
+  sortOrder?: SortOrder
+}
+
+export interface PageResult<T> {
+  items: T[]
+  total: number
+  page: number
+  size: number
+ }
 
 export class ApiError extends Error {
   code: number

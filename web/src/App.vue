@@ -25,44 +25,51 @@ const navItems: NavItem[] = [
   {
     key: 'overview',
     label: '实时总览',
-    subtitle: '实时态势与连接',
+    subtitle: '实时态势、连接状态与风险概览',
     roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
     path: '/',
   },
   {
     key: 'alerts',
     label: '告警中心',
-    subtitle: '筛选与处置',
+    subtitle: '告警筛选、详情查看与处置',
     roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
     path: '/alerts',
   },
   {
     key: 'trend',
     label: '趋势分析',
-    subtitle: '多条件趋势洞察',
+    subtitle: '趋势洞察与波动分析',
     roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
     path: '/stats/trend',
   },
   {
     key: 'ranking',
     label: '风险排行',
-    subtitle: '车辆与司机排行',
+    subtitle: '车辆与司机风险排行',
     roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
     path: '/stats/ranking',
   },
   {
     key: 'rules',
     label: '规则管理',
-    subtitle: '规则配置与启停',
+    subtitle: '规则配置、发布与回滚',
     roles: ['ADMIN'],
-    path: undefined,
+    path: '/rules',
   },
   {
     key: 'audit',
     label: '审计状态',
-    subtitle: '审计与系统观测',
+    subtitle: '审计列表、详情与导出',
     roles: ['ADMIN', 'OPERATOR'],
-    path: undefined,
+    path: '/audit',
+  },
+  {
+    key: 'system',
+    label: '系统管理',
+    subtitle: '健康概览、链路状态与版本信息',
+    roles: ['ADMIN'],
+    path: '/system',
   },
 ]
 
@@ -191,11 +198,10 @@ function handleReconnect(): void {
           :key="item.key"
           class="nav-item"
           :class="{ active: item.key === activeNavKey }"
-          :disabled="!item.path"
           @click="handleNavigate(item)"
         >
           <span class="nav-label">{{ item.label }}</span>
-          <span class="nav-sub">{{ item.path ? item.subtitle : `${item.subtitle}（待开发）` }}</span>
+          <span class="nav-sub">{{ item.subtitle }}</span>
         </button>
       </aside>
 
