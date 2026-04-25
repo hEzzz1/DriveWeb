@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
   {
     key: 'overview',
     label: '实时总览',
-    subtitle: '系统状态与会话',
+    subtitle: '实时态势与连接',
     roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
     path: '/',
   },
@@ -37,11 +37,18 @@ const navItems: NavItem[] = [
     path: '/alerts',
   },
   {
-    key: 'stats',
-    label: '统计分析',
-    subtitle: '趋势与排行',
+    key: 'trend',
+    label: '趋势分析',
+    subtitle: '多条件趋势洞察',
     roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
-    path: undefined,
+    path: '/stats/trend',
+  },
+  {
+    key: 'ranking',
+    label: '风险排行',
+    subtitle: '车辆与司机排行',
+    roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
+    path: '/stats/ranking',
   },
   {
     key: 'rules',

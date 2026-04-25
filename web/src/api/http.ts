@@ -14,7 +14,7 @@ const http = axios.create({
 let tokenGetter: (() => string) | null = null
 let lastErrorToast = ''
 
-interface RequestConfig extends AxiosRequestConfig {
+export interface RequestConfig extends AxiosRequestConfig {
   silentError?: boolean
 }
 
