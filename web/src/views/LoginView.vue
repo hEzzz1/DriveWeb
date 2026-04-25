@@ -11,6 +11,7 @@ interface LoginFormModel {
 }
 
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+const proxyTarget = import.meta.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8080'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -39,6 +40,10 @@ const errorTitle = computed(() => {
 
   if (loginError.value.code === 40301) {
     return '当前账号无权限登录系统'
+  }
+
+  if (loginError.value.message.includes('无法连接')) {
+    return loginError.value.message
   }
 
   return loginError.value.message || '登录失败，请稍后重试'
@@ -140,6 +145,12 @@ async function handleSubmit(): Promise<void> {
               :closable="false"
               :title="errorTitle"
             >
+              <p
+                v-if="loginError.message.includes('无法连接')"
+                class="trace-id"
+              >
+                当前联调目标：{{ apiBaseURL.startsWith('/') ? proxyTarget : apiBaseURL }}
+              </p>
               <p v-if="loginError.traceId" class="trace-id">traceId: {{ loginError.traceId }}</p>
             </el-alert>
 

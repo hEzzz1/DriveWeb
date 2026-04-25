@@ -3,9 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20 <25"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "release": "vue-tsc -b && vite build --mode production",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -33,7 +37,7 @@
     "jsdom": "^29.0.1",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
-    "typescript": "~6.0.2",
+    "typescript": "~5.9.3",
     "vite": "^8.0.4",
     "vitest": "^4.1.2",
     "vue-tsc": "^3.2.6"

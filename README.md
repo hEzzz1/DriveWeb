@@ -5,6 +5,7 @@
 - Web前端界面功能设计文档：`docs/web-frontend-design.md`
 - 登录与鉴权联调文档：`docs/login-auth-guide.md`
 - 告警中心功能文档：`docs/alerts-feature-design.md`
+- Web 前端代码结构速查：`docs/web-code-structure.md`
 
 ## 项目结构
 - `docs/`：设计文档与说明文档。

@@ -4,6 +4,7 @@ import type { ApiResponse } from '../types/api'
 import { ApiError } from '../types/api'
 
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+const proxyTarget = import.meta.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8080'
 
 const http = axios.create({
   baseURL: apiBaseURL,
@@ -72,6 +73,12 @@ function normalizeError(error: unknown): ApiError {
 
     if (error.code === 'ECONNABORTED') {
       return new ApiError('请求超时，请稍后重试')
+    }
+
+    if (!error.response) {
+      const isRelativeApiBase = apiBaseURL.startsWith('/')
+      const targetText = isRelativeApiBase ? `开发代理或后端服务（${proxyTarget}）` : `后端服务（${apiBaseURL}）`
+      return new ApiError(`无法连接${targetText}，请确认服务已启动`)
     }
 
     return new ApiError('网络异常，请检查连接后重试')
