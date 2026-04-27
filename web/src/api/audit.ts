@@ -1,6 +1,6 @@
 import type {
   AuditDetail,
-  AuditExportParams,
+  AuditExportData,
   AuditFilter,
   AuditListData,
 } from '../types/audit'
@@ -21,8 +21,8 @@ export function getAuditDetail(id: number | string): Promise<AuditDetail> {
   })
 }
 
-export function exportAuditLogs(payload: AuditExportParams): Promise<{ downloadUrl?: string; taskId?: string }> {
-  return request<{ downloadUrl?: string; taskId?: string }>({
+export function exportAuditLogs(payload: AuditFilter): Promise<AuditExportData> {
+  return request<AuditExportData>({
     method: 'GET',
     url: '/audits/export',
     params: payload,

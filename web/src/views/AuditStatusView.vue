@@ -6,10 +6,11 @@ import AuditDetailDrawer from '../components/audit/AuditDetailDrawer.vue'
 import AuditFilterBar from '../components/audit/AuditFilterBar.vue'
 import AuditListTable from '../components/audit/AuditListTable.vue'
 import { exportAuditLogs, getAuditDetail, getAuditList } from '../api/audit'
-import { useAuthStore } from '../stores/auth'
+import { useAccess } from '../composables/useAccess'
 import type { AuditDetail, AuditFilter, AuditSummary } from '../types/audit'
+import { normalizeAuditDetail } from '../utils/audit'
 
-const authStore = useAuthStore()
+const access = useAccess()
 const loading = ref(false)
 const detailLoading = ref(false)
 const exportLoading = ref(false)
@@ -22,21 +23,22 @@ const detailVisible = ref(false)
 const activeDetail = ref<AuditDetail | null>(null)
 
 const filters = reactive<AuditFilter>({
+  module: undefined,
   startTime: undefined,
   endTime: undefined,
   actionType: undefined,
-  operator: '',
   targetType: undefined,
-  result: undefined,
+  targetId: undefined,
+  actionBy: undefined,
 })
 
 const summaryItems = computed(() => [
   { label: '审计总量', value: total.value },
-  { label: '成功记录', value: items.value.filter((item) => item.result === 'SUCCESS').length },
-  { label: '失败记录', value: items.value.filter((item) => item.result === 'FAILED').length },
+  { label: '用户域记录', value: items.value.filter((item) => item.module === 'USER').length },
+  { label: '企业域记录', value: items.value.filter((item) => item.module === 'ENTERPRISE').length },
   { label: '当前页', value: currentPage.value },
 ])
-const canExport = computed(() => authStore.canExportAudit())
+const canExport = computed(() => access.value.canExportSystemAudit)
 
 onMounted(async () => {
   await fetchList()
@@ -71,10 +73,11 @@ async function handleSearch(): Promise<void> {
 async function handleReset(): Promise<void> {
   filters.startTime = undefined
   filters.endTime = undefined
+  filters.module = undefined
   filters.actionType = undefined
-  filters.operator = ''
   filters.targetType = undefined
-  filters.result = undefined
+  filters.targetId = undefined
+  filters.actionBy = undefined
   currentPage.value = 1
   pageSize.value = 10
   await fetchList()
@@ -85,7 +88,7 @@ async function handleOpenDetail(row: AuditSummary): Promise<void> {
   detailLoading.value = true
 
   try {
-    activeDetail.value = await getAuditDetail(row.id)
+    activeDetail.value = normalizeAuditDetail(await getAuditDetail(row.id))
   } finally {
     detailLoading.value = false
   }
@@ -99,11 +102,8 @@ async function handleExport(): Promise<void> {
   exportLoading.value = true
 
   try {
-    const result = await exportAuditLogs({
-      ...filters,
-      format: 'CSV',
-    })
-    ElMessage.success(result.downloadUrl ? '导出任务已生成下载地址' : '导出任务已提交')
+    const result = await exportAuditLogs({ ...filters })
+    ElMessage.success(`审计导出完成，共 ${result.total} 条`)
   } finally {
     exportLoading.value = false
   }
@@ -127,7 +127,7 @@ async function handleSizeChange(size: number): Promise<void> {
       <div>
         <p class="eyebrow">Audit</p>
         <h1>审计日志</h1>
-        <p class="subhead">集中查看操作留痕、链路状态和关联对象，支持按条件导出。</p>
+        <p class="subhead">已对齐 DriveServer 的系统审计模型，支持按模块、动作、对象和操作人过滤，并可下钻查看结构化 before/after 明细。</p>
       </div>
     </div>
 
@@ -138,7 +138,7 @@ async function handleSizeChange(size: number): Promise<void> {
       </el-card>
     </section>
 
-    <PageSectionCard title="筛选条件" description="支持按时间、操作类型、操作人、对象类型和结果过滤。">
+    <PageSectionCard title="筛选条件" description="支持按时间、模块、动作编码、对象类型、对象 ID 和操作人 ID 过滤。">
       <template #actions>
         <el-button v-if="canExport" :loading="exportLoading" type="success" @click="handleExport">导出记录</el-button>
       </template>

@@ -12,13 +12,15 @@ import RulesManagementView from '../views/RulesManagementView.vue'
 import AuditStatusView from '../views/AuditStatusView.vue'
 import SystemManagementView from '../views/SystemManagementView.vue'
 import UserManagementView from '../views/UserManagementView.vue'
+import EnterpriseManagementView from '../views/EnterpriseManagementView.vue'
 
 const OPS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
 const ANALYSIS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST']
 const RULE_ROLES: UserRole[] = ['SUPER_ADMIN', 'RISK_ADMIN']
 const SYSTEM_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN']
-const USER_ADMIN_ROLES: UserRole[] = ['SUPER_ADMIN']
-const ALL_AUTH_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN', 'RISK_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
+const USER_ADMIN_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN']
+const ENTERPRISE_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN']
+const ALL_AUTH_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'SYS_ADMIN', 'RISK_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
 
 const router = createRouter({
   history: createWebHistory(),
@@ -104,6 +106,12 @@ const router = createRouter({
       name: 'user-management',
       component: UserManagementView,
       meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+    },
+    {
+      path: '/enterprises',
+      name: 'enterprise-management',
+      component: EnterpriseManagementView,
+      meta: { requiresAuth: true, roles: ENTERPRISE_ROLES },
     },
     {
       path: '/:pathMatch(.*)*',

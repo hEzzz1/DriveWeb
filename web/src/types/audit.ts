@@ -1,84 +1,91 @@
 import type { PageQuery, PageResult } from './api'
 
-export type AuditActionType = 'CREATE' | 'UPDATE' | 'ENABLE' | 'DISABLE' | 'PUBLISH' | 'ROLLBACK' | 'EXPORT'
-export type AuditTargetType = 'RULE' | 'SYSTEM' | 'ALGORITHM' | 'USER'
-export type AuditResult = 'SUCCESS' | 'PARTIAL_SUCCESS' | 'FAILED'
+export type AuditModule = 'SYSTEM' | 'RULE' | 'USER' | 'ENTERPRISE' | string
+export type AuditTargetType = 'RULE' | 'SYSTEM' | 'AUDIT' | 'USER' | 'ENTERPRISE' | string
+export type AuditResult = 'SUCCESS' | 'PARTIAL_SUCCESS' | 'FAILED' | string
 
 export interface AuditFilter extends PageQuery {
+  module?: AuditModule
+  actionType?: string
+  targetType?: AuditTargetType
+  targetId?: string
+  actionBy?: number
   startTime?: string
   endTime?: string
-  actionType?: AuditActionType
-  operator?: string
-  targetType?: AuditTargetType
-  result?: AuditResult
 }
 
 export interface AuditSummary {
   id: number
-  traceId: string
-  actionType: AuditActionType
-  operator: string
-  targetType: AuditTargetType
-  targetName: string
-  result: AuditResult
-  occurredAt: string
+  operatorId: number
+  operatorName: string
+  module: AuditModule
+  action: string
+  targetId?: string
+  actionType: string
+  actionBy: number
+  actionTime: string
+  actionTargetType: AuditTargetType
+  actionTargetId?: string
+  actionResult: AuditResult
+  actionRemark?: string
+  traceId?: string
+  ip?: string
+  userAgent?: string
 }
 
-export interface AuditChangeSnapshot {
-  before?: string
-  after?: string
-  summary?: string
+export interface AuditJsonSnapshot {
+  [key: string]: unknown
 }
 
-export interface AuditLinkInfo {
-  requestId?: string
-  messageId?: string
-  websocketSessionId?: string
-  latencyMs?: number
-  downstreamStatus?: string
+export interface UserChangeAuditItem {
+  operatorUserId?: number
+  operatorRoles?: string[]
+  operatorEnterpriseId?: number | null
+  targetType?: 'USER'
+  targetId?: number | string
+  targetEnterpriseId?: number | null
+  before?: AuditJsonSnapshot
+  after?: AuditJsonSnapshot
 }
 
-export interface AuditRelatedObject {
-  objectId: string
-  objectType: AuditTargetType
-  objectName: string
-  version?: string
+export interface EnterpriseChangeAuditItem {
+  operatorUserId?: number
+  operatorRoles?: string[]
+  operatorEnterpriseId?: number | null
+  targetType?: 'ENTERPRISE'
+  targetId?: number | string
+  targetEnterpriseId?: number | null
+  before?: AuditJsonSnapshot
+  after?: AuditJsonSnapshot
 }
 
 export interface AuditDetail extends AuditSummary {
-  description?: string
-  change: AuditChangeSnapshot
-  linkInfo?: AuditLinkInfo
-  relatedObjects: AuditRelatedObject[]
+  detailJson?: string
+  createdAt?: string
+  parsedDetail?: AuditJsonSnapshot | UserChangeAuditItem | EnterpriseChangeAuditItem | null
 }
 
 export type AuditListData = PageResult<AuditSummary>
 
-export interface AuditExportParams {
-  startTime?: string
-  endTime?: string
-  actionType?: AuditActionType
-  operator?: string
-  targetType?: AuditTargetType
-  result?: AuditResult
-  format?: 'CSV' | 'XLSX'
+export interface AuditExportData {
+  exportedAt: string
+  total: number
+  items: AuditSummary[]
 }
 
-export const auditActionOptions: Array<{ label: string; value: AuditActionType }> = [
-  { label: '创建', value: 'CREATE' },
-  { label: '更新', value: 'UPDATE' },
-  { label: '启用', value: 'ENABLE' },
-  { label: '停用', value: 'DISABLE' },
-  { label: '发布', value: 'PUBLISH' },
-  { label: '回滚', value: 'ROLLBACK' },
-  { label: '导出', value: 'EXPORT' },
+export const auditModuleOptions: Array<{ label: string; value: AuditModule }> = [
+  { label: '系统', value: 'SYSTEM' },
+  { label: '规则', value: 'RULE' },
+  { label: '用户', value: 'USER' },
+  { label: '企业', value: 'ENTERPRISE' },
 ]
 
 export const auditTargetOptions: Array<{ label: string; value: AuditTargetType }> = [
   { label: '规则', value: 'RULE' },
   { label: '系统', value: 'SYSTEM' },
-  { label: '算法', value: 'ALGORITHM' },
+  { label: '审计', value: 'AUDIT' },
   { label: '用户', value: 'USER' },
+  { label: '企业', value: 'ENTERPRISE' },
 ]
 
 export const auditResultOptions: Array<{ label: string; value: AuditResult }> = [

@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { LoginRequest, UserRole } from '../types/api'
-import { login as loginApi } from '../api/auth'
+import type { CurrentUserData, LoginRequest, UserRole } from '../types/api'
+import { getCurrentUser, login as loginApi } from '../api/auth'
 import {
   AUTH_STORAGE_KEY,
   formatExpiryLocal,
@@ -13,6 +13,7 @@ import { setAuthTokenGetter } from '../api/http'
 
 const ROLE_PRIORITY: UserRole[] = [
   'SUPER_ADMIN',
+  'ENTERPRISE_ADMIN',
   'SYS_ADMIN',
   'RISK_ADMIN',
   'OPERATOR',
@@ -22,9 +23,15 @@ const ROLE_PRIORITY: UserRole[] = [
 
 export const useAuthStore = defineStore('auth', () => {
   const username = ref('')
+  const nickname = ref('')
   const token = ref('')
   const expireAt = ref('')
   const roles = ref<UserRole[]>([])
+  const userId = ref<number | string | null>(null)
+  const enterpriseId = ref<number | string | null>(null)
+  const enterpriseName = ref('')
+  const subjectType = ref('')
+  const enabled = ref(false)
   const hydrated = ref(false)
 
   setAuthTokenGetter(() => token.value)
@@ -39,13 +46,21 @@ export const useAuthStore = defineStore('auth', () => {
   })
   const primaryRole = computed(() => ROLE_PRIORITY.find((role) => roles.value.includes(role)) || null)
   const isSuperAdmin = computed(() => roles.value.includes('SUPER_ADMIN'))
+  const isEnterpriseAdmin = computed(() => roles.value.includes('ENTERPRISE_ADMIN'))
+  const isUserAdmin = computed(() => isSuperAdmin.value || isEnterpriseAdmin.value)
 
   function persist(): void {
     const payload: PersistedAuth = {
       username: username.value,
+      nickname: nickname.value || undefined,
       token: token.value,
       expireAt: expireAt.value,
       roles: roles.value,
+      userId: userId.value ?? undefined,
+      enterpriseId: enterpriseId.value ?? undefined,
+      enterpriseName: enterpriseName.value || undefined,
+      subjectType: subjectType.value || undefined,
+      enabled: enabled.value,
     }
 
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload))
@@ -53,9 +68,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   function clear(): void {
     username.value = ''
+    nickname.value = ''
     token.value = ''
     expireAt.value = ''
     roles.value = []
+    userId.value = null
+    enterpriseId.value = null
+    enterpriseName.value = ''
+    subjectType.value = ''
+    enabled.value = false
     localStorage.removeItem(AUTH_STORAGE_KEY)
   }
 
@@ -75,9 +96,15 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const parsed = JSON.parse(raw) as PersistedAuth
       username.value = parsed.username
+      nickname.value = parsed.nickname || ''
       token.value = parsed.token
       expireAt.value = parsed.expireAt
       roles.value = (parsed.roles || []).filter(isRole) as UserRole[]
+      userId.value = parsed.userId ?? null
+      enterpriseId.value = parsed.enterpriseId ?? null
+      enterpriseName.value = parsed.enterpriseName || ''
+      subjectType.value = parsed.subjectType || ''
+      enabled.value = Boolean(parsed.enabled)
 
       if (!isAuthenticated.value) {
         clear()
@@ -93,7 +120,29 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = data.token
     expireAt.value = data.expireAt
     roles.value = (data.roles || []).filter(isRole) as UserRole[]
+    await syncCurrentUser()
     persist()
+  }
+
+  async function syncCurrentUser(): Promise<void> {
+    if (!token.value) {
+      return
+    }
+
+    const data = await getCurrentUser()
+    applyCurrentUser(data)
+    persist()
+  }
+
+  function applyCurrentUser(data: CurrentUserData): void {
+    userId.value = data.userId
+    username.value = data.username
+    nickname.value = data.nickname || ''
+    roles.value = (data.roles || []).filter(isRole) as UserRole[]
+    enterpriseId.value = data.enterpriseId ?? null
+    enterpriseName.value = data.enterpriseName || ''
+    subjectType.value = data.subjectType || ''
+    enabled.value = Boolean(data.enabled)
   }
 
   function logout(): void {
@@ -111,6 +160,10 @@ export const useAuthStore = defineStore('auth', () => {
   function getDefaultRoute(): string {
     if (isSuperAdmin.value) {
       return '/'
+    }
+
+    if (isEnterpriseAdmin.value) {
+      return '/users'
     }
 
     if (hasAnyRole(['SYS_ADMIN'])) {
@@ -145,14 +198,24 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function canManageUsers(): boolean {
-    return hasAnyRole(['SUPER_ADMIN'])
+    return hasAnyRole(['SUPER_ADMIN', 'ENTERPRISE_ADMIN'])
+  }
+
+  function canReadEnterprises(): boolean {
+    return hasAnyRole(['SUPER_ADMIN', 'SYS_ADMIN', 'ENTERPRISE_ADMIN'])
   }
 
   return {
     username,
+    nickname,
     token,
     expireAt,
     roles,
+    userId,
+    enterpriseId,
+    enterpriseName,
+    subjectType,
+    enabled,
     hydrated,
     isAuthenticated,
     roleText,
@@ -161,8 +224,11 @@ export const useAuthStore = defineStore('auth', () => {
     willExpireSoon,
     primaryRole,
     isSuperAdmin,
+    isEnterpriseAdmin,
+    isUserAdmin,
     hydrate,
     login,
+    syncCurrentUser,
     logout,
     hasRole,
     hasAnyRole,
@@ -172,6 +238,7 @@ export const useAuthStore = defineStore('auth', () => {
     canExportAudit,
     canManageSystem,
     canManageUsers,
+    canReadEnterprises,
   }
 })
 

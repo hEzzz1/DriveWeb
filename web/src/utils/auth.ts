@@ -2,9 +2,15 @@ export const AUTH_STORAGE_KEY = 'driveweb.auth'
 
 export interface PersistedAuth {
   username: string
+  nickname?: string
   token: string
   expireAt: string
   roles: string[]
+  userId?: number | string
+  enterpriseId?: number | string
+  enterpriseName?: string
+  subjectType?: string
+  enabled?: boolean
 }
 
 export function isTokenExpired(expireAt: string): boolean {

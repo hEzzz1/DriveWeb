@@ -99,7 +99,7 @@ async function handleSubmit(): Promise<void> {
         <ul class="spec-list">
           <li>登录接口：<code>POST {{ apiBaseURL }}/auth/login</code></li>
           <li>统一响应：<code>code/message/data/traceId</code></li>
-          <li>角色模型：<code>SUPER_ADMIN / SYS_ADMIN / RISK_ADMIN / OPERATOR / ANALYST / VIEWER</code></li>
+          <li>角色模型：<code>SUPER_ADMIN / ENTERPRISE_ADMIN / SYS_ADMIN / RISK_ADMIN / OPERATOR / ANALYST / VIEWER</code></li>
         </ul>
       </aside>
 

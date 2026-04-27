@@ -1,5 +1,6 @@
 export type UserRole =
   | 'SUPER_ADMIN'
+  | 'ENTERPRISE_ADMIN'
   | 'SYS_ADMIN'
   | 'RISK_ADMIN'
   | 'OPERATOR'
@@ -23,6 +24,17 @@ export interface LoginData {
   token: string
   expireAt: string
   roles: UserRole[]
+}
+
+export interface CurrentUserData {
+  userId: number
+  username: string
+  nickname?: string
+  roles: UserRole[]
+  enterpriseId?: number | null
+  enterpriseName?: string | null
+  subjectType?: string
+  enabled: boolean
 }
 
 export interface PageQuery {

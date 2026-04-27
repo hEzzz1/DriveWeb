@@ -10,6 +10,7 @@ const apiBaseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 const roleDescMap: Record<UserRole, string> = {
   SUPER_ADMIN: '可访问全部域并执行全部动作。',
+  ENTERPRISE_ADMIN: '仅可管理本企业用户，不能跨企业分配高权限角色。',
   SYS_ADMIN: '可访问审计日志与系统运维域。',
   RISK_ADMIN: '可访问规则管理并执行规则变更。',
   OPERATOR: '可查看运营工作台并执行告警处置。',
@@ -70,7 +71,12 @@ const expireInfo = computed(() => {
           <div class="card-title">会话信息</div>
         </template>
         <p><span>当前用户</span>{{ authStore.username || '-' }}</p>
+        <p><span>昵称</span>{{ authStore.nickname || '-' }}</p>
+        <p><span>用户 ID</span>{{ authStore.userId ?? '-' }}</p>
         <p><span>角色</span>{{ authStore.roleText }}</p>
+        <p><span>所属企业</span>{{ authStore.enterpriseName || authStore.enterpriseId || '-' }}</p>
+        <p><span>主体类型</span>{{ authStore.subjectType || '-' }}</p>
+        <p><span>账号状态</span>{{ authStore.enabled ? '启用中' : '已禁用' }}</p>
         <p><span>过期时间</span>{{ authStore.expireAtText }}</p>
         <p><span>剩余时长</span>{{ expireInfo }}</p>
       </el-card>

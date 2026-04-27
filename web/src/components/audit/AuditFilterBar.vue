@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
-import { auditActionOptions, auditResultOptions, auditTargetOptions, type AuditFilter } from '../../types/audit'
+import { auditModuleOptions, auditTargetOptions, type AuditFilter } from '../../types/audit'
 
 const props = defineProps<{
   modelValue: AuditFilter
@@ -17,19 +17,21 @@ const emit = defineEmits<{
 
 const localModel = reactive({
   timeRange: [] as [Date, Date] | [],
+  module: undefined as AuditFilter['module'],
   actionType: undefined as AuditFilter['actionType'],
-  operator: '',
+  targetId: '',
+  actionBy: undefined as number | undefined,
   targetType: undefined as AuditFilter['targetType'],
-  result: undefined as AuditFilter['result'],
 })
 
 watch(
   () => props.modelValue,
   (value) => {
+    localModel.module = value.module
     localModel.actionType = value.actionType
-    localModel.operator = value.operator || ''
+    localModel.targetId = value.targetId || ''
+    localModel.actionBy = value.actionBy
     localModel.targetType = value.targetType
-    localModel.result = value.result
     if (value.startTime && value.endTime) {
       localModel.timeRange = [new Date(value.startTime), new Date(value.endTime)]
       return
@@ -44,10 +46,11 @@ function syncModel(): void {
     ...props.modelValue,
     startTime: localModel.timeRange.length === 2 ? localModel.timeRange[0].toISOString() : undefined,
     endTime: localModel.timeRange.length === 2 ? localModel.timeRange[1].toISOString() : undefined,
+    module: localModel.module,
     actionType: localModel.actionType,
-    operator: localModel.operator.trim() || undefined,
+    targetId: localModel.targetId.trim() || undefined,
+    actionBy: localModel.actionBy,
     targetType: localModel.targetType,
-    result: localModel.result,
   })
 }
 
@@ -66,16 +69,15 @@ function handleSearch(): void {
       end-placeholder="结束时间"
       range-separator="至"
     />
-    <el-select v-model="localModel.actionType" clearable placeholder="操作类型">
-      <el-option v-for="item in auditActionOptions" :key="item.value" :label="item.label" :value="item.value" />
+    <el-select v-model="localModel.module" clearable placeholder="模块">
+      <el-option v-for="item in auditModuleOptions" :key="item.value" :label="item.label" :value="item.value" />
     </el-select>
-    <el-input v-model="localModel.operator" clearable placeholder="操作人" @keyup.enter="handleSearch" />
+    <el-input v-model="localModel.actionType" clearable placeholder="动作编码" @keyup.enter="handleSearch" />
     <el-select v-model="localModel.targetType" clearable placeholder="对象类型">
       <el-option v-for="item in auditTargetOptions" :key="item.value" :label="item.label" :value="item.value" />
     </el-select>
-    <el-select v-model="localModel.result" clearable placeholder="结果">
-      <el-option v-for="item in auditResultOptions" :key="item.value" :label="item.label" :value="item.value" />
-    </el-select>
+    <el-input v-model="localModel.targetId" clearable placeholder="对象 ID" @keyup.enter="handleSearch" />
+    <el-input-number v-model="localModel.actionBy" :min="1" controls-position="right" placeholder="操作人 ID" />
     <div class="actions">
       <el-button :loading="loading" type="primary" @click="handleSearch">查询</el-button>
       <el-button @click="emit('reset')">重置</el-button>
@@ -87,7 +89,7 @@ function handleSearch(): void {
 <style scoped>
 .filter-bar {
   display: grid;
-  grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: 1.4fr repeat(5, minmax(0, 1fr)) auto;
   gap: 12px;
   align-items: center;
 }

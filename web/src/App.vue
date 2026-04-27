@@ -2,43 +2,45 @@
 import { computed, onBeforeUnmount, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
+import { useAccess } from './composables/useAccess'
 import { useAuthStore } from './stores/auth'
 import { useRealtimeStore } from './stores/realtime'
 import { formatDateTime } from './utils/alerts'
-import type { UserRole } from './types/api'
 
 interface NavItem {
   key: string
   section: 'ops' | 'risk' | 'system'
   label: string
   subtitle: string
-  roles: UserRole[]
+  visible: boolean
   path?: string
 }
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const access = useAccess()
 const realtimeStore = useRealtimeStore()
 authStore.hydrate()
 
-const navItems: NavItem[] = [
-  { key: 'overview', section: 'ops', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', roles: ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER'], path: '/' },
-  { key: 'alerts', section: 'ops', label: '告警中心', subtitle: '告警筛选、详情查看与处置', roles: ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER'], path: '/alerts' },
-  { key: 'trend', section: 'ops', label: '趋势分析', subtitle: '趋势洞察与波动分析', roles: ['SUPER_ADMIN', 'OPERATOR', 'ANALYST'], path: '/stats/trend' },
-  { key: 'ranking', section: 'ops', label: '风险排行', subtitle: '车辆与司机风险排行', roles: ['SUPER_ADMIN', 'OPERATOR', 'ANALYST'], path: '/stats/ranking' },
-  { key: 'rules', section: 'risk', label: '规则管理', subtitle: '规则配置、发布与回滚', roles: ['SUPER_ADMIN', 'RISK_ADMIN'], path: '/rules' },
-  { key: 'audit', section: 'system', label: '审计日志', subtitle: '审计列表、详情与导出', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/audit' },
-  { key: 'health', section: 'system', label: '系统健康', subtitle: '健康概览与监控摘要', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/system/health' },
-  { key: 'services', section: 'system', label: '服务状态', subtitle: '服务探测状态与最近检查时间', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/system/services' },
-  { key: 'version', section: 'system', label: '版本信息', subtitle: '应用版本、构建时间与提交号', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/system/version' },
-  { key: 'users', section: 'system', label: '用户管理', subtitle: '账号检索、角色分配与启停控制', roles: ['SUPER_ADMIN'], path: '/users' },
-]
+const navItems = computed<NavItem[]>(() => [
+  { key: 'overview', section: 'ops', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/' },
+  { key: 'alerts', section: 'ops', label: '告警中心', subtitle: '告警筛选、详情查看与处置', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/alerts' },
+  { key: 'trend', section: 'ops', label: '趋势分析', subtitle: '趋势洞察与波动分析', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/trend' },
+  { key: 'ranking', section: 'ops', label: '风险排行', subtitle: '车辆与司机风险排行', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/ranking' },
+  { key: 'rules', section: 'risk', label: '规则管理', subtitle: '规则配置、发布与回滚', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'RISK_ADMIN']), path: '/rules' },
+  { key: 'audit', section: 'system', label: '审计日志', subtitle: '审计列表、详情与导出', visible: access.value.canViewSystemAudit, path: '/audit' },
+  { key: 'health', section: 'system', label: '系统健康', subtitle: '健康概览与监控摘要', visible: access.value.canViewSystemHealth, path: '/system/health' },
+  { key: 'services', section: 'system', label: '服务状态', subtitle: '服务探测状态与最近检查时间', visible: access.value.canViewServiceStatus, path: '/system/services' },
+  { key: 'version', section: 'system', label: '版本信息', subtitle: '应用版本、构建时间与提交号', visible: access.value.canViewVersionInfo, path: '/system/version' },
+  { key: 'users', section: 'system', label: '用户管理', subtitle: '账号、角色、密码和用户审计模块', visible: access.value.canViewUsers, path: '/users' },
+  { key: 'enterprises', section: 'system', label: '企业管理', subtitle: '企业列表、详情、状态和企业审计模块', visible: access.value.canViewEnterprises, path: '/enterprises' },
+])
 
 const isPublicPage = computed(() => Boolean(route.meta.public))
 const visibleNavItems = computed(() => {
-  const availableItems = navItems.filter((item) => hasMenuAccess(item.roles))
-  return availableItems.length ? availableItems : navItems.slice(0, 1)
+  const availableItems = navItems.value.filter((item) => item.visible)
+  return availableItems.length ? availableItems : navItems.value.slice(0, 1)
 })
 const activeNavKey = computed(
   () =>
@@ -91,10 +93,6 @@ watch(
 onBeforeUnmount(() => {
   realtimeStore.disconnect()
 })
-
-function hasMenuAccess(roles: UserRole[]): boolean {
-  return authStore.hasAnyRole(roles)
-}
 
 async function handleLogout(): Promise<void> {
   try {
