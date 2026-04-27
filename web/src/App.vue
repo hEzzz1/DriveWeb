@@ -32,6 +32,7 @@ const navItems: NavItem[] = [
   { key: 'health', section: 'system', label: '系统健康', subtitle: '健康概览与监控摘要', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/system/health' },
   { key: 'services', section: 'system', label: '服务状态', subtitle: '服务探测状态与最近检查时间', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/system/services' },
   { key: 'version', section: 'system', label: '版本信息', subtitle: '应用版本、构建时间与提交号', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/system/version' },
+  { key: 'users', section: 'system', label: '用户管理', subtitle: '账号检索、角色分配与启停控制', roles: ['SUPER_ADMIN'], path: '/users' },
 ]
 
 const isPublicPage = computed(() => Boolean(route.meta.public))

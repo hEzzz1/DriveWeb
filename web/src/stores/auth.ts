@@ -144,6 +144,10 @@ export const useAuthStore = defineStore('auth', () => {
     return hasAnyRole(['SYS_ADMIN'])
   }
 
+  function canManageUsers(): boolean {
+    return hasAnyRole(['SUPER_ADMIN'])
+  }
+
   return {
     username,
     token,
@@ -167,6 +171,7 @@ export const useAuthStore = defineStore('auth', () => {
     canManageRules,
     canExportAudit,
     canManageSystem,
+    canManageUsers,
   }
 })
 
