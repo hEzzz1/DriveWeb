@@ -1,4 +1,10 @@
-export type UserRole = 'ADMIN' | 'OPERATOR' | 'VIEWER'
+export type UserRole =
+  | 'SUPER_ADMIN'
+  | 'SYS_ADMIN'
+  | 'RISK_ADMIN'
+  | 'OPERATOR'
+  | 'ANALYST'
+  | 'VIEWER'
 export type SortOrder = 'ASC' | 'DESC'
 
 export interface ApiResponse<T> {

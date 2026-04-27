@@ -78,7 +78,7 @@ const statusOptions = [
 ]
 
 const totalText = computed(() => `共 ${total.value} 条告警`)
-const canDispose = computed(() => authStore.hasRole('ADMIN') || authStore.hasRole('OPERATOR'))
+const canDispose = computed(() => authStore.canDisposeAlerts())
 
 onMounted(async () => {
   hydrateFromRoute()

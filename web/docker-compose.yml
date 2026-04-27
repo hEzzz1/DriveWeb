@@ -1,0 +1,9 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: driveweb-frontend
+    ports:
+      - "80:80"
+    restart: unless-stopped

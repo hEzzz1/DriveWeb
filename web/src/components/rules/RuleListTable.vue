@@ -8,6 +8,7 @@ const props = defineProps<{
   total: number
   page: number
   size: number
+  canManage?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -58,7 +59,7 @@ const scopeLabelMap = computed(() =>
       </el-table-column>
       <el-table-column prop="updatedBy" label="更新人" width="120" />
       <el-table-column prop="updatedAt" label="更新时间" min-width="180" />
-      <el-table-column label="操作" fixed="right" min-width="250">
+      <el-table-column v-if="canManage" label="操作" fixed="right" min-width="250">
         <template #default="{ row }">
           <div class="row-actions">
             <el-button link type="primary" @click="emit('edit', row)">编辑</el-button>

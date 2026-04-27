@@ -11,6 +11,7 @@ const props = defineProps<{
   loading?: boolean
   versions: RuleVersionSummary[]
   activeRule?: RuleSummary | null
+  canRollback?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -51,7 +52,7 @@ const timelineItems = computed(() => [...props.versions])
               <p>{{ item.changeSummary || '无变更摘要' }}</p>
               <p>创建人：{{ item.createdBy }}</p>
               <p v-if="item.publishedAt">发布时间：{{ item.publishedAt }}</p>
-              <el-button link type="primary" @click="emit('rollback', item)">回滚到此版本</el-button>
+              <el-button v-if="canRollback" link type="primary" @click="emit('rollback', item)">回滚到此版本</el-button>
             </div>
           </el-timeline-item>
         </el-timeline>

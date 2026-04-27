@@ -9,6 +9,7 @@ import type { UserRole } from './types/api'
 
 interface NavItem {
   key: string
+  section: 'ops' | 'risk' | 'system'
   label: string
   subtitle: string
   roles: UserRole[]
@@ -22,55 +23,15 @@ const realtimeStore = useRealtimeStore()
 authStore.hydrate()
 
 const navItems: NavItem[] = [
-  {
-    key: 'overview',
-    label: '实时总览',
-    subtitle: '实时态势、连接状态与风险概览',
-    roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
-    path: '/',
-  },
-  {
-    key: 'alerts',
-    label: '告警中心',
-    subtitle: '告警筛选、详情查看与处置',
-    roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
-    path: '/alerts',
-  },
-  {
-    key: 'trend',
-    label: '趋势分析',
-    subtitle: '趋势洞察与波动分析',
-    roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
-    path: '/stats/trend',
-  },
-  {
-    key: 'ranking',
-    label: '风险排行',
-    subtitle: '车辆与司机风险排行',
-    roles: ['ADMIN', 'OPERATOR', 'VIEWER'],
-    path: '/stats/ranking',
-  },
-  {
-    key: 'rules',
-    label: '规则管理',
-    subtitle: '规则配置、发布与回滚',
-    roles: ['ADMIN'],
-    path: '/rules',
-  },
-  {
-    key: 'audit',
-    label: '审计状态',
-    subtitle: '审计列表、详情与导出',
-    roles: ['ADMIN', 'OPERATOR'],
-    path: '/audit',
-  },
-  {
-    key: 'system',
-    label: '系统管理',
-    subtitle: '健康概览、链路状态与版本信息',
-    roles: ['ADMIN'],
-    path: '/system',
-  },
+  { key: 'overview', section: 'ops', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', roles: ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER'], path: '/' },
+  { key: 'alerts', section: 'ops', label: '告警中心', subtitle: '告警筛选、详情查看与处置', roles: ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER'], path: '/alerts' },
+  { key: 'trend', section: 'ops', label: '趋势分析', subtitle: '趋势洞察与波动分析', roles: ['SUPER_ADMIN', 'OPERATOR', 'ANALYST'], path: '/stats/trend' },
+  { key: 'ranking', section: 'ops', label: '风险排行', subtitle: '车辆与司机风险排行', roles: ['SUPER_ADMIN', 'OPERATOR', 'ANALYST'], path: '/stats/ranking' },
+  { key: 'rules', section: 'risk', label: '规则管理', subtitle: '规则配置、发布与回滚', roles: ['SUPER_ADMIN', 'RISK_ADMIN'], path: '/rules' },
+  { key: 'audit', section: 'system', label: '审计日志', subtitle: '审计列表、详情与导出', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/audit' },
+  { key: 'health', section: 'system', label: '系统健康', subtitle: '健康概览与监控摘要', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/system/health' },
+  { key: 'services', section: 'system', label: '服务状态', subtitle: '服务探测状态与最近检查时间', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/system/services' },
+  { key: 'version', section: 'system', label: '版本信息', subtitle: '应用版本、构建时间与提交号', roles: ['SUPER_ADMIN', 'SYS_ADMIN'], path: '/system/version' },
 ]
 
 const isPublicPage = computed(() => Boolean(route.meta.public))
@@ -88,6 +49,14 @@ const activeNavKey = computed(
       return item.path === '/' ? route.path === '/' : route.path.startsWith(item.path)
     })?.key || '',
 )
+const currentNavItem = computed(
+  () => visibleNavItems.value.find((item) => item.key === activeNavKey.value) || visibleNavItems.value[0],
+)
+const navSections = computed(() => [
+  { key: 'ops', label: '运营工作台', items: visibleNavItems.value.filter((item) => item.section === 'ops') },
+  { key: 'risk', label: '风控配置台', items: visibleNavItems.value.filter((item) => item.section === 'risk') },
+  { key: 'system', label: '系统管理台', items: visibleNavItems.value.filter((item) => item.section === 'system') },
+].filter((section) => section.items.length))
 const showRealtimeStatus = computed(() => authStore.isAuthenticated && !isPublicPage.value)
 const realtimeHint = computed(() => {
   if (realtimeStore.status === 'connected' && realtimeStore.lastMessageAt) {
@@ -95,14 +64,14 @@ const realtimeHint = computed(() => {
   }
 
   if (realtimeStore.status === 'disconnected') {
-    return '实时更新已中断，可手动重连或刷新页面'
+    return '实时更新已中断'
   }
 
   if (realtimeStore.status === 'reconnecting') {
-    return '正在自动重连，不影响手动查询'
+    return '正在自动重连'
   }
 
-  return '告警列表与详情页会自动消费实时更新'
+  return '等待实时消息'
 })
 
 watch(
@@ -123,11 +92,7 @@ onBeforeUnmount(() => {
 })
 
 function hasMenuAccess(roles: UserRole[]): boolean {
-  if (authStore.hasRole('ADMIN')) {
-    return true
-  }
-
-  return roles.some((role) => authStore.hasRole(role))
+  return authStore.hasAnyRole(roles)
 }
 
 async function handleLogout(): Promise<void> {
@@ -162,39 +127,16 @@ function handleReconnect(): void {
   <RouterView v-if="isPublicPage" />
 
   <div v-else class="app-shell">
-    <header class="global-head">
-      <div class="brand-wrap">
+    <aside class="global-nav">
+      <div class="brand-panel">
         <p class="brand-mark">DriveWeb</p>
-        <h1>疲劳与分心风险运营平台</h1>
+        <strong>风控运营管理台</strong>
       </div>
 
-      <div class="user-wrap">
-        <div v-if="showRealtimeStatus" class="realtime-status">
-          <el-tag effect="plain" :type="realtimeStore.statusTagType">{{ realtimeStore.statusText }}</el-tag>
-          <p class="realtime-hint">{{ realtimeHint }}</p>
-          <el-button
-            v-if="realtimeStore.status !== 'connected'"
-            link
-            type="primary"
-            @click="handleReconnect"
-          >
-            重新连接
-          </el-button>
-        </div>
-
-        <div class="user-meta">
-          <p class="name">{{ authStore.username || '未登录用户' }}</p>
-          <p class="role">{{ authStore.roleText }}</p>
-        </div>
-        <el-button type="danger" plain @click="handleLogout">退出登录</el-button>
-      </div>
-    </header>
-
-    <div class="global-body">
-      <aside class="global-nav">
-        <p class="nav-title">导航</p>
+      <div v-for="section in navSections" :key="section.key" class="nav-group">
+        <p class="nav-title">{{ section.label }}</p>
         <button
-          v-for="item in visibleNavItems"
+          v-for="item in section.items"
           :key="item.key"
           class="nav-item"
           :class="{ active: item.key === activeNavKey }"
@@ -203,69 +145,221 @@ function handleReconnect(): void {
           <span class="nav-label">{{ item.label }}</span>
           <span class="nav-sub">{{ item.subtitle }}</span>
         </button>
-      </aside>
+      </div>
+
+      <div class="nav-foot">
+        <span>当前角色</span>
+        <strong>{{ authStore.roleText }}</strong>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <header class="global-head">
+        <div class="head-main">
+          <div class="head-breadcrumb">
+            <span>风控运营管理台</span>
+            <span class="separator">/</span>
+            <span>{{ currentNavItem?.label || '工作区' }}</span>
+          </div>
+          <div class="head-title">
+            <h1>{{ currentNavItem?.label || '风控运营管理台' }}</h1>
+            <p>{{ currentNavItem?.subtitle || '面向运营、风控与系统运维的分域管理前端。' }}</p>
+          </div>
+        </div>
+
+        <div class="user-wrap">
+          <div v-if="showRealtimeStatus" class="realtime-status">
+            <el-tag size="small" effect="plain" :type="realtimeStore.statusTagType">{{ realtimeStore.statusText }}</el-tag>
+            <span>{{ realtimeHint }}</span>
+            <el-button
+              v-if="realtimeStore.status !== 'connected'"
+              link
+              type="primary"
+              @click="handleReconnect"
+            >
+              重连
+            </el-button>
+          </div>
+
+          <div class="user-meta">
+            <p class="name">{{ authStore.username || '未登录用户' }}</p>
+            <p class="role">{{ authStore.roleText }}</p>
+          </div>
+          <el-button plain @click="handleLogout">退出</el-button>
+        </div>
+      </header>
 
       <main class="global-main">
         <RouterView />
       </main>
-    </div>
+    </section>
   </div>
 </template>
 
 <style scoped>
 .app-shell {
   min-height: 100vh;
-  padding: 14px;
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 14px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  background: #0f1720;
 }
 
-.global-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 22px;
-  border: 1px solid #d2e1de;
-  border-radius: 18px;
-  background: linear-gradient(110deg, rgba(240, 250, 246, 0.94), rgba(235, 244, 255, 0.92));
-  box-shadow: 0 14px 26px rgba(13, 66, 77, 0.08);
+.global-nav {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: 18px 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: #111827;
 }
 
-.brand-wrap h1 {
-  margin: 8px 0 0;
-  font-size: 24px;
-  line-height: 1.25;
-  color: #133a41;
+.brand-panel {
+  display: grid;
+  gap: 4px;
+  padding: 6px 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .brand-mark {
   margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #116b57;
-  font-weight: 700;
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.brand-panel strong {
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.nav-group {
+  display: grid;
+  gap: 6px;
+}
+
+.nav-title {
+  margin: 0 10px 4px;
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.nav-item {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.nav-item.active {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.34);
+}
+
+.nav-label {
+  color: rgba(241, 245, 249, 0.96);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.nav-sub {
+  color: rgba(148, 163, 184, 0.82);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.nav-foot {
+  margin-top: auto;
+  display: grid;
+  gap: 4px;
+  padding: 12px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nav-foot span {
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 12px;
+}
+
+.nav-foot strong {
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.workspace {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #f5f7fa;
+}
+
+.global-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 22px 14px;
+  background: #f5f7fa;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.head-main {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.head-breadcrumb {
+  display: flex;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.separator {
+  color: #9ca3af;
+}
+
+.head-title h1 {
+  margin: 0;
+  color: #111827;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.head-title p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .user-wrap {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .realtime-status {
-  min-width: 0;
-  display: grid;
-  justify-items: end;
-  gap: 4px;
-}
-
-.realtime-hint {
-  margin: 0;
-  font-size: 12px;
-  color: #5f7a81;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .user-meta {
@@ -274,115 +368,35 @@ function handleReconnect(): void {
 
 .name {
   margin: 0;
-  font-weight: 700;
-  color: #153a40;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .role {
   margin: 2px 0 0;
-  font-size: 13px;
-  color: #5d7a81;
-}
-
-.global-body {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 14px;
-}
-
-.global-nav {
-  border: 1px solid #d2e1de;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 16px 14px;
-  display: grid;
-  align-content: start;
-  gap: 8px;
-}
-
-.nav-title {
-  margin: 0 4px 10px;
-  color: #5f7a81;
-  font-size: 13px;
-  letter-spacing: 0.06em;
-}
-
-.nav-item {
-  border: 1px solid #dfebea;
-  background: #f8fbfb;
-  border-radius: 12px;
-  padding: 10px 12px;
-  text-align: left;
-  cursor: pointer;
-  display: grid;
-  gap: 3px;
-  transition: all 0.18s ease;
-}
-
-.nav-item:hover:not(:disabled) {
-  transform: translateY(-1px);
-  border-color: #b8d8d3;
-  background: #f0f8f6;
-}
-
-.nav-item.active {
-  border-color: #7bc4b6;
-  background: linear-gradient(140deg, #e8f7f3, #edf4ff);
-}
-
-.nav-item:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.nav-label {
-  font-weight: 700;
-  color: #164149;
-}
-
-.nav-sub {
+  color: #6b7280;
   font-size: 12px;
-  color: #617e85;
 }
 
 .global-main {
   min-width: 0;
-  min-height: 0;
-  border: 1px solid #d2e1de;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.78);
-  overflow: auto;
+  padding: 20px 22px 24px;
 }
 
-@media (max-width: 980px) {
-  .global-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .user-wrap {
-    width: 100%;
-    justify-content: space-between;
-    flex-wrap: wrap;
-  }
-
-  .user-meta {
-    text-align: left;
-  }
-
-  .realtime-status {
-    justify-items: start;
-    width: 100%;
-  }
-
-  .global-body {
+@media (max-width: 960px) {
+  .app-shell {
     grid-template-columns: 1fr;
   }
 
   .global-nav {
+    gap: 12px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .nav-group {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: stretch;
   }
 
   .nav-title {
@@ -390,22 +404,30 @@ function handleReconnect(): void {
   }
 }
 
-@media (max-width: 640px) {
-  .app-shell {
-    padding: 10px;
+@media (max-width: 720px) {
+  .global-head {
+    flex-direction: column;
   }
 
-  .global-head,
-  .global-main,
-  .global-nav {
-    border-radius: 14px;
+  .user-wrap {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .brand-wrap h1 {
-    font-size: 20px;
+  .user-meta {
+    text-align: left;
   }
 
-  .global-nav {
+  .realtime-status {
+    flex-wrap: wrap;
+  }
+
+  .global-main {
+    padding: 16px;
+  }
+
+  .nav-group {
     grid-template-columns: 1fr;
   }
 }

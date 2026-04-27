@@ -11,6 +11,15 @@ import {
 } from '../utils/auth'
 import { setAuthTokenGetter } from '../api/http'
 
+const ROLE_PRIORITY: UserRole[] = [
+  'SUPER_ADMIN',
+  'SYS_ADMIN',
+  'RISK_ADMIN',
+  'OPERATOR',
+  'ANALYST',
+  'VIEWER',
+]
+
 export const useAuthStore = defineStore('auth', () => {
   const username = ref('')
   const token = ref('')
@@ -28,6 +37,8 @@ export const useAuthStore = defineStore('auth', () => {
     const value = minutesLeft.value
     return value !== null && value >= 0 && value <= 30
   })
+  const primaryRole = computed(() => ROLE_PRIORITY.find((role) => roles.value.includes(role)) || null)
+  const isSuperAdmin = computed(() => roles.value.includes('SUPER_ADMIN'))
 
   function persist(): void {
     const payload: PersistedAuth = {
@@ -93,6 +104,46 @@ export const useAuthStore = defineStore('auth', () => {
     return roles.value.includes(role)
   }
 
+  function hasAnyRole(targetRoles: UserRole[]): boolean {
+    return isSuperAdmin.value || targetRoles.some((role) => roles.value.includes(role))
+  }
+
+  function getDefaultRoute(): string {
+    if (isSuperAdmin.value) {
+      return '/'
+    }
+
+    if (hasAnyRole(['SYS_ADMIN'])) {
+      return '/audit'
+    }
+
+    if (hasAnyRole(['RISK_ADMIN'])) {
+      return '/rules'
+    }
+
+    if (hasAnyRole(['OPERATOR', 'ANALYST', 'VIEWER'])) {
+      return '/'
+    }
+
+    return '/login'
+  }
+
+  function canDisposeAlerts(): boolean {
+    return hasAnyRole(['OPERATOR'])
+  }
+
+  function canManageRules(): boolean {
+    return hasAnyRole(['RISK_ADMIN'])
+  }
+
+  function canExportAudit(): boolean {
+    return hasAnyRole(['SYS_ADMIN'])
+  }
+
+  function canManageSystem(): boolean {
+    return hasAnyRole(['SYS_ADMIN'])
+  }
+
   return {
     username,
     token,
@@ -104,13 +155,21 @@ export const useAuthStore = defineStore('auth', () => {
     expireAtText,
     minutesLeft,
     willExpireSoon,
+    primaryRole,
+    isSuperAdmin,
     hydrate,
     login,
     logout,
     hasRole,
+    hasAnyRole,
+    getDefaultRoute,
+    canDisposeAlerts,
+    canManageRules,
+    canExportAudit,
+    canManageSystem,
   }
 })
 
 function isRole(value: string): value is UserRole {
-  return value === 'ADMIN' || value === 'OPERATOR' || value === 'VIEWER'
+  return ROLE_PRIORITY.includes(value as UserRole)
 }

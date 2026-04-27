@@ -90,7 +90,7 @@ async function handleSubmit(): Promise<void> {
     <section class="login-shell">
       <aside class="login-intro">
         <p class="eyebrow">DriveWeb</p>
-        <h1>疲劳与分心风险运营平台</h1>
+        <h1>风控运营管理台</h1>
         <p class="subtitle">
           根据 DriveServer 鉴权规范，登录成功后将写入 JWT 与角色信息，并以
           <code>Bearer Token</code> 自动携带访问受保护接口。
@@ -99,7 +99,7 @@ async function handleSubmit(): Promise<void> {
         <ul class="spec-list">
           <li>登录接口：<code>POST {{ apiBaseURL }}/auth/login</code></li>
           <li>统一响应：<code>code/message/data/traceId</code></li>
-          <li>角色模型：<code>ADMIN / OPERATOR / VIEWER</code></li>
+          <li>角色模型：<code>SUPER_ADMIN / SYS_ADMIN / RISK_ADMIN / OPERATOR / ANALYST / VIEWER</code></li>
         </ul>
       </aside>
 

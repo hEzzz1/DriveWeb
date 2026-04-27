@@ -208,8 +208,8 @@ function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLates
     <div class="page-head">
       <div>
         <p class="eyebrow">Overview</p>
-        <h1>实时总览</h1>
-        <p class="subhead">聚合最近 5 分钟态势、最新告警流与实时连接状态。</p>
+        <h1>风险总览</h1>
+        <p class="subhead">聚合最近 5 分钟态势、最新告警流与连接状态。</p>
       </div>
 
       <div class="head-meta">

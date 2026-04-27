@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import PageSectionCard from '../components/PageSectionCard.vue'
 import IncidentSummaryCard from '../components/system/IncidentSummaryCard.vue'
 import MessageLinkCard from '../components/system/MessageLinkCard.vue'
@@ -21,6 +22,7 @@ import type {
   VersionInfoItem,
 } from '../types/system'
 
+const route = useRoute()
 const loading = ref(false)
 const errorText = ref('')
 const health = ref<SystemHealthSnapshot | null>(null)
@@ -35,6 +37,26 @@ const summaryItems = computed(() => [
   { label: '24小时告警', value: monitoring.value?.alertCount24h ?? 0 },
   { label: '启用规则', value: monitoring.value?.enabledRuleCount ?? 0 },
 ])
+const currentSection = computed(() => {
+  if (route.name === 'service-status') {
+    return {
+      title: '服务状态',
+      description: '查看服务探测状态、最近检查时间与依赖运行情况。',
+    }
+  }
+
+  if (route.name === 'version-info') {
+    return {
+      title: '版本信息',
+      description: '查看应用版本、构建时间与交付版本信息。',
+    }
+  }
+
+  return {
+    title: '系统健康',
+    description: '查看健康概览、监控摘要和系统总体运行状态。',
+  }
+})
 
 onMounted(async () => {
   await fetchData()
@@ -84,7 +106,7 @@ async function fetchData(): Promise<void> {
     servicesResult.status === 'rejected' &&
     monitoringResult.status === 'rejected' &&
     versionResult.status === 'rejected'
-      ? '系统管理数据加载失败'
+      ? '系统运维数据加载失败'
       : ''
 
   loading.value = false
@@ -96,8 +118,8 @@ async function fetchData(): Promise<void> {
     <div class="page-head">
       <div>
         <p class="eyebrow">System</p>
-        <h1>系统管理</h1>
-        <p class="subhead">查看健康概览、服务状态、监控摘要和版本信息。</p>
+        <h1>系统运维</h1>
+        <p class="subhead">{{ currentSection.description }}</p>
       </div>
       <div class="head-actions">
         <el-button :loading="loading" type="primary" @click="fetchData">刷新状态</el-button>
@@ -113,20 +135,32 @@ async function fetchData(): Promise<void> {
 
     <el-alert v-if="errorText" :closable="false" type="error" :title="errorText" show-icon />
 
-    <section class="status-grid">
+    <section v-if="route.name === 'system-health'" class="status-grid">
       <SystemHealthCard :data="health" />
       <MessageLinkCard :data="monitoring" />
     </section>
 
-    <PageSectionCard title="服务状态" description="展示后端探测到的服务状态与最近检查时间。">
+    <PageSectionCard
+      v-if="route.name === 'service-status'"
+      title="服务状态"
+      description="展示后端探测到的服务状态与最近检查时间。"
+    >
       <ServiceStatusCard :items="services" />
     </PageSectionCard>
 
-    <PageSectionCard title="版本信息" description="展示后端应用名称、版本、构建时间和提交号。">
+    <PageSectionCard
+      v-if="route.name === 'version-info'"
+      title="版本信息"
+      description="展示后端应用名称、版本、构建时间和提交号。"
+    >
       <VersionInfoCard :item="version" />
     </PageSectionCard>
 
-    <PageSectionCard title="系统摘要" description="展示 summary 聚合接口返回的系统总览。">
+    <PageSectionCard
+      v-if="route.name === 'system-health'"
+      :title="currentSection.title"
+      description="展示 summary 聚合接口返回的系统总览。"
+    >
       <IncidentSummaryCard :summary="summary" />
     </PageSectionCard>
   </div>

@@ -5,6 +5,7 @@ import { auditActionOptions, auditResultOptions, auditTargetOptions, type AuditF
 const props = defineProps<{
   modelValue: AuditFilter
   loading?: boolean
+  canExport?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -78,7 +79,7 @@ function handleSearch(): void {
     <div class="actions">
       <el-button :loading="loading" type="primary" @click="handleSearch">查询</el-button>
       <el-button @click="emit('reset')">重置</el-button>
-      <el-button type="success" @click="emit('export')">导出</el-button>
+      <el-button v-if="canExport" type="success" @click="emit('export')">导出</el-button>
     </div>
   </div>
 </template>
@@ -88,11 +89,13 @@ function handleSearch(): void {
   display: grid;
   grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr)) auto;
   gap: 12px;
+  align-items: center;
 }
 
 .actions {
   display: flex;
   gap: 8px;
+  padding-left: 8px;
 }
 
 @media (max-width: 1200px) {

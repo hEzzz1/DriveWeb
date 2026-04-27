@@ -10,6 +10,7 @@ import {
 const props = defineProps<{
   modelValue: RuleListQuery
   loading?: boolean
+  canManage?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -81,7 +82,7 @@ function handleReset(): void {
     <div class="actions">
       <el-button :loading="loading" type="primary" @click="handleSearch">查询</el-button>
       <el-button @click="handleReset">重置</el-button>
-      <el-button type="success" @click="emit('create')">新建规则</el-button>
+      <el-button v-if="canManage" type="success" @click="emit('create')">新建规则</el-button>
     </div>
   </div>
 </template>
@@ -91,12 +92,14 @@ function handleReset(): void {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
   gap: 12px;
+  align-items: center;
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  padding-left: 8px;
 }
 
 @media (max-width: 1200px) {

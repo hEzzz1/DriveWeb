@@ -6,8 +6,10 @@ import AuditDetailDrawer from '../components/audit/AuditDetailDrawer.vue'
 import AuditFilterBar from '../components/audit/AuditFilterBar.vue'
 import AuditListTable from '../components/audit/AuditListTable.vue'
 import { exportAuditLogs, getAuditDetail, getAuditList } from '../api/audit'
+import { useAuthStore } from '../stores/auth'
 import type { AuditDetail, AuditFilter, AuditSummary } from '../types/audit'
 
+const authStore = useAuthStore()
 const loading = ref(false)
 const detailLoading = ref(false)
 const exportLoading = ref(false)
@@ -34,6 +36,7 @@ const summaryItems = computed(() => [
   { label: '失败记录', value: items.value.filter((item) => item.result === 'FAILED').length },
   { label: '当前页', value: currentPage.value },
 ])
+const canExport = computed(() => authStore.canExportAudit())
 
 onMounted(async () => {
   await fetchList()
@@ -89,6 +92,10 @@ async function handleOpenDetail(row: AuditSummary): Promise<void> {
 }
 
 async function handleExport(): Promise<void> {
+  if (!canExport.value) {
+    return
+  }
+
   exportLoading.value = true
 
   try {
@@ -119,7 +126,7 @@ async function handleSizeChange(size: number): Promise<void> {
     <div class="page-head">
       <div>
         <p class="eyebrow">Audit</p>
-        <h1>审计状态</h1>
+        <h1>审计日志</h1>
         <p class="subhead">集中查看操作留痕、链路状态和关联对象，支持按条件导出。</p>
       </div>
     </div>
@@ -133,11 +140,12 @@ async function handleSizeChange(size: number): Promise<void> {
 
     <PageSectionCard title="筛选条件" description="支持按时间、操作类型、操作人、对象类型和结果过滤。">
       <template #actions>
-        <el-button :loading="exportLoading" type="success" @click="handleExport">导出记录</el-button>
+        <el-button v-if="canExport" :loading="exportLoading" type="success" @click="handleExport">导出记录</el-button>
       </template>
 
       <AuditFilterBar
         v-model="filters"
+        :can-export="canExport"
         :loading="loading"
         @search="handleSearch"
         @reset="handleReset"

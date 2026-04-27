@@ -58,7 +58,8 @@ const timeline = computed(() => {
   return detail.value ? extractAlertTimeline(detail.value) : []
 })
 
-const canDispose = computed(() => authStore.hasRole('ADMIN') || authStore.hasRole('OPERATOR'))
+const canDispose = computed(() => authStore.canDisposeAlerts())
+const canViewDebugInfo = computed(() => authStore.hasAnyRole(['SYS_ADMIN']))
 
 const availableActions = computed(() => getAvailableAlertActions(detail.value?.status))
 const realtimeEventTypeText = computed(() => {
@@ -286,7 +287,7 @@ watch(
         </div>
       </el-card>
 
-      <section class="card-grid">
+      <section v-if="canViewDebugInfo" class="card-grid">
         <el-card class="panel-card" shadow="never">
           <template #header>
             <div class="card-title">基本信息</div>

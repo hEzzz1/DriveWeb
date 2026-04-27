@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import type { UserRole } from '../types/api'
 import LoginView from '../views/LoginView.vue'
 import AuthStatusView from '../views/AuthStatusView.vue'
 import RealtimeOverviewView from '../views/RealtimeOverviewView.vue'
@@ -10,6 +11,12 @@ import RiskRankingView from '../views/RiskRankingView.vue'
 import RulesManagementView from '../views/RulesManagementView.vue'
 import AuditStatusView from '../views/AuditStatusView.vue'
 import SystemManagementView from '../views/SystemManagementView.vue'
+
+const OPS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
+const ANALYSIS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST']
+const RULE_ROLES: UserRole[] = ['SUPER_ADMIN', 'RISK_ADMIN']
+const SYSTEM_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN']
+const ALL_AUTH_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN', 'RISK_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
 
 const router = createRouter({
   history: createWebHistory(),
@@ -24,59 +31,79 @@ const router = createRouter({
       path: '/',
       name: 'realtime-overview',
       component: RealtimeOverviewView,
-      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
+      meta: { requiresAuth: true, roles: OPS_ROLES },
     },
     {
       path: '/session',
       name: 'auth-status',
       component: AuthStatusView,
-      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
+      meta: { requiresAuth: true, roles: ALL_AUTH_ROLES },
     },
     {
       path: '/alerts',
       name: 'alerts-list',
       component: AlertsListView,
-      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
+      meta: { requiresAuth: true, roles: OPS_ROLES },
     },
     {
       path: '/alerts/:id',
       name: 'alert-detail',
       component: AlertDetailView,
-      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
+      meta: { requiresAuth: true, roles: OPS_ROLES },
     },
     {
       path: '/stats/trend',
       name: 'trend-analysis',
       component: TrendAnalysisView,
-      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
+      meta: { requiresAuth: true, roles: ANALYSIS_ROLES },
     },
     {
       path: '/stats/ranking',
       name: 'risk-ranking',
       component: RiskRankingView,
-      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR', 'VIEWER'] },
+      meta: { requiresAuth: true, roles: ANALYSIS_ROLES },
     },
     {
       path: '/rules',
       name: 'rules-management',
       component: RulesManagementView,
-      meta: { requiresAuth: true, roles: ['ADMIN'] },
+      meta: { requiresAuth: true, roles: RULE_ROLES },
     },
     {
       path: '/audit',
-      name: 'audit-status',
+      name: 'audit-logs',
       component: AuditStatusView,
-      meta: { requiresAuth: true, roles: ['ADMIN', 'OPERATOR'] },
+      meta: { requiresAuth: true, roles: SYSTEM_ROLES },
     },
     {
       path: '/system',
-      name: 'system-management',
+      redirect: '/system/health',
+    },
+    {
+      path: '/system/health',
+      name: 'system-health',
       component: SystemManagementView,
-      meta: { requiresAuth: true, roles: ['ADMIN'] },
+      meta: { requiresAuth: true, roles: SYSTEM_ROLES },
+    },
+    {
+      path: '/system/services',
+      name: 'service-status',
+      component: SystemManagementView,
+      meta: { requiresAuth: true, roles: SYSTEM_ROLES },
+    },
+    {
+      path: '/system/version',
+      name: 'version-info',
+      component: SystemManagementView,
+      meta: { requiresAuth: true, roles: SYSTEM_ROLES },
     },
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/',
+      redirect: () => {
+        const authStore = useAuthStore()
+        authStore.hydrate()
+        return authStore.isAuthenticated ? authStore.getDefaultRoute() : '/login'
+      },
     },
   ],
 })
@@ -88,7 +115,7 @@ router.beforeEach((to) => {
   const isPublic = Boolean(to.meta.public)
 
   if (isPublic && authStore.isAuthenticated) {
-    return { name: 'realtime-overview' }
+    return authStore.getDefaultRoute()
   }
 
   if (!isPublic && !authStore.isAuthenticated) {
@@ -102,9 +129,9 @@ router.beforeEach((to) => {
 
   if (
     requiredRoles.length &&
-    !requiredRoles.some((role) => authStore.hasRole(role))
+    !authStore.hasAnyRole(requiredRoles as UserRole[])
   ) {
-    return { name: 'realtime-overview' }
+    return authStore.getDefaultRoute()
   }
 
   return true

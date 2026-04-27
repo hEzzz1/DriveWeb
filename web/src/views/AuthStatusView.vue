@@ -9,9 +9,12 @@ authStore.hydrate()
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 const roleDescMap: Record<UserRole, string> = {
-  ADMIN: '可访问全部页面并执行全部动作。',
-  OPERATOR: '可处理告警，但不可维护规则。',
-  VIEWER: '仅可读访问，无写操作权限。',
+  SUPER_ADMIN: '可访问全部域并执行全部动作。',
+  SYS_ADMIN: '可访问审计日志与系统运维域。',
+  RISK_ADMIN: '可访问规则管理并执行规则变更。',
+  OPERATOR: '可查看运营工作台并执行告警处置。',
+  ANALYST: '可查看运营工作台分析页，默认只读。',
+  VIEWER: '可查看风险总览与告警中心基础信息。',
 }
 
 const roles = computed(() => authStore.roles)
@@ -48,7 +51,7 @@ const expireInfo = computed(() => {
       <div>
         <p class="eyebrow">Authentication</p>
         <h1>登录会话与鉴权状态</h1>
-        <p class="subhead">已按 DriveServer 文档完成登录状态保持、路由拦截与 Bearer 自动注入。</p>
+        <p class="subhead">展示风控运营管理台当前登录会话、令牌状态与角色权限映射。</p>
       </div>
     </div>
 

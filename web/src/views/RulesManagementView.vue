@@ -16,6 +16,7 @@ import {
   saveRule,
   toggleRuleStatus,
 } from '../api/rules'
+import { useAuthStore } from '../stores/auth'
 import type {
   RuleActionType,
   RuleDetail,
@@ -25,6 +26,7 @@ import type {
   RuleVersionSummary,
 } from '../types/rules'
 
+const authStore = useAuthStore()
 const loading = ref(false)
 const submitLoading = ref(false)
 const versionLoading = ref(false)
@@ -94,6 +96,7 @@ const actionDialogContent = computed(() => {
 
   return `规则「${activeRule.value.name}」${textMap[actionType.value as Exclude<RuleActionType, 'ROLLBACK'>]}`
 })
+const canManageRules = computed(() => authStore.canManageRules())
 
 onMounted(async () => {
   await fetchList()
@@ -122,11 +125,19 @@ async function fetchList(): Promise<void> {
 }
 
 async function openCreateDialog(): Promise<void> {
+  if (!canManageRules.value) {
+    return
+  }
+
   activeRule.value = null
   editVisible.value = true
 }
 
 async function openEditDialog(row: RuleSummary): Promise<void> {
+  if (!canManageRules.value) {
+    return
+  }
+
   submitLoading.value = true
 
   try {
@@ -163,6 +174,10 @@ async function handleOpenVersions(row: RuleSummary): Promise<void> {
 }
 
 function handleToggle(row: RuleSummary): void {
+  if (!canManageRules.value) {
+    return
+  }
+
   activeRule.value = row as RuleDetail
   actionType.value = row.status === 'ENABLED' ? 'DISABLE' : 'ENABLE'
   rollbackVersion.value = null
@@ -170,6 +185,10 @@ function handleToggle(row: RuleSummary): void {
 }
 
 function handlePublish(row: RuleSummary): void {
+  if (!canManageRules.value) {
+    return
+  }
+
   activeRule.value = row as RuleDetail
   actionType.value = 'PUBLISH'
   rollbackVersion.value = null
@@ -177,6 +196,10 @@ function handlePublish(row: RuleSummary): void {
 }
 
 function handleRollback(version: RuleVersionSummary): void {
+  if (!canManageRules.value) {
+    return
+  }
+
   actionType.value = 'ROLLBACK'
   rollbackVersion.value = version
   actionVisible.value = true
@@ -257,6 +280,7 @@ async function handleSizeChange(size: number): Promise<void> {
     <PageSectionCard title="规则筛选" description="按规则名称、类型、状态、版本和生效范围快速定位。">
       <RuleFilterBar
         v-model="filters"
+        :can-manage="canManageRules"
         :loading="loading"
         @search="handleSearch"
         @reset="handleReset"
@@ -267,6 +291,7 @@ async function handleSizeChange(size: number): Promise<void> {
     <PageSectionCard title="规则列表" description="支持编辑、启停、发布和查看版本历史。">
       <el-alert v-if="errorText" :closable="false" type="error" :title="errorText" show-icon />
       <RuleListTable
+        :can-manage="canManageRules"
         :items="items"
         :loading="loading"
         :total="total"
@@ -289,6 +314,7 @@ async function handleSizeChange(size: number): Promise<void> {
     />
     <RuleVersionDrawer
       v-model:visible="versionVisible"
+      :can-rollback="canManageRules"
       :loading="versionLoading"
       :versions="versionList"
       :active-rule="activeRule"
