@@ -16,6 +16,7 @@ const emit = defineEmits<{
 
 const formRef = ref<FormInstance>()
 const form = reactive<UpdateDriverPayload>({
+  driverCode: '',
   name: '',
   phone: '',
   licenseNo: '',
@@ -33,6 +34,7 @@ watch(
       return
     }
 
+    form.driverCode = driver.driverCode || ''
     form.name = driver.name
     form.phone = driver.phone || ''
     form.licenseNo = driver.licenseNo || ''
@@ -54,6 +56,7 @@ async function handleSave(): Promise<void> {
   }
 
   emit('save', {
+    driverCode: form.driverCode?.trim() || undefined,
     name: form.name.trim(),
     phone: form.phone?.trim() || undefined,
     licenseNo: form.licenseNo?.trim() || undefined,
@@ -65,6 +68,9 @@ async function handleSave(): Promise<void> {
 <template>
   <el-dialog :model-value="visible" width="560px" title="编辑驾驶员" @close="emit('update:visible', false)">
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+      <el-form-item label="驾驶员编号">
+        <el-input v-model="form.driverCode" clearable placeholder="请输入驾驶员编号" />
+      </el-form-item>
       <el-form-item label="姓名" prop="name">
         <el-input v-model="form.name" clearable placeholder="请输入姓名" />
       </el-form-item>

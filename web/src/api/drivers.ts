@@ -7,6 +7,7 @@ import type {
   DriverListData,
   DriverListQuery,
   ReassignDriverFleetPayload,
+  ResetDriverPinPayload,
   UpdateDriverPayload,
   UpdateDriverStatusPayload,
 } from '../types/drivers'
@@ -18,6 +19,7 @@ function normalizeDriver(item: DriverApiItem): DriverDetail {
     id: item.id,
     enterpriseId: item.enterpriseId,
     fleetId: item.fleetId,
+    driverCode: item.driverCode || undefined,
     name: item.name,
     phone: item.phone || undefined,
     licenseNo: item.licenseNo || undefined,
@@ -84,6 +86,17 @@ export function reassignDriverFleet(
   return request<DriverApiItem>({
     url: `/drivers/${id}/fleet`,
     method: 'PUT',
+    data: payload,
+  }).then(normalizeDriver)
+}
+
+export function resetDriverPin(
+  id: number | string,
+  payload: ResetDriverPinPayload,
+): Promise<DriverDetail> {
+  return request<DriverApiItem>({
+    url: `/drivers/${id}/reset-pin`,
+    method: 'POST',
     data: payload,
   }).then(normalizeDriver)
 }

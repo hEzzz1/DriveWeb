@@ -2,14 +2,16 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import { fetchAllPages } from '../api/pagination'
 import DriverCreateDialog from '../components/drivers/DriverCreateDialog.vue'
 import DriverDetailDrawer from '../components/drivers/DriverDetailDrawer.vue'
 import DriverEditDialog from '../components/drivers/DriverEditDialog.vue'
 import DriverListTable from '../components/drivers/DriverListTable.vue'
 import DriverReassignFleetDialog from '../components/drivers/DriverReassignFleetDialog.vue'
 import { getEnterpriseList } from '../api/enterprises'
-import { createDriver, getDriverDetail, getDriverList, reassignDriverFleet, updateDriver, updateDriverStatus } from '../api/drivers'
+import { createDriver, getDriverDetail, getDriverList, reassignDriverFleet, resetDriverPin, updateDriver, updateDriverStatus } from '../api/drivers'
 import { getFleetList } from '../api/fleets'
+import { getSessionList } from '../api/sessions'
 import { useAccess } from '../composables/useAccess'
 import { useAuthStore } from '../stores/auth'
 import type { DriverDetail, DriverListQuery, DriverSummary } from '../types/drivers'
@@ -36,6 +38,7 @@ const errorText = ref('')
 
 const items = ref<DriverSummary[]>([])
 const fleets = ref<FleetSummary[]>([])
+const activeSessions = ref<Array<{ sessionId: number; driverId: number }>>([])
 const enterpriseOptions = ref<Array<{ value: number; label: string }>>([])
 const enterpriseMap = ref(new Map<number, EnterpriseSummary>())
 const fleetMap = ref(new Map<number, FleetSummary>())
@@ -76,7 +79,7 @@ const summaryItems = computed(() => [
 
 const pageSubhead = computed(() =>
   access.value.canManageDrivers
-    ? '新增时直接绑定所属车队，详情侧栏提供调整车队入口，前端车队下拉全部来自真实 /fleets 接口。'
+    ? '新增和调车队都只使用真实车队下拉，列表同步显示驾驶员编号、活跃会话和重置 PIN 入口。'
     : '当前角色仅开放列表与详情查看，跨企业和归属一致性约束全部遵循后端权限与服务端校验。',
 )
 
@@ -97,6 +100,7 @@ onMounted(async () => {
   authStore.hydrate()
   await authStore.syncCurrentUser()
   await Promise.all([fetchEnterpriseOptions(), fetchFleetOptions()])
+  await fetchActiveSessions()
   await fetchList()
 })
 
@@ -117,26 +121,32 @@ async function fetchEnterpriseOptions(): Promise<void> {
     return
   }
 
-  const data = await getEnterpriseList({ page: 1, size: 100 })
-  enterpriseMap.value = new Map(data.items.map((item) => [item.id, item]))
-  enterpriseOptions.value = data.items.map((item) => ({
+  const items = await fetchAllPages(getEnterpriseList, {})
+  enterpriseMap.value = new Map(items.map((item) => [item.id, item]))
+  enterpriseOptions.value = items.map((item) => ({
     value: item.id,
     label: `${item.name} (#${item.id})`,
   }))
 }
 
 async function fetchFleetOptions(): Promise<void> {
-  const data = await getFleetList({
-    page: 1,
-    size: 100,
+  const items = await fetchAllPages(getFleetList, {
     enterpriseId: authStore.isSuperAdmin ? undefined : Number(authStore.enterpriseId) || undefined,
   })
 
-  fleets.value = data.items.map((item) => ({
+  fleets.value = items.map((item) => ({
     ...item,
     enterpriseName: enterpriseMap.value.get(item.enterpriseId)?.name || item.enterpriseName,
   }))
   fleetMap.value = new Map(fleets.value.map((item) => [item.id, item]))
+}
+
+async function fetchActiveSessions(): Promise<void> {
+  const items = await fetchAllPages(getSessionList, {
+    enterpriseId: authStore.isSuperAdmin ? undefined : Number(authStore.enterpriseId) || undefined,
+    status: 1,
+  })
+  activeSessions.value = items.map((item) => ({ sessionId: item.id, driverId: item.driverId }))
 }
 
 function buildQuery(): DriverListQuery {
@@ -168,10 +178,13 @@ async function fetchList(): Promise<void> {
 }
 
 function enrichDriver(item: DriverDetail): DriverDetail {
+  const activeSession = activeSessions.value.find((entry) => entry.driverId === item.id)
   return {
     ...item,
     enterpriseName: enterpriseMap.value.get(item.enterpriseId)?.name || item.enterpriseName,
     fleetName: fleetMap.value.get(item.fleetId)?.name || item.fleetName,
+    hasActiveSession: Boolean(activeSession),
+    activeSessionId: activeSession?.sessionId,
   }
 }
 
@@ -209,7 +222,7 @@ async function handleCreateDriver(payload: Parameters<typeof createDriver>[0]): 
   try {
     await createDriver(payload)
     createVisible.value = false
-    await Promise.all([fetchFleetOptions(), fetchList()])
+    await Promise.all([fetchFleetOptions(), fetchActiveSessions(), fetchList()])
     ElMessage.success('驾驶员已创建')
   } finally {
     createSaving.value = false
@@ -277,10 +290,35 @@ async function handleReassignFleet(payload: Parameters<typeof reassignDriverFlee
     activeDetail.value = detail
     syncTableRow(detail)
     reassignVisible.value = false
+    await fetchActiveSessions()
     ElMessage.success('所属车队已更新')
   } finally {
     reassignSaving.value = false
   }
+}
+
+async function handleResetPin(row?: DriverSummary): Promise<void> {
+  const target = row ? enrichDriver(await getDriverDetail(row.id)) : activeDetail.value
+  if (!target) {
+    return
+  }
+
+  let pin = ''
+  try {
+    const result = await ElMessageBox.prompt('请输入新的 4-6 位 PIN', '重置驾驶员 PIN', {
+      inputPlaceholder: '例如 1234',
+      confirmButtonText: '确认重置',
+      cancelButtonText: '取消',
+      inputPattern: /^[0-9]{4,6}$/,
+      inputErrorMessage: 'PIN 仅支持 4-6 位数字',
+    })
+    pin = result.value
+  } catch {
+    return
+  }
+
+  await resetDriverPin(target.id, { pin })
+  ElMessage.success('驾驶员 PIN 已重置')
 }
 
 function syncTableRow(detail: DriverDetail): void {
@@ -348,6 +386,7 @@ function syncTableRow(detail: DriverDetail): void {
         @detail="openDetail"
         @edit="(row) => { openDetail(row); editVisible = true }"
         @reassign="(row) => { openDetail(row); reassignVisible = true }"
+        @reset-pin="handleResetPin"
         @toggle-status="handleToggleStatus"
         @page-change="(page) => { currentPage = page; fetchList() }"
         @size-change="(size) => { pageSize = size; currentPage = 1; fetchList() }"
@@ -386,6 +425,7 @@ function syncTableRow(detail: DriverDetail): void {
       :can-manage="access.canManageDrivers"
       @edit="editVisible = true"
       @reassign="reassignVisible = true"
+      @reset-pin="handleResetPin()"
       @toggle-status="handleToggleStatus()"
     />
   </div>

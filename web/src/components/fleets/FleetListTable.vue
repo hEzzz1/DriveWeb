@@ -50,6 +50,11 @@ function formatDateTime(value?: string): string {
           {{ row.driverCount ?? '-' }}
         </template>
       </el-table-column>
+      <el-table-column label="车辆数量" width="120">
+        <template #default="{ row }">
+          {{ row.vehicleCount ?? '-' }}
+        </template>
+      </el-table-column>
       <el-table-column label="创建时间" min-width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.createdAt) }}

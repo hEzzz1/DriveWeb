@@ -11,10 +11,17 @@ export interface CapabilityMap {
   canAssignUserRoles: boolean
   canResetUserPassword: boolean
   canToggleUserStatus: boolean
+  canViewBusinessDomains: boolean
   canViewFleets: boolean
   canManageFleets: boolean
   canViewDrivers: boolean
   canManageDrivers: boolean
+  canViewVehicles: boolean
+  canManageVehicles: boolean
+  canViewDevices: boolean
+  canManageDevices: boolean
+  canViewSessions: boolean
+  canManageSessions: boolean
   canViewEnterprises: boolean
   canManageEnterprises: boolean
   canEditEnterprise: boolean
@@ -34,7 +41,7 @@ export function resolveCapabilities(context: AccessContext): CapabilityMap {
   const isSuperAdmin = roles.includes('SUPER_ADMIN')
   const isEnterpriseAdmin = roles.includes('ENTERPRISE_ADMIN')
   const isSystemAdmin = roles.includes('SYS_ADMIN')
-  const canReadBusinessDomain = hasRole(roles, ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'OPERATOR', 'ANALYST'])
+  const canReadBusinessDomain = hasRole(roles, ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'OPERATOR'])
 
   return {
     canViewUsers: isSuperAdmin || isEnterpriseAdmin,
@@ -43,12 +50,19 @@ export function resolveCapabilities(context: AccessContext): CapabilityMap {
     canAssignUserRoles: isSuperAdmin || isEnterpriseAdmin,
     canResetUserPassword: isSuperAdmin || isEnterpriseAdmin,
     canToggleUserStatus: isSuperAdmin || isEnterpriseAdmin,
+    canViewBusinessDomains: canReadBusinessDomain,
     canViewFleets: canReadBusinessDomain,
     canManageFleets: isSuperAdmin || isEnterpriseAdmin,
     canViewDrivers: canReadBusinessDomain,
     canManageDrivers: isSuperAdmin || isEnterpriseAdmin,
-    canViewEnterprises: isSuperAdmin || isSystemAdmin,
-    canManageEnterprises: isSuperAdmin || isSystemAdmin,
+    canViewVehicles: canReadBusinessDomain,
+    canManageVehicles: isSuperAdmin || isEnterpriseAdmin,
+    canViewDevices: canReadBusinessDomain,
+    canManageDevices: isSuperAdmin || isEnterpriseAdmin,
+    canViewSessions: canReadBusinessDomain,
+    canManageSessions: isSuperAdmin || isEnterpriseAdmin,
+    canViewEnterprises: canReadBusinessDomain,
+    canManageEnterprises: isSuperAdmin,
     canEditEnterprise: isSuperAdmin,
     canViewSystemAudit: isSuperAdmin || isSystemAdmin,
     canExportSystemAudit: isSuperAdmin || isSystemAdmin,

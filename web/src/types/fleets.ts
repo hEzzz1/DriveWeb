@@ -13,6 +13,7 @@ export interface FleetSummary {
   status: 0 | 1
   remark?: string
   driverCount?: number
+  vehicleCount?: number
   createdAt?: string
   updatedAt?: string
 }

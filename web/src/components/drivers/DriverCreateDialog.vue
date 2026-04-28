@@ -22,6 +22,7 @@ const formRef = ref<FormInstance>()
 const form = reactive<CreateDriverPayload>({
   enterpriseId: 0,
   fleetId: 0,
+  driverCode: '',
   name: '',
   phone: '',
   licenseNo: '',
@@ -45,6 +46,7 @@ watch(
 
     form.enterpriseId = props.defaultEnterpriseId || 0
     form.fleetId = 0
+    form.driverCode = ''
     form.name = ''
     form.phone = ''
     form.licenseNo = ''
@@ -76,6 +78,7 @@ async function handleSave(): Promise<void> {
   emit('save', {
     enterpriseId: Number(form.enterpriseId),
     fleetId: Number(form.fleetId),
+    driverCode: form.driverCode?.trim() || undefined,
     name: form.name.trim(),
     phone: form.phone?.trim() || undefined,
     licenseNo: form.licenseNo?.trim() || undefined,
@@ -97,6 +100,9 @@ async function handleSave(): Promise<void> {
         <el-select v-model="form.fleetId" class="full-width" filterable placeholder="请选择车队">
           <el-option v-for="item in fleetOptions" :key="item.id" :label="item.name" :value="item.id" />
         </el-select>
+      </el-form-item>
+      <el-form-item label="驾驶员编号">
+        <el-input v-model="form.driverCode" clearable placeholder="选填，不填则由后端生成" />
       </el-form-item>
       <el-form-item label="姓名" prop="name">
         <el-input v-model="form.name" clearable placeholder="请输入姓名" />

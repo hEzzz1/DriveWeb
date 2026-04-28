@@ -15,6 +15,7 @@ const emit = defineEmits<{
   edit: [row: DriverSummary]
   toggleStatus: [row: DriverSummary]
   reassign: [row: DriverSummary]
+  resetPin: [row: DriverSummary]
   'page-change': [page: number]
   'size-change': [size: number]
 }>()
@@ -32,7 +33,11 @@ function formatDateTime(value?: string): string {
 <template>
   <div class="table-wrap">
     <el-table :data="items" :loading="loading" stripe>
-      <el-table-column prop="id" label="驾驶员 ID" width="110" />
+      <el-table-column prop="driverCode" label="驾驶员编号" min-width="140">
+        <template #default="{ row }">
+          {{ row.driverCode || row.id }}
+        </template>
+      </el-table-column>
       <el-table-column prop="name" label="姓名" min-width="120" />
       <el-table-column prop="phone" label="手机号" min-width="140">
         <template #default="{ row }">
@@ -61,16 +66,24 @@ function formatDateTime(value?: string): string {
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="活跃会话" width="110">
+        <template #default="{ row }">
+          <el-tag effect="plain" :type="row.hasActiveSession ? 'success' : 'info'">
+            {{ row.hasActiveSession ? '进行中' : '无' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="创建时间" min-width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.createdAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" min-width="220" fixed="right">
+      <el-table-column label="操作" min-width="260" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="emit('detail', row)">详情</el-button>
           <el-button v-if="canManage" link @click="emit('edit', row)">编辑</el-button>
           <el-button v-if="canManage" link @click="emit('reassign', row)">调车队</el-button>
+          <el-button v-if="canManage" link @click="emit('resetPin', row)">重置 PIN</el-button>
           <el-button v-if="canManage" link :type="row.enabled ? 'warning' : 'success'" @click="emit('toggleStatus', row)">
             {{ row.enabled ? '禁用' : '启用' }}
           </el-button>

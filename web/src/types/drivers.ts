@@ -14,11 +14,14 @@ export interface DriverSummary {
   enterpriseName?: string
   fleetId: number
   fleetName?: string
+  driverCode?: string
   name: string
   phone?: string
   licenseNo?: string
   enabled: boolean
   status: 0 | 1
+  hasActiveSession?: boolean
+  activeSessionId?: number
   remark?: string
   createdAt?: string
   updatedAt?: string
@@ -31,6 +34,7 @@ export type DriverListData = PageResult<DriverSummary>
 export interface CreateDriverPayload {
   enterpriseId: number
   fleetId: number
+  driverCode?: string
   name: string
   phone?: string
   licenseNo?: string
@@ -38,6 +42,7 @@ export interface CreateDriverPayload {
 }
 
 export interface UpdateDriverPayload {
+  driverCode?: string
   name: string
   phone?: string
   licenseNo?: string
@@ -52,10 +57,15 @@ export interface ReassignDriverFleetPayload {
   fleetId: number
 }
 
+export interface ResetDriverPinPayload {
+  pin: string
+}
+
 export interface DriverApiItem {
   id: number
   enterpriseId: number
   fleetId: number
+  driverCode?: string | null
   name: string
   phone?: string | null
   licenseNo?: string | null

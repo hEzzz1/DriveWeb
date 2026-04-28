@@ -159,11 +159,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   function getDefaultRoute(): string {
     if (isSuperAdmin.value) {
-      return '/'
+      return '/sessions'
     }
 
     if (isEnterpriseAdmin.value) {
-      return '/users'
+      return '/sessions'
     }
 
     if (hasAnyRole(['SYS_ADMIN'])) {
@@ -174,8 +174,12 @@ export const useAuthStore = defineStore('auth', () => {
       return '/rules'
     }
 
-    if (hasAnyRole(['OPERATOR', 'ANALYST', 'VIEWER'])) {
-      return '/'
+    if (hasAnyRole(['OPERATOR'])) {
+      return '/sessions'
+    }
+
+    if (hasAnyRole(['ANALYST', 'VIEWER'])) {
+      return '/stats/trend'
     }
 
     return '/login'

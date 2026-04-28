@@ -15,14 +15,16 @@ import UserManagementView from '../views/UserManagementView.vue'
 import EnterpriseManagementView from '../views/EnterpriseManagementView.vue'
 import FleetManagementView from '../views/FleetManagementView.vue'
 import DriverManagementView from '../views/DriverManagementView.vue'
+import VehicleManagementView from '../views/VehicleManagementView.vue'
+import DeviceManagementView from '../views/DeviceManagementView.vue'
+import DrivingSessionManagementView from '../views/DrivingSessionManagementView.vue'
 
 const OPS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
 const ANALYSIS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST']
 const RULE_ROLES: UserRole[] = ['SUPER_ADMIN', 'RISK_ADMIN']
 const SYSTEM_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN']
 const USER_ADMIN_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN']
-const ENTERPRISE_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN']
-const BUSINESS_DOMAIN_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'OPERATOR', 'ANALYST']
+const BUSINESS_READ_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'OPERATOR']
 const ALL_AUTH_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'SYS_ADMIN', 'RISK_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
 
 const router = createRouter({
@@ -36,12 +38,16 @@ const router = createRouter({
     },
     {
       path: '/',
+      redirect: '/sessions',
+    },
+    {
+      path: '/overview',
       name: 'realtime-overview',
       component: RealtimeOverviewView,
       meta: { requiresAuth: true, roles: OPS_ROLES },
     },
     {
-      path: '/session',
+      path: '/account/session',
       name: 'auth-status',
       component: AuthStatusView,
       meta: { requiresAuth: true, roles: ALL_AUTH_ROLES },
@@ -114,19 +120,37 @@ const router = createRouter({
       path: '/fleets',
       name: 'fleet-management',
       component: FleetManagementView,
-      meta: { requiresAuth: true, roles: BUSINESS_DOMAIN_ROLES },
+      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
     },
     {
       path: '/drivers',
       name: 'driver-management',
       component: DriverManagementView,
-      meta: { requiresAuth: true, roles: BUSINESS_DOMAIN_ROLES },
+      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
+    },
+    {
+      path: '/vehicles',
+      name: 'vehicle-management',
+      component: VehicleManagementView,
+      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
+    },
+    {
+      path: '/devices',
+      name: 'device-management',
+      component: DeviceManagementView,
+      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
+    },
+    {
+      path: '/sessions',
+      name: 'session-management',
+      component: DrivingSessionManagementView,
+      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
     },
     {
       path: '/enterprises',
       name: 'enterprise-management',
       component: EnterpriseManagementView,
-      meta: { requiresAuth: true, roles: ENTERPRISE_ROLES },
+      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
     },
     {
       path: '/:pathMatch(.*)*',

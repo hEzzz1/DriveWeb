@@ -9,7 +9,7 @@ import { formatDateTime } from './utils/alerts'
 
 interface NavItem {
   key: string
-  section: 'ops' | 'risk' | 'system'
+  section: 'business' | 'monitor' | 'platform'
   label: string
   subtitle: string
   visible: boolean
@@ -24,19 +24,23 @@ const realtimeStore = useRealtimeStore()
 authStore.hydrate()
 
 const navItems = computed<NavItem[]>(() => [
-  { key: 'overview', section: 'ops', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/' },
-  { key: 'alerts', section: 'ops', label: '告警中心', subtitle: '告警筛选、详情查看与处置', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/alerts' },
-  { key: 'trend', section: 'ops', label: '趋势分析', subtitle: '趋势洞察与波动分析', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/trend' },
-  { key: 'ranking', section: 'ops', label: '风险排行', subtitle: '车辆与司机风险排行', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/ranking' },
-  { key: 'rules', section: 'risk', label: '规则管理', subtitle: '规则配置、发布与回滚', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'RISK_ADMIN']), path: '/rules' },
-  { key: 'fleets', section: 'system', label: '车队管理', subtitle: '车队列表、状态与归属管理', visible: access.value.canViewFleets, path: '/fleets' },
-  { key: 'drivers', section: 'system', label: '驾驶员管理', subtitle: '驾驶员资料、状态与车队绑定', visible: access.value.canViewDrivers, path: '/drivers' },
-  { key: 'audit', section: 'system', label: '审计日志', subtitle: '审计列表、详情与导出', visible: access.value.canViewSystemAudit, path: '/audit' },
-  { key: 'health', section: 'system', label: '系统健康', subtitle: '健康概览与监控摘要', visible: access.value.canViewSystemHealth, path: '/system/health' },
-  { key: 'services', section: 'system', label: '服务状态', subtitle: '服务探测状态与最近检查时间', visible: access.value.canViewServiceStatus, path: '/system/services' },
-  { key: 'version', section: 'system', label: '版本信息', subtitle: '应用版本、构建时间与提交号', visible: access.value.canViewVersionInfo, path: '/system/version' },
-  { key: 'users', section: 'system', label: '用户管理', subtitle: '账号、角色、密码和用户审计模块', visible: access.value.canViewUsers, path: '/users' },
-  { key: 'enterprises', section: 'system', label: '企业管理', subtitle: '企业列表、详情、状态和企业审计模块', visible: access.value.canViewEnterprises, path: '/enterprises' },
+  { key: 'enterprises', section: 'business', label: '企业管理', subtitle: '企业列表、详情、启停与资料维护', visible: access.value.canViewEnterprises, path: '/enterprises' },
+  { key: 'fleets', section: 'business', label: '车队管理', subtitle: '企业归属、车队状态与资源规模', visible: access.value.canViewFleets, path: '/fleets' },
+  { key: 'drivers', section: 'business', label: '驾驶员管理', subtitle: '驾驶员编号、车队归属与 PIN 管理', visible: access.value.canViewDrivers, path: '/drivers' },
+  { key: 'vehicles', section: 'business', label: '车辆管理', subtitle: '车辆主数据与设备绑定状态', visible: access.value.canViewVehicles, path: '/vehicles' },
+  { key: 'devices', section: 'business', label: '设备管理', subtitle: '设备绑定车辆、在线状态与 Token 轮换', visible: access.value.canViewDevices, path: '/devices' },
+  { key: 'sessions', section: 'monitor', label: '驾驶会话', subtitle: '会话列表、最近心跳与强制签退', visible: access.value.canViewSessions, path: '/sessions' },
+  { key: 'alerts', section: 'monitor', label: '告警中心', subtitle: '告警筛选、详情查看与处置', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/alerts' },
+  { key: 'overview', section: 'monitor', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/overview' },
+  { key: 'trend', section: 'monitor', label: '趋势分析', subtitle: '趋势洞察与波动分析', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/trend' },
+  { key: 'ranking', section: 'monitor', label: '风险排行', subtitle: '车辆与司机风险排行', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/ranking' },
+  { key: 'users', section: 'platform', label: '用户管理', subtitle: '后台账号、角色、企业归属与启停', visible: access.value.canViewUsers, path: '/users' },
+  { key: 'audit', section: 'platform', label: '审计日志', subtitle: '审计列表、详情与导出', visible: access.value.canViewSystemAudit, path: '/audit' },
+  { key: 'health', section: 'platform', label: '系统健康', subtitle: '健康概览与监控摘要', visible: access.value.canViewSystemHealth, path: '/system/health' },
+  { key: 'services', section: 'platform', label: '服务状态', subtitle: '服务探测状态与最近检查时间', visible: access.value.canViewServiceStatus, path: '/system/services' },
+  { key: 'version', section: 'platform', label: '版本信息', subtitle: '应用版本、构建时间与提交号', visible: access.value.canViewVersionInfo, path: '/system/version' },
+  { key: 'rules', section: 'platform', label: '规则管理', subtitle: '规则配置、发布与回滚', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'RISK_ADMIN']), path: '/rules' },
+  { key: 'account-session', section: 'platform', label: '登录会话', subtitle: '当前账号令牌与角色映射', visible: authStore.isAuthenticated, path: '/account/session' },
 ])
 
 const isPublicPage = computed(() => Boolean(route.meta.public))
@@ -51,16 +55,16 @@ const activeNavKey = computed(
         return false
       }
 
-      return item.path === '/' ? route.path === '/' : route.path.startsWith(item.path)
+      return route.path.startsWith(item.path)
     })?.key || '',
 )
 const currentNavItem = computed(
   () => visibleNavItems.value.find((item) => item.key === activeNavKey.value) || visibleNavItems.value[0],
 )
 const navSections = computed(() => [
-  { key: 'ops', label: '运营工作台', items: visibleNavItems.value.filter((item) => item.section === 'ops') },
-  { key: 'risk', label: '风控配置台', items: visibleNavItems.value.filter((item) => item.section === 'risk') },
-  { key: 'system', label: '系统管理台', items: visibleNavItems.value.filter((item) => item.section === 'system') },
+  { key: 'business', label: '业务管理', items: visibleNavItems.value.filter((item) => item.section === 'business') },
+  { key: 'monitor', label: '运行监控', items: visibleNavItems.value.filter((item) => item.section === 'monitor') },
+  { key: 'platform', label: '平台管理', items: visibleNavItems.value.filter((item) => item.section === 'platform') },
 ].filter((section) => section.items.length))
 const showRealtimeStatus = computed(() => authStore.isAuthenticated && !isPublicPage.value)
 const realtimeHint = computed(() => {
@@ -131,7 +135,7 @@ function handleReconnect(): void {
     <aside class="global-nav">
       <div class="brand-panel">
         <p class="brand-mark">DriveWeb</p>
-        <strong>风控运营管理台</strong>
+        <strong>企业运营后台</strong>
       </div>
 
       <div v-for="section in navSections" :key="section.key" class="nav-group">
@@ -158,13 +162,13 @@ function handleReconnect(): void {
       <header class="global-head">
         <div class="head-main">
           <div class="head-breadcrumb">
-            <span>风控运营管理台</span>
+            <span>企业后台</span>
             <span class="separator">/</span>
             <span>{{ currentNavItem?.label || '工作区' }}</span>
           </div>
           <div class="head-title">
-            <h1>{{ currentNavItem?.label || '风控运营管理台' }}</h1>
-            <p>{{ currentNavItem?.subtitle || '面向运营、风控与系统运维的分域管理前端。' }}</p>
+            <h1>{{ currentNavItem?.label || '企业运营后台' }}</h1>
+            <p>{{ currentNavItem?.subtitle || '负责维护主数据并查看设备、司机和驾驶会话运行状态。' }}</p>
           </div>
         </div>
 

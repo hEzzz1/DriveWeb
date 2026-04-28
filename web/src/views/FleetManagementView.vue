@@ -9,6 +9,7 @@ import FleetListTable from '../components/fleets/FleetListTable.vue'
 import { getEnterpriseList } from '../api/enterprises'
 import { createFleet, getFleetDetail, getFleetList, updateFleet, updateFleetStatus } from '../api/fleets'
 import { getDriverList } from '../api/drivers'
+import { getVehicleList } from '../api/vehicles'
 import { useAccess } from '../composables/useAccess'
 import { useAuthStore } from '../stores/auth'
 import type { EnterpriseSummary } from '../types/enterprises'
@@ -116,19 +117,29 @@ async function fetchList(): Promise<void> {
 }
 
 async function hydrateFleetItems(source: FleetSummary[]): Promise<FleetSummary[]> {
-  const driverCounts = await Promise.all(
-    source.map(async (item) => {
-      const data = await getDriverList({ page: 1, size: 1, fleetId: item.id })
-      return [item.id, data.total] as const
-    }),
-  )
+  const [driverCounts, vehicleCounts] = await Promise.all([
+    Promise.all(
+      source.map(async (item) => {
+        const data = await getDriverList({ page: 1, size: 1, fleetId: item.id })
+        return [item.id, data.total] as const
+      }),
+    ),
+    Promise.all(
+      source.map(async (item) => {
+        const data = await getVehicleList({ page: 1, size: 1, fleetId: item.id })
+        return [item.id, data.total] as const
+      }),
+    ),
+  ])
 
   const countMap = new Map<number, number>(driverCounts)
+  const vehicleCountMap = new Map<number, number>(vehicleCounts)
 
   return source.map((item) => ({
     ...item,
     enterpriseName: enterpriseMap.value.get(item.enterpriseId)?.name || item.enterpriseName,
     driverCount: countMap.get(item.id) ?? 0,
+    vehicleCount: vehicleCountMap.get(item.id) ?? 0,
   }))
 }
 
