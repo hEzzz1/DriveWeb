@@ -11,6 +11,10 @@ export interface CapabilityMap {
   canAssignUserRoles: boolean
   canResetUserPassword: boolean
   canToggleUserStatus: boolean
+  canViewFleets: boolean
+  canManageFleets: boolean
+  canViewDrivers: boolean
+  canManageDrivers: boolean
   canViewEnterprises: boolean
   canManageEnterprises: boolean
   canEditEnterprise: boolean
@@ -30,6 +34,7 @@ export function resolveCapabilities(context: AccessContext): CapabilityMap {
   const isSuperAdmin = roles.includes('SUPER_ADMIN')
   const isEnterpriseAdmin = roles.includes('ENTERPRISE_ADMIN')
   const isSystemAdmin = roles.includes('SYS_ADMIN')
+  const canReadBusinessDomain = hasRole(roles, ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'OPERATOR', 'ANALYST'])
 
   return {
     canViewUsers: isSuperAdmin || isEnterpriseAdmin,
@@ -38,6 +43,10 @@ export function resolveCapabilities(context: AccessContext): CapabilityMap {
     canAssignUserRoles: isSuperAdmin || isEnterpriseAdmin,
     canResetUserPassword: isSuperAdmin || isEnterpriseAdmin,
     canToggleUserStatus: isSuperAdmin || isEnterpriseAdmin,
+    canViewFleets: canReadBusinessDomain,
+    canManageFleets: isSuperAdmin || isEnterpriseAdmin,
+    canViewDrivers: canReadBusinessDomain,
+    canManageDrivers: isSuperAdmin || isEnterpriseAdmin,
     canViewEnterprises: isSuperAdmin || isSystemAdmin,
     canManageEnterprises: isSuperAdmin || isSystemAdmin,
     canEditEnterprise: isSuperAdmin,

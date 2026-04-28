@@ -13,6 +13,8 @@ import AuditStatusView from '../views/AuditStatusView.vue'
 import SystemManagementView from '../views/SystemManagementView.vue'
 import UserManagementView from '../views/UserManagementView.vue'
 import EnterpriseManagementView from '../views/EnterpriseManagementView.vue'
+import FleetManagementView from '../views/FleetManagementView.vue'
+import DriverManagementView from '../views/DriverManagementView.vue'
 
 const OPS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
 const ANALYSIS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST']
@@ -20,6 +22,7 @@ const RULE_ROLES: UserRole[] = ['SUPER_ADMIN', 'RISK_ADMIN']
 const SYSTEM_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN']
 const USER_ADMIN_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN']
 const ENTERPRISE_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN']
+const BUSINESS_DOMAIN_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'OPERATOR', 'ANALYST']
 const ALL_AUTH_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'SYS_ADMIN', 'RISK_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
 
 const router = createRouter({
@@ -106,6 +109,18 @@ const router = createRouter({
       name: 'user-management',
       component: UserManagementView,
       meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+    },
+    {
+      path: '/fleets',
+      name: 'fleet-management',
+      component: FleetManagementView,
+      meta: { requiresAuth: true, roles: BUSINESS_DOMAIN_ROLES },
+    },
+    {
+      path: '/drivers',
+      name: 'driver-management',
+      component: DriverManagementView,
+      meta: { requiresAuth: true, roles: BUSINESS_DOMAIN_ROLES },
     },
     {
       path: '/enterprises',

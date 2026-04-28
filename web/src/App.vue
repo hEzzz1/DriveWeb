@@ -29,6 +29,8 @@ const navItems = computed<NavItem[]>(() => [
   { key: 'trend', section: 'ops', label: '趋势分析', subtitle: '趋势洞察与波动分析', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/trend' },
   { key: 'ranking', section: 'ops', label: '风险排行', subtitle: '车辆与司机风险排行', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/ranking' },
   { key: 'rules', section: 'risk', label: '规则管理', subtitle: '规则配置、发布与回滚', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'RISK_ADMIN']), path: '/rules' },
+  { key: 'fleets', section: 'system', label: '车队管理', subtitle: '车队列表、状态与归属管理', visible: access.value.canViewFleets, path: '/fleets' },
+  { key: 'drivers', section: 'system', label: '驾驶员管理', subtitle: '驾驶员资料、状态与车队绑定', visible: access.value.canViewDrivers, path: '/drivers' },
   { key: 'audit', section: 'system', label: '审计日志', subtitle: '审计列表、详情与导出', visible: access.value.canViewSystemAudit, path: '/audit' },
   { key: 'health', section: 'system', label: '系统健康', subtitle: '健康概览与监控摘要', visible: access.value.canViewSystemHealth, path: '/system/health' },
   { key: 'services', section: 'system', label: '服务状态', subtitle: '服务探测状态与最近检查时间', visible: access.value.canViewServiceStatus, path: '/system/services' },

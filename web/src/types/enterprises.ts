@@ -5,6 +5,7 @@ import type { UserSummary } from './users'
 export interface EnterpriseListQuery extends PageQuery {
   keyword?: string
   enabled?: boolean
+  status?: 0 | 1
 }
 
 export interface EnterpriseSummary {
@@ -12,6 +13,7 @@ export interface EnterpriseSummary {
   code: string
   name: string
   enabled: boolean
+  status: 0 | 1
   contactName?: string
   contactPhone?: string
   remark?: string
@@ -41,3 +43,20 @@ export interface UpdateEnterpriseStatusPayload {
 }
 
 export type EnterpriseAuditListData = AuditListData
+
+export interface EnterpriseApiItem {
+  id: number
+  code: string
+  name: string
+  status?: number | null
+  remark?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+export interface EnterpriseApiPageData {
+  items: EnterpriseApiItem[]
+  total: number
+  page: number
+  size: number
+}
