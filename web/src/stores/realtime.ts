@@ -61,7 +61,7 @@ export const useRealtimeStore = defineStore('realtime', () => {
   })
 
   function ensureConnected(): void {
-    if (!authStore.isAuthenticated || !authStore.token) {
+    if (!authStore.isAuthenticated || !authStore.token || authStore.workspaceDomain !== 'org') {
       disconnect()
       return
     }
@@ -75,6 +75,11 @@ export const useRealtimeStore = defineStore('realtime', () => {
   }
 
   function reconnect(): void {
+    if (authStore.workspaceDomain !== 'org') {
+      disconnect()
+      return
+    }
+
     disconnect(false)
     manuallyClosed = false
     openSocket(true)
@@ -106,7 +111,7 @@ export const useRealtimeStore = defineStore('realtime', () => {
   }
 
   function openSocket(isReconnect: boolean): void {
-    if (!authStore.token) {
+    if (!authStore.token || authStore.workspaceDomain !== 'org') {
       status.value = 'disconnected'
       return
     }
@@ -148,7 +153,7 @@ export const useRealtimeStore = defineStore('realtime', () => {
       stopHeartbeat()
       socket = null
 
-      if (manuallyClosed || !authStore.isAuthenticated) {
+      if (manuallyClosed || !authStore.isAuthenticated || authStore.workspaceDomain !== 'org') {
         status.value = 'disconnected'
         return
       }

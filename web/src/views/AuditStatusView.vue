@@ -38,7 +38,7 @@ const summaryItems = computed(() => [
   { label: '企业域记录', value: items.value.filter((item) => item.module === 'ENTERPRISE').length },
   { label: '当前页', value: currentPage.value },
 ])
-const canExport = computed(() => access.value.canExportSystemAudit)
+const canExport = computed(() => access.value.canExportPlatformAudit)
 
 onMounted(async () => {
   await fetchList()
@@ -127,7 +127,7 @@ async function handleSizeChange(size: number): Promise<void> {
       <div>
         <p class="eyebrow">Audit</p>
         <h1>审计日志</h1>
-        <p class="subhead">已对齐 DriveServer 的系统审计模型，支持按模块、动作、对象和操作人过滤，并可下钻查看结构化 before/after 明细。</p>
+        <p class="subhead">平台域审计只展示平台侧治理和系统操作记录，不承接企业业务原始明细。</p>
       </div>
     </div>
 

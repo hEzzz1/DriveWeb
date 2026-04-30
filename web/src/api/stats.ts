@@ -25,7 +25,7 @@ export function getRealtimeOverview(
 ): Promise<RealtimeOverviewData> {
   return request<RealtimeOverviewData>({
     method: 'GET',
-    url: '/realtime/overview',
+    url: '/org/overview',
     params,
     ...toConfig(options),
   })
@@ -34,7 +34,7 @@ export function getRealtimeOverview(
 export function getStatsTrend(params: TrendQuery, options?: RequestOptions): Promise<TrendData> {
   return request<TrendData>({
     method: 'GET',
-    url: '/stats/trend',
+    url: '/org/stats/trend',
     params,
     ...toConfig(options),
   })
@@ -43,7 +43,7 @@ export function getStatsTrend(params: TrendQuery, options?: RequestOptions): Pro
 export function getStatsRanking(params: RankingQuery, options?: RequestOptions): Promise<RankingData> {
   return request<RankingData>({
     method: 'GET',
-    url: '/stats/ranking',
+    url: '/org/stats/ranking',
     params,
     ...toConfig(options),
   })

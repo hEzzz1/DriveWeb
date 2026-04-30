@@ -52,9 +52,9 @@ function formatDateTime(value?: string): string {
           {{ row.contactPhone || '-' }}
         </template>
       </el-table-column>
-      <el-table-column label="用户数" width="100">
+      <el-table-column label="备注" min-width="180">
         <template #default="{ row }">
-          {{ row.userCount ?? '-' }}
+          {{ row.remark || '-' }}
         </template>
       </el-table-column>
       <el-table-column label="创建时间" min-width="180">

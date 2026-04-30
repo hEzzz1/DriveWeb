@@ -46,3 +46,27 @@ export function disableEnterpriseActivationCode(
     method: 'POST',
   }).then(normalizeEnterpriseActivationCode)
 }
+
+export function getOrgEnterpriseActivationCode(options?: {
+  silentError?: boolean
+}): Promise<EnterpriseActivationCodeSummary> {
+  return request<EnterpriseActivationCodeApiItem>({
+    url: '/org/enterprise-profile/activation-code',
+    method: 'GET',
+    silentError: options?.silentError,
+  }).then(normalizeEnterpriseActivationCode)
+}
+
+export function rotateOrgEnterpriseActivationCode(): Promise<EnterpriseActivationCodeSummary> {
+  return request<EnterpriseActivationCodeApiItem>({
+    url: '/org/enterprise-profile/activation-code/rotate',
+    method: 'POST',
+  }).then(normalizeEnterpriseActivationCode)
+}
+
+export function disableOrgEnterpriseActivationCode(): Promise<EnterpriseActivationCodeSummary> {
+  return request<EnterpriseActivationCodeApiItem>({
+    url: '/org/enterprise-profile/activation-code/disable',
+    method: 'POST',
+  }).then(normalizeEnterpriseActivationCode)
+}

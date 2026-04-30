@@ -49,6 +49,8 @@ export interface EnterpriseApiItem {
   code: string
   name: string
   status?: number | null
+  contactName?: string | null
+  contactPhone?: string | null
   remark?: string | null
   createdAt?: string | null
   updatedAt?: string | null

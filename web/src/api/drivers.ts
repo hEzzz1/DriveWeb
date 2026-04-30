@@ -33,7 +33,7 @@ function normalizeDriver(item: DriverApiItem): DriverDetail {
 
 export function getDriverList(params: DriverListQuery): Promise<DriverListData> {
   return request<DriverApiPageData>({
-    url: '/drivers',
+    url: '/org/drivers',
     method: 'GET',
     params: {
       ...params,
@@ -47,14 +47,14 @@ export function getDriverList(params: DriverListQuery): Promise<DriverListData> 
 
 export function getDriverDetail(id: number | string): Promise<DriverDetail> {
   return request<DriverApiItem>({
-    url: `/drivers/${id}`,
+    url: `/org/drivers/${id}`,
     method: 'GET',
   }).then(normalizeDriver)
 }
 
 export function createDriver(payload: CreateDriverPayload): Promise<DriverDetail> {
   return request<DriverApiItem>({
-    url: '/drivers',
+    url: '/org/drivers',
     method: 'POST',
     data: payload,
   }).then(normalizeDriver)
@@ -62,7 +62,7 @@ export function createDriver(payload: CreateDriverPayload): Promise<DriverDetail
 
 export function updateDriver(id: number | string, payload: UpdateDriverPayload): Promise<DriverDetail> {
   return request<DriverApiItem>({
-    url: `/drivers/${id}`,
+    url: `/org/drivers/${id}`,
     method: 'PUT',
     data: payload,
   }).then(normalizeDriver)
@@ -73,7 +73,7 @@ export function updateDriverStatus(
   payload: UpdateDriverStatusPayload,
 ): Promise<DriverDetail> {
   return request<DriverApiItem>({
-    url: `/drivers/${id}/status`,
+    url: `/org/drivers/${id}/status`,
     method: 'PUT',
     data: payload,
   }).then(normalizeDriver)
@@ -84,7 +84,7 @@ export function reassignDriverFleet(
   payload: ReassignDriverFleetPayload,
 ): Promise<DriverDetail> {
   return request<DriverApiItem>({
-    url: `/drivers/${id}/fleet`,
+    url: `/org/drivers/${id}/fleet`,
     method: 'PUT',
     data: payload,
   }).then(normalizeDriver)
@@ -95,7 +95,7 @@ export function resetDriverPin(
   payload: ResetDriverPinPayload,
 ): Promise<DriverDetail> {
   return request<DriverApiItem>({
-    url: `/drivers/${id}/reset-pin`,
+    url: `/org/drivers/${id}/reset-pin`,
     method: 'POST',
     data: payload,
   }).then(normalizeDriver)

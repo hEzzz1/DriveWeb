@@ -19,6 +19,7 @@ defineProps<{
   canEdit?: boolean
   canToggleStatus?: boolean
   canViewUsers?: boolean
+  showUserSummary?: boolean
   activationCode?: EnterpriseActivationCodeSummary | null
   activationCodeLoading?: boolean
   canViewActivationCode?: boolean
@@ -94,7 +95,7 @@ function formatDateTime(value?: string): string {
             />
           </div>
 
-          <div class="summary-block">
+          <div v-if="showUserSummary" class="summary-block">
             <div class="summary-head">
               <h3>企业下用户摘要</h3>
               <span>{{ canViewUsers ? `当前展示 ${users.length} 条` : '当前账号不具备用户查看权限' }}</span>
@@ -111,7 +112,7 @@ function formatDateTime(value?: string): string {
           <div class="summary-block">
             <div class="summary-head">
               <h3>最近变更记录</h3>
-              <span>展示当前企业的企业域审计记录</span>
+              <span>展示当前企业在平台治理侧的变更记录</span>
             </div>
             <AuditListTable
               :items="audits"

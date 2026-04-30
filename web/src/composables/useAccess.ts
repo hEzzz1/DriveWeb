@@ -5,7 +5,12 @@ import { resolveCapabilities } from '../access/capabilities'
 
 export function useAccess() {
   const authStore = useAuthStore()
-  const { permissions } = storeToRefs(authStore)
+  const { permissions, workspaceDomain } = storeToRefs(authStore)
 
-  return computed(() => resolveCapabilities({ permissions: permissions.value }))
+  return computed(() =>
+    resolveCapabilities({
+      permissions: permissions.value,
+      workspaceDomain: workspaceDomain.value,
+    }),
+  )
 }

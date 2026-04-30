@@ -1,17 +1,30 @@
 import type { PermissionCode } from '../types/api'
+import type { WorkspaceDomain } from './auth-model'
 
 export interface AccessContext {
   permissions: PermissionCode[]
+  workspaceDomain: WorkspaceDomain
 }
 
 export interface CapabilityMap {
+  workspaceDomain: WorkspaceDomain
+  isPlatformDomain: boolean
+  isOrgDomain: boolean
+  canViewEnterprises: boolean
+  canManageEnterprises: boolean
+  canViewEnterpriseAdmins: boolean
+  canManageEnterpriseAdmins: boolean
+  canViewPlatformAudit: boolean
+  canExportPlatformAudit: boolean
+  canViewPlatformSystem: boolean
+  canViewPlatformRules: boolean
+  canManagePlatformRules: boolean
   canViewUsers: boolean
-  canCreateUser: boolean
-  canEditUser: boolean
-  canAssignUserRoles: boolean
-  canResetUserPassword: boolean
-  canToggleUserStatus: boolean
-  canViewBusinessDomains: boolean
+  canManageUsers: boolean
+  canViewOverview: boolean
+  canViewAlerts: boolean
+  canHandleAlerts: boolean
+  canViewStats: boolean
   canViewFleets: boolean
   canManageFleets: boolean
   canViewDrivers: boolean
@@ -20,20 +33,12 @@ export interface CapabilityMap {
   canManageVehicles: boolean
   canViewDevices: boolean
   canManageDevices: boolean
-  canViewDeviceApprovals: boolean
-  canManageDeviceApprovals: boolean
   canViewSessions: boolean
   canManageSessions: boolean
-  canViewEnterprises: boolean
-  canManageEnterprises: boolean
-  canEditEnterprise: boolean
+  canViewEnterpriseProfile: boolean
+  canManageEnterpriseProfile: boolean
   canViewEnterpriseActivationCodes: boolean
   canManageEnterpriseActivationCodes: boolean
-  canViewSystemAudit: boolean
-  canExportSystemAudit: boolean
-  canViewSystemHealth: boolean
-  canViewServiceStatus: boolean
-  canViewVersionInfo: boolean
 }
 
 function hasPermission(permissions: PermissionCode[], targets: PermissionCode[]): boolean {
@@ -41,44 +46,42 @@ function hasPermission(permissions: PermissionCode[], targets: PermissionCode[])
 }
 
 export function resolveCapabilities(context: AccessContext): CapabilityMap {
-  const { permissions } = context
-  const canReadBusinessDomain = hasPermission(permissions, [
-    'fleet.read',
-    'driver.read',
-    'vehicle.read',
-    'device.read',
-    'session.read',
-  ])
+  const { permissions, workspaceDomain } = context
+  const isPlatformDomain = workspaceDomain === 'platform'
+  const isOrgDomain = workspaceDomain === 'org'
 
   return {
-    canViewUsers: hasPermission(permissions, ['user.read']),
-    canCreateUser: hasPermission(permissions, ['user.manage']),
-    canEditUser: hasPermission(permissions, ['user.manage']),
-    canAssignUserRoles: hasPermission(permissions, ['user.manage']),
-    canResetUserPassword: hasPermission(permissions, ['user.manage']),
-    canToggleUserStatus: hasPermission(permissions, ['user.manage']),
-    canViewBusinessDomains: canReadBusinessDomain,
-    canViewFleets: hasPermission(permissions, ['fleet.read']),
-    canManageFleets: hasPermission(permissions, ['fleet.manage']),
-    canViewDrivers: hasPermission(permissions, ['driver.read']),
-    canManageDrivers: hasPermission(permissions, ['driver.manage']),
-    canViewVehicles: hasPermission(permissions, ['vehicle.read']),
-    canManageVehicles: hasPermission(permissions, ['vehicle.manage']),
-    canViewDevices: hasPermission(permissions, ['device.read']),
-    canManageDevices: hasPermission(permissions, ['device.manage']),
-    canViewDeviceApprovals: hasPermission(permissions, ['activation_code.read']),
-    canManageDeviceApprovals: hasPermission(permissions, ['activation_code.manage']),
-    canViewSessions: hasPermission(permissions, ['session.read']),
-    canManageSessions: hasPermission(permissions, ['session.force_sign_out']),
-    canViewEnterprises: hasPermission(permissions, ['enterprise.read']),
-    canManageEnterprises: hasPermission(permissions, ['enterprise.manage']),
-    canEditEnterprise: hasPermission(permissions, ['enterprise.manage']),
-    canViewEnterpriseActivationCodes: hasPermission(permissions, ['activation_code.read']),
-    canManageEnterpriseActivationCodes: hasPermission(permissions, ['activation_code.manage']),
-    canViewSystemAudit: hasPermission(permissions, ['audit.read']),
-    canExportSystemAudit: hasPermission(permissions, ['audit.export']),
-    canViewSystemHealth: hasPermission(permissions, ['system.read']),
-    canViewServiceStatus: hasPermission(permissions, ['system.read']),
-    canViewVersionInfo: hasPermission(permissions, ['system.read']),
+    workspaceDomain,
+    isPlatformDomain,
+    isOrgDomain,
+    canViewEnterprises: isPlatformDomain && hasPermission(permissions, ['enterprise.read']),
+    canManageEnterprises: isPlatformDomain && hasPermission(permissions, ['enterprise.manage']),
+    canViewEnterpriseAdmins: isPlatformDomain && hasPermission(permissions, ['user.read']),
+    canManageEnterpriseAdmins: isPlatformDomain && hasPermission(permissions, ['user.manage']),
+    canViewPlatformAudit: isPlatformDomain && hasPermission(permissions, ['audit.read']),
+    canExportPlatformAudit: isPlatformDomain && hasPermission(permissions, ['audit.export']),
+    canViewPlatformSystem: isPlatformDomain && hasPermission(permissions, ['system.read']),
+    canViewPlatformRules: isPlatformDomain && hasPermission(permissions, ['rule.read']),
+    canManagePlatformRules: isPlatformDomain && hasPermission(permissions, ['rule.manage']),
+    canViewUsers: isOrgDomain && hasPermission(permissions, ['user.read']),
+    canManageUsers: isOrgDomain && hasPermission(permissions, ['user.manage']),
+    canViewOverview: isOrgDomain && hasPermission(permissions, ['overview.read']),
+    canViewAlerts: isOrgDomain && hasPermission(permissions, ['alert.read']),
+    canHandleAlerts: isOrgDomain && hasPermission(permissions, ['alert.handle']),
+    canViewStats: isOrgDomain && hasPermission(permissions, ['stats.read']),
+    canViewFleets: isOrgDomain && hasPermission(permissions, ['fleet.read']),
+    canManageFleets: isOrgDomain && hasPermission(permissions, ['fleet.manage']),
+    canViewDrivers: isOrgDomain && hasPermission(permissions, ['driver.read']),
+    canManageDrivers: isOrgDomain && hasPermission(permissions, ['driver.manage']),
+    canViewVehicles: isOrgDomain && hasPermission(permissions, ['vehicle.read']),
+    canManageVehicles: isOrgDomain && hasPermission(permissions, ['vehicle.manage']),
+    canViewDevices: isOrgDomain && hasPermission(permissions, ['device.read']),
+    canManageDevices: isOrgDomain && hasPermission(permissions, ['device.manage']),
+    canViewSessions: isOrgDomain && hasPermission(permissions, ['session.read']),
+    canManageSessions: isOrgDomain && hasPermission(permissions, ['session.force_sign_out']),
+    canViewEnterpriseProfile: isOrgDomain && hasPermission(permissions, ['enterprise.read']),
+    canManageEnterpriseProfile: isOrgDomain && hasPermission(permissions, ['enterprise.manage']),
+    canViewEnterpriseActivationCodes: isOrgDomain && hasPermission(permissions, ['activation_code.read']),
+    canManageEnterpriseActivationCodes: isOrgDomain && hasPermission(permissions, ['activation_code.manage']),
   }
 }

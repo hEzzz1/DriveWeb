@@ -32,7 +32,7 @@ function normalizeVehicle(item: VehicleApiItem): VehicleDetail {
 
 export function getVehicleList(params: VehicleListQuery): Promise<VehicleListData> {
   return request<VehicleApiPageData>({
-    url: '/vehicles',
+    url: '/org/vehicles',
     method: 'GET',
     params: {
       ...params,
@@ -46,14 +46,14 @@ export function getVehicleList(params: VehicleListQuery): Promise<VehicleListDat
 
 export function getVehicleDetail(id: number | string): Promise<VehicleDetail> {
   return request<VehicleApiItem>({
-    url: `/vehicles/${id}`,
+    url: `/org/vehicles/${id}`,
     method: 'GET',
   }).then(normalizeVehicle)
 }
 
 export function createVehicle(payload: CreateVehiclePayload): Promise<VehicleDetail> {
   return request<VehicleApiItem>({
-    url: '/vehicles',
+    url: '/org/vehicles',
     method: 'POST',
     data: payload,
   }).then(normalizeVehicle)
@@ -61,7 +61,7 @@ export function createVehicle(payload: CreateVehiclePayload): Promise<VehicleDet
 
 export function updateVehicle(id: number | string, payload: UpdateVehiclePayload): Promise<VehicleDetail> {
   return request<VehicleApiItem>({
-    url: `/vehicles/${id}`,
+    url: `/org/vehicles/${id}`,
     method: 'PUT',
     data: payload,
   }).then(normalizeVehicle)
@@ -72,7 +72,7 @@ export function updateVehicleStatus(
   payload: UpdateVehicleStatusPayload,
 ): Promise<VehicleDetail> {
   return request<VehicleApiItem>({
-    url: `/vehicles/${id}/status`,
+    url: `/org/vehicles/${id}/status`,
     method: 'PUT',
     data: payload,
   }).then(normalizeVehicle)

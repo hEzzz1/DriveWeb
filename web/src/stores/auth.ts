@@ -24,6 +24,7 @@ import {
   normalizeUserRoleList,
   resolveDefaultScope,
   resolvePermissionsFromRoles,
+  resolveWorkspaceDomain,
   ROLE_PRIORITY,
 } from '../access/auth-model'
 import {
@@ -73,6 +74,9 @@ export const useAuthStore = defineStore('auth', () => {
   const isSuperAdmin = computed(() => effectiveRoles.value.includes('PLATFORM_SUPER_ADMIN'))
   const isEnterpriseAdmin = computed(() => effectiveRoles.value.includes('ORG_ADMIN'))
   const isUserAdmin = computed(() => hasPermission('user.manage'))
+  const workspaceDomain = computed(() =>
+    resolveWorkspaceDomain(defaultScope.value, platformRoles.value, memberships.value, permissions.value),
+  )
 
   function persist(): void {
     const payload: PersistedAuth = {
@@ -241,7 +245,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function hasAnyRole(targetRoles: UserRole[]): boolean {
-    return isSuperAdmin.value || targetRoles.some((role) => effectiveRoles.value.includes(role))
+    return targetRoles.some((role) => effectiveRoles.value.includes(role))
   }
 
   function hasPermission(permission: PermissionCode): boolean {
@@ -249,43 +253,87 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function hasAnyPermission(targetPermissions: PermissionCode[]): boolean {
-    return isSuperAdmin.value || targetPermissions.some((permission) => permissions.value.includes(permission))
+    return targetPermissions.some((permission) => permissions.value.includes(permission))
   }
 
   function getDefaultRoute(): string {
-    if (hasAnyPermission(['audit.read'])) {
-      return '/audit'
-    }
+    if (workspaceDomain.value === 'platform') {
+      if (hasAnyPermission(['enterprise.read'])) {
+        return '/platform/enterprises'
+      }
 
-    if (hasAnyPermission(['rule.read'])) {
-      return '/rules'
-    }
+      if (hasAnyPermission(['user.read'])) {
+        return '/platform/enterprise-admins'
+      }
 
-    if (hasAnyPermission(['session.read'])) {
-      return '/sessions'
-    }
+      if (hasAnyPermission(['rule.read'])) {
+        return '/platform/rules'
+      }
 
-    if (hasAnyPermission(['stats.read'])) {
-      return '/stats/trend'
+      if (hasAnyPermission(['audit.read'])) {
+        return '/platform/audit'
+      }
+
+      if (hasAnyPermission(['system.read'])) {
+        return '/platform/system/health'
+      }
+
+      return '/account/session'
     }
 
     if (hasAnyPermission(['overview.read'])) {
-      return '/overview'
+      return '/org/overview'
+    }
+
+    if (hasAnyPermission(['alert.read'])) {
+      return '/org/alerts'
+    }
+
+    if (hasAnyPermission(['stats.read'])) {
+      return '/org/stats/trend'
     }
 
     if (hasAnyPermission(['user.read'])) {
-      return '/users'
+      return '/org/users'
+    }
+
+    if (hasAnyPermission(['fleet.read'])) {
+      return '/org/fleets'
+    }
+
+    if (hasAnyPermission(['driver.read'])) {
+      return '/org/drivers'
+    }
+
+    if (hasAnyPermission(['vehicle.read'])) {
+      return '/org/vehicles'
+    }
+
+    if (hasAnyPermission(['device.read'])) {
+      return '/org/devices'
+    }
+
+    if (hasAnyPermission(['session.read'])) {
+      return '/org/sessions'
     }
 
     if (hasAnyPermission(['enterprise.read'])) {
-      return '/enterprises'
+      return '/org/enterprise-profile'
+    }
+
+    if (hasAnyPermission(['audit.read'])) {
+      return '/platform/audit'
+    }
+
+    if (hasAnyPermission(['rule.read'])) {
+      return '/platform/rules'
     }
 
     if (hasAnyPermission(['system.read'])) {
-      return '/system/health'
+      return '/platform/system/health'
     }
 
-    return '/login'
+    return '/account/session'
   }
 
   function canDisposeAlerts(): boolean {
@@ -340,6 +388,7 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperAdmin,
     isEnterpriseAdmin,
     isUserAdmin,
+    workspaceDomain,
     hydrate,
     login,
     syncCurrentUser,

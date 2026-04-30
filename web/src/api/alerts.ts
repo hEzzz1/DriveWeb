@@ -9,7 +9,7 @@ import { request } from './http'
 export function getAlertList(params: AlertListQuery): Promise<AlertListData> {
   return request<AlertListData>({
     method: 'GET',
-    url: '/alerts',
+    url: '/org/alerts',
     params,
   })
 }
@@ -17,7 +17,7 @@ export function getAlertList(params: AlertListQuery): Promise<AlertListData> {
 export function getAlertDetail(id: number | string): Promise<AlertDetail> {
   return request<AlertDetail>({
     method: 'GET',
-    url: `/alerts/${id}`,
+    url: `/org/alerts/${id}`,
   })
 }
 
@@ -34,7 +34,7 @@ export function disposeAlert(
 
   return request<AlertDetail>({
     method: 'POST',
-    url: `/alerts/${id}/${actionPathMap[actionType]}`,
+    url: `/org/alerts/${id}/${actionPathMap[actionType]}`,
     data: {
       remark,
     },

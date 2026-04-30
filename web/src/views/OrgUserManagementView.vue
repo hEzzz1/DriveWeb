@@ -11,17 +11,16 @@ import UserListTable from '../components/users/UserListTable.vue'
 import UserResetPasswordDialog from '../components/users/UserResetPasswordDialog.vue'
 import UserRolesDialog from '../components/users/UserRolesDialog.vue'
 import { getAuditDetail } from '../api/audit'
-import { getEnterpriseList } from '../api/enterprises'
 import {
-  createUser,
-  getRoleOptions,
-  getUserAudits,
-  getUserDetail,
-  getUserList,
-  resetUserPassword,
-  updateUser,
-  updateUserRoles,
-  updateUserStatus,
+  createOrgUser,
+  getOrgUserAudits,
+  getOrgUserDetail,
+  getOrgUserList,
+  getOrgUserRoleOptions,
+  resetOrgUserPassword,
+  updateOrgUser,
+  updateOrgUserRoles,
+  updateOrgUserStatus,
 } from '../api/users'
 import { useAccess } from '../composables/useAccess'
 import { useAuthStore } from '../stores/auth'
@@ -32,8 +31,9 @@ import { normalizeAuditDetail } from '../utils/audit'
 interface FilterModel {
   keyword: string
   enabled?: boolean
-  enterpriseId?: number
 }
+
+const ORG_ASSIGNABLE_ROLES = ['ORG_OPERATOR', 'ORG_ANALYST', 'ORG_VIEWER'] as const
 
 const authStore = useAuthStore()
 const access = useAccess()
@@ -73,7 +73,6 @@ const auditSize = ref(5)
 const filters = reactive<FilterModel>({
   keyword: '',
   enabled: undefined,
-  enterpriseId: undefined,
 })
 
 const enabledOptions = [
@@ -82,17 +81,11 @@ const enabledOptions = [
 ]
 
 const summaryItems = computed(() => [
-  { label: '用户总数', value: total.value },
-  { label: '启用用户', value: items.value.filter((item) => item.enabled).length },
-  { label: '企业范围', value: access.value.canCreateUser && authStore.isSuperAdmin ? '全平台' : authStore.scopeText },
-  { label: '可分配角色数', value: roleOptions.value.length },
+  { label: '普通用户数', value: total.value },
+  { label: '启用账号', value: items.value.filter((item) => item.enabled).length },
+  { label: '所属企业', value: authStore.enterpriseName || authStore.enterpriseId || '-' },
+  { label: '可分配角色', value: roleOptions.value.length },
 ])
-
-const pageSubhead = computed(() =>
-  authStore.isSuperAdmin
-    ? '当前按完整权限模型兼容展示，可同时承接旧角色与新权限点结构。'
-    : '当前按默认作用域展示本企业或归属范围内用户，角色与权限点口径已兼容升级。',
-)
 
 const activeRoleModel = computed(() =>
   activeDetail.value
@@ -107,21 +100,24 @@ const activeRoleModel = computed(() =>
 onMounted(async () => {
   authStore.hydrate()
   await authStore.syncCurrentUser()
-  await Promise.all([fetchList(), fetchRoleOptions(), fetchEnterpriseOptions()])
+  enterpriseOptions.value = authStore.enterpriseId
+    ? [{ value: Number(authStore.enterpriseId), label: authStore.enterpriseName || `企业 ${authStore.enterpriseId}` }]
+    : []
+  await Promise.all([fetchList(), fetchRoleOptions()])
 })
 
 async function fetchList(): Promise<void> {
   loading.value = true
 
   try {
-    const data = await getUserList(buildQuery())
+    const data = await getOrgUserList(buildQuery())
     items.value = Array.isArray(data.items) ? data.items : []
     total.value = data.total || 0
     currentPage.value = data.page || currentPage.value
     pageSize.value = data.size || pageSize.value
     errorText.value = ''
   } catch (error) {
-    errorText.value = error instanceof Error ? error.message : '用户列表加载失败'
+    errorText.value = error instanceof Error ? error.message : '普通用户列表加载失败'
   } finally {
     loading.value = false
   }
@@ -131,25 +127,11 @@ async function fetchRoleOptions(): Promise<void> {
   roleOptionsLoading.value = true
 
   try {
-    roleOptions.value = await getRoleOptions()
+    const options = await getOrgUserRoleOptions()
+    roleOptions.value = options.filter((item) => ORG_ASSIGNABLE_ROLES.includes(item.roleCode as (typeof ORG_ASSIGNABLE_ROLES)[number]))
   } finally {
     roleOptionsLoading.value = false
   }
-}
-
-async function fetchEnterpriseOptions(): Promise<void> {
-  if (!authStore.isSuperAdmin) {
-    enterpriseOptions.value = authStore.enterpriseId
-      ? [{ value: Number(authStore.enterpriseId), label: authStore.enterpriseName || `企业 ${authStore.enterpriseId}` }]
-      : []
-    return
-  }
-
-  const data = await getEnterpriseList({ page: 1, size: 100 })
-  enterpriseOptions.value = data.items.map((item) => ({
-    value: item.id,
-    label: `${item.name} (#${item.id})`,
-  }))
 }
 
 function buildQuery(): UserListQuery {
@@ -158,7 +140,6 @@ function buildQuery(): UserListQuery {
     size: pageSize.value,
     keyword: filters.keyword.trim() || undefined,
     enabled: filters.enabled,
-    enterpriseId: authStore.isSuperAdmin ? filters.enterpriseId : Number(authStore.enterpriseId) || undefined,
   }
 }
 
@@ -170,7 +151,7 @@ async function fetchUserAudits(): Promise<void> {
   auditLoading.value = true
 
   try {
-    const data = await getUserAudits(activeDetail.value.id, {
+    const data = await getOrgUserAudits(activeDetail.value.id, {
       page: auditPage.value,
       size: auditSize.value,
     })
@@ -189,7 +170,6 @@ async function handleSearch(): Promise<void> {
 async function handleReset(): Promise<void> {
   filters.keyword = ''
   filters.enabled = undefined
-  filters.enterpriseId = authStore.isSuperAdmin ? undefined : Number(authStore.enterpriseId) || undefined
   currentPage.value = 1
   pageSize.value = 10
   await fetchList()
@@ -203,7 +183,7 @@ async function handleOpenDetail(row: UserSummary): Promise<void> {
   auditSize.value = 5
 
   try {
-    activeDetail.value = await getUserDetail(row.id)
+    activeDetail.value = await getOrgUserDetail(row.id)
     await fetchUserAudits()
   } catch {
     detailVisible.value = false
@@ -212,20 +192,20 @@ async function handleOpenDetail(row: UserSummary): Promise<void> {
   }
 }
 
-async function handleCreateUser(payload: Parameters<typeof createUser>[0]): Promise<void> {
+async function handleCreateUser(payload: Parameters<typeof createOrgUser>[0]): Promise<void> {
   createSaving.value = true
 
   try {
-    await createUser(payload)
+    await createOrgUser(payload)
     createVisible.value = false
     await fetchList()
-    ElMessage.success('用户已创建')
+    ElMessage.success('普通用户已创建')
   } finally {
     createSaving.value = false
   }
 }
 
-async function handleEditUser(payload: Parameters<typeof updateUser>[1]): Promise<void> {
+async function handleEditUser(payload: Parameters<typeof updateOrgUser>[1]): Promise<void> {
   if (!activeDetail.value) {
     return
   }
@@ -233,7 +213,7 @@ async function handleEditUser(payload: Parameters<typeof updateUser>[1]): Promis
   editSaving.value = true
 
   try {
-    const detail = await updateUser(activeDetail.value.id, payload)
+    const detail = await updateOrgUser(activeDetail.value.id, payload)
     activeDetail.value = detail
     syncTableRow(detail)
     editVisible.value = false
@@ -251,7 +231,7 @@ async function handleSaveRoles(roles: UserDetail['roles']): Promise<void> {
   roleSaving.value = true
 
   try {
-    const detail = await updateUserRoles(activeDetail.value.id, { roles })
+    const detail = await updateOrgUserRoles(activeDetail.value.id, { roles })
     activeDetail.value = detail
     syncTableRow(detail)
     rolesVisible.value = false
@@ -262,7 +242,7 @@ async function handleSaveRoles(roles: UserDetail['roles']): Promise<void> {
   }
 }
 
-async function handleResetPassword(payload: Parameters<typeof resetUserPassword>[1]): Promise<void> {
+async function handleResetPassword(payload: Parameters<typeof resetOrgUserPassword>[1]): Promise<void> {
   if (!activeDetail.value) {
     return
   }
@@ -270,7 +250,7 @@ async function handleResetPassword(payload: Parameters<typeof resetUserPassword>
   resetPasswordSaving.value = true
 
   try {
-    const detail = await resetUserPassword(activeDetail.value.id, payload)
+    const detail = await resetOrgUserPassword(activeDetail.value.id, payload)
     activeDetail.value = detail
     syncTableRow(detail)
     resetPasswordVisible.value = false
@@ -290,7 +270,7 @@ async function handleToggleStatus(): Promise<void> {
   const actionText = nextEnabled ? '启用' : '禁用'
 
   try {
-    await ElMessageBox.confirm(`确认${actionText}用户「${activeDetail.value.username}」吗？`, `${actionText}用户`, {
+    await ElMessageBox.confirm(`确认${actionText}普通用户「${activeDetail.value.username}」吗？`, `${actionText}用户`, {
       type: 'warning',
       confirmButtonText: actionText,
       cancelButtonText: '取消',
@@ -302,7 +282,7 @@ async function handleToggleStatus(): Promise<void> {
   statusSaving.value = true
 
   try {
-    const detail = await updateUserStatus(activeDetail.value.id, { enabled: nextEnabled })
+    const detail = await updateOrgUserStatus(activeDetail.value.id, { enabled: nextEnabled })
     activeDetail.value = detail
     syncTableRow(detail)
     await fetchUserAudits()
@@ -326,9 +306,9 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
   <div class="page-shell">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Users</p>
-        <h1>用户管理</h1>
-        <p class="subhead">{{ pageSubhead }}</p>
+        <p class="eyebrow">Organization</p>
+        <h1>普通用户</h1>
+        <p class="subhead">企业域只管理本企业普通用户，不承接平台账号和企业管理员。可分配角色限定为 ORG_OPERATOR、ORG_ANALYST、ORG_VIEWER。</p>
       </div>
     </div>
 
@@ -339,24 +319,13 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
       </el-card>
     </section>
 
-    <PageSectionCard title="筛选条件" description="按用户名、昵称、企业和状态过滤用户。">
+    <PageSectionCard title="筛选条件" description="按用户名、昵称和状态过滤本企业普通用户。">
       <template #actions>
-        <el-button v-if="access.canCreateUser" type="primary" @click="createVisible = true">新建用户</el-button>
+        <el-button v-if="access.canManageUsers" type="primary" @click="createVisible = true">新建普通用户</el-button>
       </template>
 
-      <div class="filter-bar" :class="{ compact: !authStore.isSuperAdmin }">
+      <div class="filter-bar">
         <el-input v-model="filters.keyword" clearable placeholder="用户名 / 昵称" @keyup.enter="handleSearch" />
-        <el-select
-          v-if="authStore.isSuperAdmin"
-          v-model="filters.enterpriseId"
-          clearable
-          filterable
-          allow-create
-          default-first-option
-          placeholder="企业"
-        >
-          <el-option v-for="item in enterpriseOptions" :key="item.value" :label="item.label" :value="item.value" />
-        </el-select>
         <el-select v-model="filters.enabled" clearable placeholder="账号状态">
           <el-option v-for="item in enabledOptions" :key="String(item.value)" :label="item.label" :value="item.value" />
         </el-select>
@@ -367,7 +336,7 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
       </div>
     </PageSectionCard>
 
-    <PageSectionCard title="用户列表" description="字段按平台管理场景固定展示，详情区提供编辑、角色、状态、密码和用户操作审计。">
+    <PageSectionCard title="普通用户列表" description="列表只展示本企业普通用户，详情区提供资料、角色、状态、密码和审计查看。">
       <el-alert v-if="errorText" :closable="false" type="error" :title="errorText" show-icon />
       <UserListTable
         :items="items"
@@ -383,11 +352,11 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
 
     <UserCreateDialog
       v-model:visible="createVisible"
-      :loading="createSaving"
+      :loading="createSaving || roleOptionsLoading"
       :role-options="roleOptions"
       :enterprise-options="enterpriseOptions"
       :default-enterprise-id="Number(authStore.enterpriseId) || undefined"
-      :lock-enterprise="!authStore.isSuperAdmin"
+      :lock-enterprise="true"
       @save="handleCreateUser"
     />
 
@@ -396,13 +365,13 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
       :loading="editSaving"
       :user="activeDetail"
       :enterprise-options="enterpriseOptions"
-      :lock-enterprise="!authStore.isSuperAdmin"
+      :lock-enterprise="true"
       @save="handleEditUser"
     />
 
     <UserRolesDialog
       v-model:visible="rolesVisible"
-      :loading="roleSaving"
+      :loading="roleSaving || roleOptionsLoading"
       :role-options="roleOptions"
       :model-value="activeRoleModel"
       @save="handleSaveRoles"
@@ -423,10 +392,10 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
       :audit-total="auditTotal"
       :audit-page="auditPage"
       :audit-size="auditSize"
-      :can-edit="access.canEditUser"
-      :can-assign-roles="access.canAssignUserRoles"
-      :can-toggle-status="access.canToggleUserStatus"
-      :can-reset-password="access.canResetUserPassword"
+      :can-edit="access.canManageUsers"
+      :can-assign-roles="access.canManageUsers"
+      :can-toggle-status="access.canManageUsers"
+      :can-reset-password="access.canManageUsers"
       @edit="editVisible = true"
       @roles="rolesVisible = true"
       @toggle-status="handleToggleStatus"
@@ -443,13 +412,9 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
 <style scoped>
 .filter-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr) minmax(180px, 0.6fr) auto;
+  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.8fr) auto;
   gap: 12px;
   align-items: center;
-}
-
-.filter-bar.compact {
-  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.8fr) auto;
 }
 
 .actions {
@@ -459,8 +424,7 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
 }
 
 @media (max-width: 960px) {
-  .filter-bar,
-  .filter-bar.compact {
+  .filter-bar {
     grid-template-columns: 1fr;
   }
 

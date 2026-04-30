@@ -41,7 +41,7 @@ function stripSessionDetail(item: SessionDetail): SessionSummary {
 
 export function getSessionList(params: SessionListQuery): Promise<SessionListData> {
   return request<SessionApiPageData>({
-    url: '/sessions',
+    url: '/org/sessions',
     method: 'GET',
     params,
   }).then((data) => ({
@@ -52,7 +52,7 @@ export function getSessionList(params: SessionListQuery): Promise<SessionListDat
 
 export function getSessionDetail(id: number | string): Promise<SessionDetail> {
   return request<SessionApiItem>({
-    url: `/sessions/${id}`,
+    url: `/org/sessions/${id}`,
     method: 'GET',
   }).then(normalizeSession)
 }
@@ -62,7 +62,7 @@ export function forceSignOutSession(
   payload: ForceSignOutSessionPayload,
 ): Promise<SessionDetail> {
   return request<SessionApiItem>({
-    url: `/sessions/${id}/force-sign-out`,
+    url: `/org/sessions/${id}/force-sign-out`,
     method: 'PUT',
     data: payload,
   }).then(normalizeSession)

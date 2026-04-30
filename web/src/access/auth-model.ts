@@ -68,17 +68,17 @@ export const roleLabelMap: Record<UserRole, string> = {
   PLATFORM_SUPER_ADMIN: '平台超级管理员',
   PLATFORM_SYS_ADMIN: '平台系统管理员',
   PLATFORM_RISK_ADMIN: '平台风控管理员',
-  ORG_ADMIN: '业务管理员',
+  ORG_ADMIN: '企业管理员',
   ORG_OPERATOR: '运营处理人员',
   ORG_ANALYST: '分析查看人员',
   ORG_VIEWER: '只读观察人员',
 }
 
 export const roleDescriptionMap: Record<UserRole, string> = {
-  PLATFORM_SUPER_ADMIN: '跨企业治理与紧急兜底，可覆盖全部平台与业务权限。',
+  PLATFORM_SUPER_ADMIN: '负责平台账号、企业、企业管理员、规则、审计与系统治理，不直接进入企业业务域。',
   PLATFORM_SYS_ADMIN: '负责系统健康、服务状态、版本信息与审计导出。',
-  PLATFORM_RISK_ADMIN: '负责规则治理，并可观察告警与统计效果。',
-  ORG_ADMIN: '负责企业范围内的用户、车队、司机、车辆、设备与会话管理。',
+  PLATFORM_RISK_ADMIN: '负责全平台规则治理，不直接读取企业业务明细。',
+  ORG_ADMIN: '负责本企业普通用户管理与企业业务管理，不管理平台账号。',
   ORG_OPERATOR: '负责告警处置、实时值守与会话巡检。',
   ORG_ANALYST: '负责趋势、排行与风险复盘分析，默认只读。',
   ORG_VIEWER: '仅可查看总览和基础告警信息。',
@@ -119,9 +119,19 @@ export const permissionLabelMap: Record<PermissionCode, string> = {
 }
 
 const ROLE_PERMISSION_MAP: Record<UserRole, PermissionCode[]> = {
-  PLATFORM_SUPER_ADMIN: [...ALL_PERMISSIONS],
+  PLATFORM_SUPER_ADMIN: [
+    'rule.read',
+    'rule.manage',
+    'audit.read',
+    'audit.export',
+    'system.read',
+    'user.read',
+    'user.manage',
+    'enterprise.read',
+    'enterprise.manage',
+  ],
   PLATFORM_SYS_ADMIN: ['audit.read', 'audit.export', 'system.read'],
-  PLATFORM_RISK_ADMIN: ['rule.read', 'rule.manage', 'overview.read', 'alert.read', 'stats.read'],
+  PLATFORM_RISK_ADMIN: ['rule.read', 'rule.manage'],
   ORG_ADMIN: [
     'overview.read',
     'alert.read',
@@ -165,6 +175,35 @@ const ROLE_PERMISSION_MAP: Record<UserRole, PermissionCode[]> = {
   ],
   ORG_VIEWER: ['overview.read', 'alert.read'],
 }
+
+export type WorkspaceDomain = 'platform' | 'org' | 'unknown'
+
+const PLATFORM_DOMAIN_HINTS: PermissionCode[] = [
+  'rule.read',
+  'rule.manage',
+  'audit.read',
+  'audit.export',
+  'system.read',
+]
+
+const ORG_DOMAIN_HINTS: PermissionCode[] = [
+  'overview.read',
+  'alert.read',
+  'alert.handle',
+  'stats.read',
+  'activation_code.read',
+  'activation_code.manage',
+  'fleet.read',
+  'fleet.manage',
+  'driver.read',
+  'driver.manage',
+  'vehicle.read',
+  'vehicle.manage',
+  'device.read',
+  'device.manage',
+  'session.read',
+  'session.force_sign_out',
+]
 
 function isPresentId(value: unknown): value is number | string {
   return value !== null && value !== undefined && value !== ''
@@ -341,10 +380,6 @@ export function buildDisplayRoles(
 }
 
 export function resolvePermissionsFromRoles(roles: readonly UserRole[]): PermissionCode[] {
-  if (roles.includes('PLATFORM_SUPER_ADMIN')) {
-    return [...ALL_PERMISSIONS]
-  }
-
   const permissions = new Set<PermissionCode>()
 
   for (const role of roles) {
@@ -397,6 +432,39 @@ export function resolveDefaultScope(
   }
 
   return null
+}
+
+export function resolveWorkspaceDomain(
+  explicitScope: DefaultScope | null,
+  platformRoles: readonly PlatformRole[],
+  memberships: readonly ScopeMembership[],
+  permissions: readonly PermissionCode[],
+): WorkspaceDomain {
+  if (explicitScope?.scopeType === 'PLATFORM') {
+    return 'platform'
+  }
+
+  if (explicitScope?.scopeType === 'ENTERPRISE' || explicitScope?.scopeType === 'FLEET') {
+    return 'org'
+  }
+
+  if (memberships.length) {
+    return 'org'
+  }
+
+  if (platformRoles.length) {
+    return 'platform'
+  }
+
+  if (permissions.some((permission) => ORG_DOMAIN_HINTS.includes(permission))) {
+    return 'org'
+  }
+
+  if (permissions.some((permission) => PLATFORM_DOMAIN_HINTS.includes(permission))) {
+    return 'platform'
+  }
+
+  return 'unknown'
 }
 
 export function formatRoleLabel(role: UserRole): string {

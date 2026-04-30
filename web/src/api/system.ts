@@ -10,34 +10,34 @@ import { request } from './http'
 export function getSystemHealth(): Promise<SystemHealthSnapshot> {
   return request<SystemHealthSnapshot>({
     method: 'GET',
-    url: '/system/health',
+    url: '/platform/system/health',
   })
 }
 
 export function getServiceStatus(): Promise<SystemServicesResponse> {
   return request<SystemServicesResponse>({
     method: 'GET',
-    url: '/system/services',
+    url: '/platform/system/services',
   })
 }
 
 export function getSystemMonitoring(): Promise<SystemMonitoringSnapshot> {
   return request<SystemMonitoringSnapshot>({
     method: 'GET',
-    url: '/system/monitoring',
+    url: '/platform/system/monitoring',
   })
 }
 
 export function getVersionInfo(): Promise<VersionInfoItem> {
   return request<VersionInfoItem>({
     method: 'GET',
-    url: '/system/version',
+    url: '/platform/system/version',
   })
 }
 
 export function getSystemSummary(): Promise<SystemSummarySnapshot> {
   return request<SystemSummarySnapshot>({
     method: 'GET',
-    url: '/system/summary',
+    url: '/platform/system/summary',
   })
 }

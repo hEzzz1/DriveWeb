@@ -16,7 +16,6 @@ import {
   saveRule,
   toggleRuleStatus,
 } from '../api/rules'
-import { useAuthStore } from '../stores/auth'
 import type {
   RuleActionType,
   RuleDetail,
@@ -25,8 +24,9 @@ import type {
   RuleSummary,
   RuleVersionSummary,
 } from '../types/rules'
+import { useAccess } from '../composables/useAccess'
 
-const authStore = useAuthStore()
+const access = useAccess()
 const loading = ref(false)
 const submitLoading = ref(false)
 const versionLoading = ref(false)
@@ -96,7 +96,7 @@ const actionDialogContent = computed(() => {
 
   return `规则「${activeRule.value.name}」${textMap[actionType.value as Exclude<RuleActionType, 'ROLLBACK'>]}`
 })
-const canManageRules = computed(() => authStore.canManageRules())
+const canManageRules = computed(() => access.value.canManagePlatformRules)
 
 onMounted(async () => {
   await fetchList()

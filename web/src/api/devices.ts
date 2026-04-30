@@ -64,7 +64,7 @@ export function normalizeDevice(item: DeviceApiItem): DeviceDetail {
 
 export function getDeviceList(params: DeviceListQuery): Promise<DeviceListData> {
   return request<import('../types/devices').DeviceApiPageData>({
-    url: '/devices',
+    url: '/org/devices',
     method: 'GET',
     params,
   }).then((data) => ({
@@ -75,14 +75,14 @@ export function getDeviceList(params: DeviceListQuery): Promise<DeviceListData> 
 
 export function getDeviceDetail(id: number | string): Promise<DeviceDetail> {
   return request<DeviceApiItem>({
-    url: `/devices/${id}`,
+    url: `/org/devices/${id}`,
     method: 'GET',
   }).then(normalizeDevice)
 }
 
 export function createDevice(payload: CreateDevicePayload): Promise<DeviceDetail> {
   return request<DeviceApiItem>({
-    url: '/devices',
+    url: '/org/devices',
     method: 'POST',
     data: payload,
   }).then(normalizeDevice)
@@ -90,7 +90,7 @@ export function createDevice(payload: CreateDevicePayload): Promise<DeviceDetail
 
 export function updateDevice(id: number | string, payload: UpdateDevicePayload): Promise<DeviceDetail> {
   return request<DeviceApiItem>({
-    url: `/devices/${id}`,
+    url: `/org/devices/${id}`,
     method: 'PUT',
     data: payload,
   }).then(normalizeDevice)
@@ -101,7 +101,7 @@ export function updateDeviceStatus(
   payload: UpdateDeviceStatusPayload,
 ): Promise<DeviceDetail> {
   return request<DeviceApiItem>({
-    url: `/devices/${id}/status`,
+    url: `/org/devices/${id}/status`,
     method: 'PUT',
     data: payload,
   }).then(normalizeDevice)
@@ -112,7 +112,7 @@ export function reassignDeviceVehicle(
   payload: ReassignDeviceVehiclePayload,
 ): Promise<DeviceDetail> {
   return request<DeviceApiItem>({
-    url: `/devices/${id}/vehicle`,
+    url: `/org/devices/${id}/vehicle`,
     method: 'PUT',
     data: payload,
   }).then(normalizeDevice)
@@ -120,14 +120,14 @@ export function reassignDeviceVehicle(
 
 export function unassignDeviceVehicle(id: number | string): Promise<DeviceDetail> {
   return request<DeviceApiItem>({
-    url: `/devices/${id}/vehicle`,
+    url: `/org/devices/${id}/vehicle`,
     method: 'DELETE',
   }).then(normalizeDevice)
 }
 
 export function rotateDeviceToken(id: number | string): Promise<RotateDeviceTokenData> {
   return request<RotateDeviceTokenApiData>({
-    url: `/devices/${id}/rotate-token`,
+    url: `/org/devices/${id}/rotate-token`,
     method: 'POST',
   }).then((item) => ({
     deviceId: item.deviceId,

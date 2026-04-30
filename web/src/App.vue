@@ -10,7 +10,7 @@ import { formatDateTime } from './utils/alerts'
 interface NavItem {
   key: string
   badge: string
-  section: 'business' | 'monitor' | 'platform'
+  section: 'platform-core' | 'platform-system' | 'org-monitor' | 'org-admin' | 'org-business'
   label: string
   subtitle: string
   visible: boolean
@@ -34,32 +34,180 @@ const visitedTags = ref<VisitedTag[]>([])
 
 authStore.hydrate()
 
-const navItems = computed<NavItem[]>(() => [
-  { key: 'enterprises', badge: '企', section: 'business', label: '企业管理', subtitle: '企业资料、激活码与启停管理', visible: access.value.canViewEnterprises, path: '/enterprises' },
-  { key: 'fleets', badge: '队', section: 'business', label: '车队管理', subtitle: '企业归属、车队状态与资源规模', visible: access.value.canViewFleets, path: '/fleets' },
-  { key: 'drivers', badge: '司', section: 'business', label: '驾驶员管理', subtitle: '驾驶员编号、车队归属与 PIN 管理', visible: access.value.canViewDrivers, path: '/drivers' },
-  { key: 'vehicles', badge: '车', section: 'business', label: '车辆管理', subtitle: '车辆主数据与设备绑定状态', visible: access.value.canViewVehicles, path: '/vehicles' },
-  { key: 'device-bind-logs', badge: '绑', section: 'business', label: '设备绑定日志', subtitle: '设备认领记录、企业激活码脱敏值与绑定流水', visible: access.value.canViewDeviceApprovals, path: '/device-bind-logs' },
-  { key: 'devices', badge: '设', section: 'business', label: '设备管理', subtitle: '设备台账、归属信息与车辆分配', visible: access.value.canViewDevices, path: '/devices' },
-  { key: 'sessions', badge: '会', section: 'monitor', label: '驾驶会话', subtitle: '会话列表、最近心跳与强制签退', visible: access.value.canViewSessions, path: '/sessions' },
-  { key: 'alerts', badge: '警', section: 'monitor', label: '告警中心', subtitle: '告警筛选、详情查看与处置', visible: authStore.hasPermission('alert.read'), path: '/alerts' },
-  { key: 'overview', badge: '览', section: 'monitor', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', visible: authStore.hasPermission('overview.read'), path: '/overview' },
-  { key: 'trend', badge: '势', section: 'monitor', label: '趋势分析', subtitle: '趋势洞察与波动分析', visible: authStore.hasPermission('stats.read'), path: '/stats/trend' },
-  { key: 'ranking', badge: '排', section: 'monitor', label: '风险排行', subtitle: '车辆与司机风险排行', visible: authStore.hasPermission('stats.read'), path: '/stats/ranking' },
-  { key: 'users', badge: '户', section: 'platform', label: '用户管理', subtitle: '后台账号、角色、企业归属与启停', visible: access.value.canViewUsers, path: '/users' },
-  { key: 'audit', badge: '审', section: 'platform', label: '审计日志', subtitle: '审计列表、详情与导出', visible: access.value.canViewSystemAudit, path: '/audit' },
-  { key: 'health', badge: '康', section: 'platform', label: '系统健康', subtitle: '健康概览与监控摘要', visible: access.value.canViewSystemHealth, path: '/system/health' },
-  { key: 'services', badge: '服', section: 'platform', label: '服务状态', subtitle: '服务探测状态与最近检查时间', visible: access.value.canViewServiceStatus, path: '/system/services' },
-  { key: 'version', badge: '版', section: 'platform', label: '版本信息', subtitle: '应用版本、构建时间与提交号', visible: access.value.canViewVersionInfo, path: '/system/version' },
-  { key: 'rules', badge: '规', section: 'platform', label: '规则管理', subtitle: '规则配置、发布与回滚', visible: authStore.hasPermission('rule.read'), path: '/rules' },
-  { key: 'account-session', badge: '登', section: 'platform', label: '登录会话', subtitle: '当前账号令牌与角色映射', visible: authStore.isAuthenticated, path: '/account/session' },
-])
+const navItems = computed<NavItem[]>(() => {
+  if (access.value.isPlatformDomain) {
+    return [
+      {
+        key: 'enterprises',
+        badge: '企',
+        section: 'platform-core',
+        label: '企业',
+        subtitle: '平台级企业元数据、状态与资料维护',
+        visible: access.value.canViewEnterprises,
+        path: '/platform/enterprises',
+      },
+      {
+        key: 'enterprise-admins',
+        badge: '管',
+        section: 'platform-core',
+        label: '企业管理员',
+        subtitle: '企业管理员账号、归属企业与启停管理',
+        visible: access.value.canViewEnterpriseAdmins,
+        path: '/platform/enterprise-admins',
+      },
+      {
+        key: 'rules',
+        badge: '规',
+        section: 'platform-core',
+        label: '规则管理',
+        subtitle: '平台规则配置、发布与回滚',
+        visible: access.value.canViewPlatformRules,
+        path: '/platform/rules',
+      },
+      {
+        key: 'audit',
+        badge: '审',
+        section: 'platform-core',
+        label: '审计日志',
+        subtitle: '平台审计列表、详情与导出',
+        visible: access.value.canViewPlatformAudit,
+        path: '/platform/audit',
+      },
+      {
+        key: 'health',
+        badge: '康',
+        section: 'platform-system',
+        label: '系统健康',
+        subtitle: '健康概览与平台运行状态',
+        visible: access.value.canViewPlatformSystem,
+        path: '/platform/system/health',
+      },
+      {
+        key: 'services',
+        badge: '服',
+        section: 'platform-system',
+        label: '服务状态',
+        subtitle: '服务探测状态与最近检查时间',
+        visible: access.value.canViewPlatformSystem,
+        path: '/platform/system/services',
+      },
+      {
+        key: 'version',
+        badge: '版',
+        section: 'platform-system',
+        label: '版本信息',
+        subtitle: '应用版本、构建时间与提交号',
+        visible: access.value.canViewPlatformSystem,
+        path: '/platform/system/version',
+      },
+    ]
+  }
+
+  return [
+    {
+      key: 'overview',
+      badge: '览',
+      section: 'org-monitor',
+      label: '总览',
+      subtitle: '企业风险态势、连接状态与风险概览',
+      visible: access.value.canViewOverview,
+      path: '/org/overview',
+    },
+    {
+      key: 'alerts',
+      badge: '警',
+      section: 'org-monitor',
+      label: '告警',
+      subtitle: '告警筛选、详情查看与处置',
+      visible: access.value.canViewAlerts,
+      path: '/org/alerts',
+    },
+    {
+      key: 'trend',
+      badge: '势',
+      section: 'org-monitor',
+      label: '趋势分析',
+      subtitle: '趋势洞察与波动分析',
+      visible: access.value.canViewStats,
+      path: '/org/stats/trend',
+    },
+    {
+      key: 'ranking',
+      badge: '排',
+      section: 'org-monitor',
+      label: '风险排行',
+      subtitle: '车辆与司机风险排行',
+      visible: access.value.canViewStats,
+      path: '/org/stats/ranking',
+    },
+    {
+      key: 'users',
+      badge: '户',
+      section: 'org-admin',
+      label: '普通用户',
+      subtitle: '本企业普通用户账号、角色与状态管理',
+      visible: access.value.canViewUsers,
+      path: '/org/users',
+    },
+    {
+      key: 'enterprise-profile',
+      badge: '企',
+      section: 'org-admin',
+      label: '我的企业',
+      subtitle: '企业资料与激活码查看',
+      visible: access.value.canViewEnterpriseProfile,
+      path: '/org/enterprise-profile',
+    },
+    {
+      key: 'fleets',
+      badge: '队',
+      section: 'org-business',
+      label: '车队',
+      subtitle: '车队状态、归属与资源规模',
+      visible: access.value.canViewFleets,
+      path: '/org/fleets',
+    },
+    {
+      key: 'drivers',
+      badge: '司',
+      section: 'org-business',
+      label: '驾驶员',
+      subtitle: '驾驶员主数据、归属与 PIN 管理',
+      visible: access.value.canViewDrivers,
+      path: '/org/drivers',
+    },
+    {
+      key: 'vehicles',
+      badge: '车',
+      section: 'org-business',
+      label: '车辆',
+      subtitle: '车辆主数据与设备绑定状态',
+      visible: access.value.canViewVehicles,
+      path: '/org/vehicles',
+    },
+    {
+      key: 'devices',
+      badge: '设',
+      section: 'org-business',
+      label: '设备',
+      subtitle: '设备台账、归属信息与车辆分配',
+      visible: access.value.canViewDevices,
+      path: '/org/devices',
+    },
+    {
+      key: 'sessions',
+      badge: '会',
+      section: 'org-business',
+      label: '会话',
+      subtitle: '驾驶会话、最近心跳与强制签退',
+      visible: access.value.canViewSessions,
+      path: '/org/sessions',
+    },
+  ]
+})
 
 const isPublicPage = computed(() => Boolean(route.meta.public))
-const visibleNavItems = computed(() => {
-  const availableItems = navItems.value.filter((item) => item.visible)
-  return availableItems.length ? availableItems : navItems.value.slice(0, 1)
-})
+const visibleNavItems = computed(() => navItems.value.filter((item) => item.visible))
 const activeNavKey = computed(
   () =>
     visibleNavItems.value.find((item) => {
@@ -73,16 +221,27 @@ const activeNavKey = computed(
 const currentNavItem = computed(
   () => visibleNavItems.value.find((item) => item.key === activeNavKey.value) || visibleNavItems.value[0],
 )
-const navSections = computed(() => [
-  { key: 'business', label: '业务管理', items: visibleNavItems.value.filter((item) => item.section === 'business') },
-  { key: 'monitor', label: '运行监控', items: visibleNavItems.value.filter((item) => item.section === 'monitor') },
-  { key: 'platform', label: '平台管理', items: visibleNavItems.value.filter((item) => item.section === 'platform') },
-].filter((section) => section.items.length))
+const navSections = computed(() => {
+  if (access.value.isPlatformDomain) {
+    return [
+      { key: 'platform-core', label: '平台治理', items: visibleNavItems.value.filter((item) => item.section === 'platform-core') },
+      { key: 'platform-system', label: '平台系统', items: visibleNavItems.value.filter((item) => item.section === 'platform-system') },
+    ].filter((section) => section.items.length)
+  }
+
+  return [
+    { key: 'org-monitor', label: '企业总览', items: visibleNavItems.value.filter((item) => item.section === 'org-monitor') },
+    { key: 'org-admin', label: '组织与资料', items: visibleNavItems.value.filter((item) => item.section === 'org-admin') },
+    { key: 'org-business', label: '业务模块', items: visibleNavItems.value.filter((item) => item.section === 'org-business') },
+  ].filter((section) => section.items.length)
+})
 const currentSectionLabel = computed(
   () =>
     navSections.value.find((section) => section.items.some((item) => item.key === activeNavKey.value))?.label || '工作区',
 )
-const showRealtimeStatus = computed(() => authStore.isAuthenticated && !isPublicPage.value)
+const showRealtimeStatus = computed(
+  () => authStore.isAuthenticated && !isPublicPage.value && access.value.isOrgDomain,
+)
 const realtimeHint = computed(() => {
   if (realtimeStore.status === 'connected' && realtimeStore.lastMessageAt) {
     return `最近消息 ${formatDateTime(realtimeStore.lastMessageAt)}`
@@ -101,9 +260,9 @@ const realtimeHint = computed(() => {
 const userInitial = computed(() => (authStore.username || 'D').slice(0, 1).toUpperCase())
 
 watch(
-  () => authStore.isAuthenticated,
-  (isAuthenticated) => {
-    if (isAuthenticated) {
+  [() => authStore.isAuthenticated, () => authStore.workspaceDomain],
+  ([isAuthenticated, workspaceDomain]) => {
+    if (isAuthenticated && workspaceDomain === 'org') {
       realtimeStore.ensureConnected()
       return
     }
@@ -249,7 +408,7 @@ function handleReconnect(): void {
         <div class="brand-badge">DW</div>
         <div v-if="!sidebarCollapsed" class="brand-copy">
           <strong>DriveWeb</strong>
-          <span>企业运营管理台</span>
+          <span>{{ access.isPlatformDomain ? '平台治理控制台' : '企业业务控制台' }}</span>
         </div>
       </div>
 

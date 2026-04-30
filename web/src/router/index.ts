@@ -11,16 +11,16 @@ import RiskRankingView from '../views/RiskRankingView.vue'
 import RulesManagementView from '../views/RulesManagementView.vue'
 import AuditStatusView from '../views/AuditStatusView.vue'
 import SystemManagementView from '../views/SystemManagementView.vue'
-import UserManagementView from '../views/UserManagementView.vue'
+import PlatformEnterpriseAdminManagementView from '../views/PlatformEnterpriseAdminManagementView.vue'
+import OrgUserManagementView from '../views/OrgUserManagementView.vue'
 import EnterpriseManagementView from '../views/EnterpriseManagementView.vue'
 import FleetManagementView from '../views/FleetManagementView.vue'
 import DriverManagementView from '../views/DriverManagementView.vue'
 import VehicleManagementView from '../views/VehicleManagementView.vue'
 import DeviceManagementView from '../views/DeviceManagementView.vue'
 import DeviceDetailView from '../views/DeviceDetailView.vue'
-import DeviceApprovalListView from '../views/DeviceApprovalListView.vue'
-import DeviceApprovalDetailView from '../views/DeviceApprovalDetailView.vue'
 import DrivingSessionManagementView from '../views/DrivingSessionManagementView.vue'
+import OrgEnterpriseProfileView from '../views/OrgEnterpriseProfileView.vue'
 
 const OVERVIEW_PERMISSIONS: PermissionCode[] = ['overview.read']
 const ALERT_PERMISSIONS: PermissionCode[] = ['alert.read']
@@ -34,8 +34,13 @@ const FLEET_PERMISSIONS: PermissionCode[] = ['fleet.read']
 const DRIVER_PERMISSIONS: PermissionCode[] = ['driver.read']
 const VEHICLE_PERMISSIONS: PermissionCode[] = ['vehicle.read']
 const DEVICE_PERMISSIONS: PermissionCode[] = ['device.read']
-const ACTIVATION_CODE_PERMISSIONS: PermissionCode[] = ['activation_code.read']
 const SESSION_PERMISSIONS: PermissionCode[] = ['session.read']
+
+function resolveUserManagementLegacyPath(): string {
+  const authStore = useAuthStore()
+  authStore.hydrate()
+  return authStore.workspaceDomain === 'platform' ? '/platform/enterprise-admins' : '/org/users'
+}
 
 const router = createRouter({
   history: createWebHistory(),
@@ -55,145 +60,232 @@ const router = createRouter({
       },
     },
     {
-      path: '/overview',
-      name: 'realtime-overview',
-      component: RealtimeOverviewView,
-      meta: { requiresAuth: true, permissions: OVERVIEW_PERMISSIONS },
-    },
-    {
       path: '/account/session',
       name: 'auth-status',
       component: AuthStatusView,
       meta: { requiresAuth: true },
     },
     {
-      path: '/alerts',
+      path: '/platform/enterprises',
+      name: 'enterprise-management',
+      component: EnterpriseManagementView,
+      meta: { requiresAuth: true, permissions: ENTERPRISE_PERMISSIONS, domain: 'platform' },
+    },
+    {
+      path: '/platform/enterprise-admins',
+      name: 'enterprise-admin-management',
+      component: PlatformEnterpriseAdminManagementView,
+      meta: { requiresAuth: true, permissions: USER_PERMISSIONS, domain: 'platform' },
+    },
+    {
+      path: '/platform/rules',
+      name: 'rules-management',
+      component: RulesManagementView,
+      meta: { requiresAuth: true, permissions: RULE_PERMISSIONS, domain: 'platform' },
+    },
+    {
+      path: '/platform/audit',
+      name: 'audit-logs',
+      component: AuditStatusView,
+      meta: { requiresAuth: true, permissions: AUDIT_PERMISSIONS, domain: 'platform' },
+    },
+    {
+      path: '/platform/system',
+      redirect: '/platform/system/health',
+    },
+    {
+      path: '/platform/system/health',
+      name: 'system-health',
+      component: SystemManagementView,
+      meta: { requiresAuth: true, permissions: SYSTEM_PERMISSIONS, domain: 'platform' },
+    },
+    {
+      path: '/platform/system/services',
+      name: 'service-status',
+      component: SystemManagementView,
+      meta: { requiresAuth: true, permissions: SYSTEM_PERMISSIONS, domain: 'platform' },
+    },
+    {
+      path: '/platform/system/version',
+      name: 'version-info',
+      component: SystemManagementView,
+      meta: { requiresAuth: true, permissions: SYSTEM_PERMISSIONS, domain: 'platform' },
+    },
+    {
+      path: '/org/overview',
+      name: 'realtime-overview',
+      component: RealtimeOverviewView,
+      meta: { requiresAuth: true, permissions: OVERVIEW_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/alerts',
       name: 'alerts-list',
       component: AlertsListView,
-      meta: { requiresAuth: true, permissions: ALERT_PERMISSIONS },
+      meta: { requiresAuth: true, permissions: ALERT_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/alerts/:id',
+      name: 'alert-detail',
+      component: AlertDetailView,
+      meta: { requiresAuth: true, permissions: ALERT_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/stats/trend',
+      name: 'trend-analysis',
+      component: TrendAnalysisView,
+      meta: { requiresAuth: true, permissions: STATS_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/stats/ranking',
+      name: 'risk-ranking',
+      component: RiskRankingView,
+      meta: { requiresAuth: true, permissions: STATS_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/users',
+      name: 'org-user-management',
+      component: OrgUserManagementView,
+      meta: { requiresAuth: true, permissions: USER_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/fleets',
+      name: 'fleet-management',
+      component: FleetManagementView,
+      meta: { requiresAuth: true, permissions: FLEET_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/drivers',
+      name: 'driver-management',
+      component: DriverManagementView,
+      meta: { requiresAuth: true, permissions: DRIVER_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/vehicles',
+      name: 'vehicle-management',
+      component: VehicleManagementView,
+      meta: { requiresAuth: true, permissions: VEHICLE_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/devices',
+      name: 'device-management',
+      component: DeviceManagementView,
+      meta: { requiresAuth: true, permissions: DEVICE_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/devices/:id',
+      name: 'device-detail',
+      component: DeviceDetailView,
+      meta: { requiresAuth: true, permissions: DEVICE_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/sessions',
+      name: 'session-management',
+      component: DrivingSessionManagementView,
+      meta: { requiresAuth: true, permissions: SESSION_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/enterprise-profile',
+      name: 'org-enterprise-profile',
+      component: OrgEnterpriseProfileView,
+      meta: { requiresAuth: true, permissions: ENTERPRISE_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/overview',
+      redirect: '/org/overview',
+    },
+    {
+      path: '/alerts',
+      redirect: '/org/alerts',
     },
     {
       path: '/alerts/:id',
-      name: 'alert-detail',
-      component: AlertDetailView,
-      meta: { requiresAuth: true, permissions: ALERT_PERMISSIONS },
-    },
-    {
-      path: '/stats/trend',
-      name: 'trend-analysis',
-      component: TrendAnalysisView,
-      meta: { requiresAuth: true, permissions: STATS_PERMISSIONS },
-    },
-    {
-      path: '/stats/ranking',
-      name: 'risk-ranking',
-      component: RiskRankingView,
-      meta: { requiresAuth: true, permissions: STATS_PERMISSIONS },
-    },
-    {
-      path: '/rules',
-      name: 'rules-management',
-      component: RulesManagementView,
-      meta: { requiresAuth: true, permissions: RULE_PERMISSIONS },
-    },
-    {
-      path: '/audit',
-      name: 'audit-logs',
-      component: AuditStatusView,
-      meta: { requiresAuth: true, permissions: AUDIT_PERMISSIONS },
-    },
-    {
-      path: '/system',
-      redirect: '/system/health',
-    },
-    {
-      path: '/system/health',
-      name: 'system-health',
-      component: SystemManagementView,
-      meta: { requiresAuth: true, permissions: SYSTEM_PERMISSIONS },
-    },
-    {
-      path: '/system/services',
-      name: 'service-status',
-      component: SystemManagementView,
-      meta: { requiresAuth: true, permissions: SYSTEM_PERMISSIONS },
-    },
-    {
-      path: '/system/version',
-      name: 'version-info',
-      component: SystemManagementView,
-      meta: { requiresAuth: true, permissions: SYSTEM_PERMISSIONS },
-    },
-    {
-      path: '/users',
-      name: 'user-management',
-      component: UserManagementView,
-      meta: { requiresAuth: true, permissions: USER_PERMISSIONS },
-    },
-    {
-      path: '/fleets',
-      name: 'fleet-management',
-      component: FleetManagementView,
-      meta: { requiresAuth: true, permissions: FLEET_PERMISSIONS },
-    },
-    {
-      path: '/drivers',
-      name: 'driver-management',
-      component: DriverManagementView,
-      meta: { requiresAuth: true, permissions: DRIVER_PERMISSIONS },
-    },
-    {
-      path: '/vehicles',
-      name: 'vehicle-management',
-      component: VehicleManagementView,
-      meta: { requiresAuth: true, permissions: VEHICLE_PERMISSIONS },
-    },
-    {
-      path: '/device-approvals',
-      redirect: '/device-bind-logs',
-    },
-    {
-      path: '/device-bind-logs',
-      name: 'device-bind-log-list',
-      component: DeviceApprovalListView,
-      meta: { requiresAuth: true, permissions: ACTIVATION_CODE_PERMISSIONS },
-    },
-    {
-      path: '/device-approvals/:id',
       redirect: (to) => ({
-        path: `/device-bind-logs/${to.params.id}`,
+        path: `/org/alerts/${to.params.id}`,
         query: to.query,
       }),
     },
     {
-      path: '/device-bind-logs/:id',
-      name: 'device-bind-log-detail',
-      component: DeviceApprovalDetailView,
-      meta: { requiresAuth: true, permissions: ACTIVATION_CODE_PERMISSIONS },
+      path: '/stats/trend',
+      redirect: '/org/stats/trend',
+    },
+    {
+      path: '/stats/ranking',
+      redirect: '/org/stats/ranking',
+    },
+    {
+      path: '/users',
+      redirect: () => resolveUserManagementLegacyPath(),
+    },
+    {
+      path: '/fleets',
+      redirect: '/org/fleets',
+    },
+    {
+      path: '/drivers',
+      redirect: '/org/drivers',
+    },
+    {
+      path: '/vehicles',
+      redirect: '/org/vehicles',
     },
     {
       path: '/devices',
-      name: 'device-management',
-      component: DeviceManagementView,
-      meta: { requiresAuth: true, permissions: DEVICE_PERMISSIONS },
+      redirect: '/org/devices',
     },
     {
       path: '/devices/:id',
-      name: 'device-detail',
-      component: DeviceDetailView,
-      meta: { requiresAuth: true, permissions: DEVICE_PERMISSIONS },
+      redirect: (to) => ({
+        path: `/org/devices/${to.params.id}`,
+        query: to.query,
+      }),
     },
     {
       path: '/sessions',
-      name: 'session-management',
-      component: DrivingSessionManagementView,
-      meta: { requiresAuth: true, permissions: SESSION_PERMISSIONS },
+      redirect: '/org/sessions',
     },
     {
       path: '/enterprises',
-      name: 'enterprise-management',
-      component: EnterpriseManagementView,
-      meta: { requiresAuth: true, permissions: ENTERPRISE_PERMISSIONS },
+      redirect: '/platform/enterprises',
+    },
+    {
+      path: '/rules',
+      redirect: '/platform/rules',
+    },
+    {
+      path: '/audit',
+      redirect: '/platform/audit',
+    },
+    {
+      path: '/system',
+      redirect: '/platform/system/health',
+    },
+    {
+      path: '/system/health',
+      redirect: '/platform/system/health',
+    },
+    {
+      path: '/system/services',
+      redirect: '/platform/system/services',
+    },
+    {
+      path: '/system/version',
+      redirect: '/platform/system/version',
+    },
+    {
+      path: '/device-approvals',
+      redirect: '/org/enterprise-profile',
+    },
+    {
+      path: '/device-approvals/:id',
+      redirect: '/org/enterprise-profile',
+    },
+    {
+      path: '/device-bind-logs',
+      redirect: '/org/enterprise-profile',
+    },
+    {
+      path: '/device-bind-logs/:id',
+      redirect: '/org/enterprise-profile',
     },
     {
       path: '/:pathMatch(.*)*',
@@ -221,6 +313,12 @@ router.beforeEach((to) => {
       name: 'login',
       query: { redirect: to.fullPath },
     }
+  }
+
+  const requiredDomain = typeof to.meta.domain === 'string' ? to.meta.domain : null
+
+  if (requiredDomain && authStore.workspaceDomain !== requiredDomain) {
+    return authStore.getDefaultRoute()
   }
 
   const requiredPermissions = Array.isArray(to.meta.permissions) ? to.meta.permissions : []

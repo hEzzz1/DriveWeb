@@ -7,25 +7,17 @@ import EnterpriseCreateDialog from '../components/enterprises/EnterpriseCreateDi
 import EnterpriseDetailDrawer from '../components/enterprises/EnterpriseDetailDrawer.vue'
 import EnterpriseEditDialog from '../components/enterprises/EnterpriseEditDialog.vue'
 import EnterpriseListTable from '../components/enterprises/EnterpriseListTable.vue'
-import {
-  disableEnterpriseActivationCode,
-  getEnterpriseActivationCode,
-  rotateEnterpriseActivationCode,
-} from '../api/enterprise-activation-codes'
 import { getAuditDetail, getAuditList } from '../api/audit'
 import {
-  createEnterprise,
-  getEnterpriseDetail,
-  getEnterpriseList,
-  updateEnterprise,
-  updateEnterpriseStatus,
+  createPlatformEnterprise,
+  getPlatformEnterpriseDetail,
+  getPlatformEnterpriseList,
+  updatePlatformEnterprise,
+  updatePlatformEnterpriseStatus,
 } from '../api/enterprises'
-import { getUserList } from '../api/users'
 import { useAccess } from '../composables/useAccess'
 import type { AuditDetail, AuditSummary } from '../types/audit'
-import type { EnterpriseActivationCodeSummary } from '../types/enterprise-activation-codes'
 import type { EnterpriseDetail, EnterpriseListQuery, EnterpriseSummary } from '../types/enterprises'
-import type { UserSummary } from '../types/users'
 import { normalizeAuditDetail } from '../utils/audit'
 
 interface FilterModel {
@@ -41,7 +33,6 @@ const editSaving = ref(false)
 const statusSaving = ref(false)
 const detailLoading = ref(false)
 const auditLoading = ref(false)
-const activationCodeLoading = ref(false)
 const errorText = ref('')
 
 const items = ref<EnterpriseSummary[]>([])
@@ -55,13 +46,11 @@ const editVisible = ref(false)
 const auditDetailVisible = ref(false)
 
 const activeDetail = ref<EnterpriseDetail | null>(null)
-const activeUsers = ref<UserSummary[]>([])
 const activeAuditItems = ref<AuditSummary[]>([])
 const auditTotal = ref(0)
 const auditPage = ref(1)
 const auditSize = ref(5)
 const activeAuditDetail = ref<AuditDetail | null>(null)
-const activeActivationCode = ref<EnterpriseActivationCodeSummary | null>(null)
 
 const filters = reactive<FilterModel>({
   keyword: '',
@@ -77,7 +66,7 @@ const summaryItems = computed(() => [
   { label: '企业总数', value: total.value },
   { label: '启用企业', value: items.value.filter((item) => item.enabled).length },
   { label: '当前页企业', value: items.value.length },
-  { label: '可编辑模式', value: access.value.canEditEnterprise ? '读写' : '只读' },
+  { label: '可编辑模式', value: access.value.canManageEnterprises ? '读写' : '只读' },
 ])
 
 onMounted(async () => {
@@ -88,14 +77,8 @@ async function fetchList(): Promise<void> {
   loading.value = true
 
   try {
-    const data = await getEnterpriseList(buildQuery())
-    let enterpriseItems = Array.isArray(data.items) ? data.items : []
-
-    if (access.value.canViewUsers) {
-      enterpriseItems = await hydrateUserCounts(enterpriseItems)
-    }
-
-    items.value = enterpriseItems
+    const data = await getPlatformEnterpriseList(buildQuery())
+    items.value = Array.isArray(data.items) ? data.items : []
     total.value = data.total || 0
     currentPage.value = data.page || currentPage.value
     pageSize.value = data.size || pageSize.value
@@ -116,18 +99,6 @@ function buildQuery(): EnterpriseListQuery {
   }
 }
 
-async function hydrateUserCounts(source: EnterpriseSummary[]): Promise<EnterpriseSummary[]> {
-  const counts = await Promise.all(
-    source.map(async (item) => {
-      const data = await getUserList({ page: 1, size: 1, enterpriseId: item.id })
-      return [item.id, data.total] as const
-    }),
-  )
-
-  const countMap = new Map<number, number>(counts)
-  return source.map((item) => ({ ...item, userCount: countMap.get(item.id) }))
-}
-
 async function handleSearch(): Promise<void> {
   currentPage.value = 1
   await fetchList()
@@ -146,17 +117,11 @@ async function handleOpenDetail(row: EnterpriseSummary): Promise<void> {
   detailLoading.value = true
   auditPage.value = 1
   auditSize.value = 5
-  activeUsers.value = []
   activeAuditItems.value = []
-  activeActivationCode.value = null
 
   try {
-    activeDetail.value = await getEnterpriseDetail(row.id)
-    await Promise.all([
-      fetchEnterpriseUsers(),
-      fetchEnterpriseAudits(),
-      fetchEnterpriseActivationCode(),
-    ])
+    activeDetail.value = await getPlatformEnterpriseDetail(row.id)
+    await fetchEnterpriseAudits()
   } catch {
     detailVisible.value = false
   } finally {
@@ -164,40 +129,9 @@ async function handleOpenDetail(row: EnterpriseSummary): Promise<void> {
   }
 }
 
-async function fetchEnterpriseActivationCode(): Promise<void> {
-  if (!activeDetail.value || !access.value.canViewEnterpriseActivationCodes) {
-    activeActivationCode.value = null
-    return
-  }
-
-  activationCodeLoading.value = true
-
-  try {
-    activeActivationCode.value = await getEnterpriseActivationCode(activeDetail.value.id, { silentError: true })
-  } catch {
-    activeActivationCode.value = null
-  } finally {
-    activationCodeLoading.value = false
-  }
-}
-
 async function handleOpenEdit(row: EnterpriseSummary): Promise<void> {
   await handleOpenDetail(row)
   editVisible.value = true
-}
-
-async function fetchEnterpriseUsers(): Promise<void> {
-  if (!activeDetail.value || !access.value.canViewUsers) {
-    activeUsers.value = []
-    return
-  }
-
-  const data = await getUserList({
-    page: 1,
-    size: 8,
-    enterpriseId: activeDetail.value.id,
-  })
-  activeUsers.value = data.items
 }
 
 async function fetchEnterpriseAudits(): Promise<void> {
@@ -222,11 +156,11 @@ async function fetchEnterpriseAudits(): Promise<void> {
   }
 }
 
-async function handleCreateEnterprise(payload: Parameters<typeof createEnterprise>[0]): Promise<void> {
+async function handleCreateEnterprise(payload: Parameters<typeof createPlatformEnterprise>[0]): Promise<void> {
   createSaving.value = true
 
   try {
-    await createEnterprise(payload)
+    await createPlatformEnterprise(payload)
     createVisible.value = false
     await fetchList()
     ElMessage.success('企业已创建')
@@ -235,7 +169,7 @@ async function handleCreateEnterprise(payload: Parameters<typeof createEnterpris
   }
 }
 
-async function handleEditEnterprise(payload: Parameters<typeof updateEnterprise>[1]): Promise<void> {
+async function handleEditEnterprise(payload: Parameters<typeof updatePlatformEnterprise>[1]): Promise<void> {
   if (!activeDetail.value) {
     return
   }
@@ -243,7 +177,7 @@ async function handleEditEnterprise(payload: Parameters<typeof updateEnterprise>
   editSaving.value = true
 
   try {
-    const detail = await updateEnterprise(activeDetail.value.id, payload)
+    const detail = await updatePlatformEnterprise(activeDetail.value.id, payload)
     activeDetail.value = detail
     syncTableRow(detail)
     editVisible.value = false
@@ -255,7 +189,7 @@ async function handleEditEnterprise(payload: Parameters<typeof updateEnterprise>
 }
 
 async function handleToggleStatus(row?: EnterpriseSummary): Promise<void> {
-  const target = row ? await getEnterpriseDetail(row.id) : activeDetail.value
+  const target = row ? await getPlatformEnterpriseDetail(row.id) : activeDetail.value
   if (!target) {
     return
   }
@@ -276,7 +210,7 @@ async function handleToggleStatus(row?: EnterpriseSummary): Promise<void> {
   statusSaving.value = true
 
   try {
-    const detail = await updateEnterpriseStatus(target.id, { enabled: nextEnabled })
+    const detail = await updatePlatformEnterpriseStatus(target.id, { enabled: nextEnabled })
     if (activeDetail.value?.id === detail.id) {
       activeDetail.value = detail
       await fetchEnterpriseAudits()
@@ -296,62 +230,6 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
   activeAuditDetail.value = normalizeAuditDetail(await getAuditDetail(row.id))
   auditDetailVisible.value = true
 }
-
-async function handleRotateActivationCode(): Promise<void> {
-  if (!activeDetail.value || !access.value.canManageEnterpriseActivationCodes) {
-    return
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `确认轮换企业「${activeDetail.value.name}」的激活码吗？旧码轮换后将失效。`,
-      '轮换企业激活码',
-      {
-        type: 'warning',
-        confirmButtonText: '确认轮换',
-        cancelButtonText: '取消',
-      },
-    )
-  } catch {
-    return
-  }
-
-  activationCodeLoading.value = true
-  try {
-    activeActivationCode.value = await rotateEnterpriseActivationCode(activeDetail.value.id)
-    ElMessage.success('企业激活码已轮换')
-  } finally {
-    activationCodeLoading.value = false
-  }
-}
-
-async function handleDisableActivationCode(): Promise<void> {
-  if (!activeDetail.value || !access.value.canManageEnterpriseActivationCodes) {
-    return
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `确认停用企业「${activeDetail.value.name}」的当前激活码吗？停用后设备端将无法继续使用该码完成绑定。`,
-      '停用企业激活码',
-      {
-        type: 'warning',
-        confirmButtonText: '确认停用',
-        cancelButtonText: '取消',
-      },
-    )
-  } catch {
-    return
-  }
-
-  activationCodeLoading.value = true
-  try {
-    activeActivationCode.value = await disableEnterpriseActivationCode(activeDetail.value.id)
-    ElMessage.success('企业激活码已停用')
-  } finally {
-    activationCodeLoading.value = false
-  }
-}
 </script>
 
 <template>
@@ -360,7 +238,7 @@ async function handleDisableActivationCode(): Promise<void> {
       <div>
         <p class="eyebrow">Enterprises</p>
         <h1>企业管理</h1>
-        <p class="subhead">企业页同时承载资料维护、企业激活码管理和企业域审计；安装人员只需要企业激活码即可完成设备绑定。</p>
+        <p class="subhead">平台域仅查看和维护企业元数据，不拉取企业用户、设备绑定明细或激活码原文。</p>
       </div>
     </div>
 
@@ -373,7 +251,7 @@ async function handleDisableActivationCode(): Promise<void> {
 
     <PageSectionCard title="筛选条件" description="按企业编码、企业名称和状态过滤。">
       <template #actions>
-        <el-button v-if="access.canEditEnterprise" type="primary" @click="createVisible = true">新建企业</el-button>
+        <el-button v-if="access.canManageEnterprises" type="primary" @click="createVisible = true">新建企业</el-button>
       </template>
 
       <div class="filter-bar">
@@ -388,7 +266,7 @@ async function handleDisableActivationCode(): Promise<void> {
       </div>
     </PageSectionCard>
 
-    <PageSectionCard title="企业列表" description="企业详情抽屉内可查看企业激活码、二维码、轮换时间和失效时间。">
+    <PageSectionCard title="企业列表" description="详情抽屉仅展示平台级企业资料和平台侧变更记录。">
       <el-alert v-if="errorText" :closable="false" type="error" :title="errorText" show-icon />
       <EnterpriseListTable
         :items="items"
@@ -396,8 +274,8 @@ async function handleDisableActivationCode(): Promise<void> {
         :total="total"
         :page="currentPage"
         :size="pageSize"
-        :can-edit="access.canEditEnterprise"
-        :can-toggle-status="access.canEditEnterprise"
+        :can-edit="access.canManageEnterprises"
+        :can-toggle-status="access.canManageEnterprises"
         @detail="handleOpenDetail"
         @edit="handleOpenEdit"
         @toggle-status="handleToggleStatus"
@@ -419,23 +297,17 @@ async function handleDisableActivationCode(): Promise<void> {
       v-model:visible="detailVisible"
       :detail="activeDetail"
       :loading="detailLoading"
-      :activation-code="activeActivationCode"
-      :activation-code-loading="activationCodeLoading"
-      :users="activeUsers"
+      :users="[]"
       :audits="activeAuditItems"
       :audit-loading="auditLoading"
       :audit-total="auditTotal"
       :audit-page="auditPage"
       :audit-size="auditSize"
-      :can-edit="access.canEditEnterprise"
-      :can-toggle-status="access.canEditEnterprise"
-      :can-view-users="access.canViewUsers"
-      :can-view-activation-code="access.canViewEnterpriseActivationCodes"
-      :can-manage-activation-code="access.canManageEnterpriseActivationCodes"
+      :can-edit="access.canManageEnterprises"
+      :can-toggle-status="access.canManageEnterprises"
+      :show-user-summary="false"
       @edit="editVisible = true"
       @toggle-status="handleToggleStatus()"
-      @activation-code-rotate="handleRotateActivationCode"
-      @activation-code-disable="handleDisableActivationCode"
       @audit-detail="handleOpenAuditDetail"
       @audit-page-change="auditPage = $event; fetchEnterpriseAudits()"
       @audit-size-change="auditSize = $event; auditPage = 1; fetchEnterpriseAudits()"

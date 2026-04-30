@@ -27,7 +27,7 @@ function normalizeFleet(item: FleetApiItem): FleetDetail {
 
 export function getFleetList(params: FleetListQuery): Promise<FleetListData> {
   return request<FleetApiPageData>({
-    url: '/fleets',
+    url: '/org/fleets',
     method: 'GET',
     params,
   }).then((data) => ({
@@ -38,14 +38,14 @@ export function getFleetList(params: FleetListQuery): Promise<FleetListData> {
 
 export function getFleetDetail(id: number | string): Promise<FleetDetail> {
   return request<FleetApiItem>({
-    url: `/fleets/${id}`,
+    url: `/org/fleets/${id}`,
     method: 'GET',
   }).then(normalizeFleet)
 }
 
 export function createFleet(payload: CreateFleetPayload): Promise<FleetDetail> {
   return request<FleetApiItem>({
-    url: '/fleets',
+    url: '/org/fleets',
     method: 'POST',
     data: payload,
   }).then(normalizeFleet)
@@ -53,7 +53,7 @@ export function createFleet(payload: CreateFleetPayload): Promise<FleetDetail> {
 
 export function updateFleet(id: number | string, payload: UpdateFleetPayload): Promise<FleetDetail> {
   return request<FleetApiItem>({
-    url: `/fleets/${id}`,
+    url: `/org/fleets/${id}`,
     method: 'PUT',
     data: payload,
   }).then(normalizeFleet)
@@ -64,7 +64,7 @@ export function updateFleetStatus(
   payload: UpdateFleetStatusPayload,
 ): Promise<FleetDetail> {
   return request<FleetApiItem>({
-    url: `/fleets/${id}/status`,
+    url: `/org/fleets/${id}/status`,
     method: 'PUT',
     data: payload,
   }).then(normalizeFleet)
