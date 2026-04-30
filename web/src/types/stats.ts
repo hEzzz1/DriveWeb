@@ -8,16 +8,11 @@ export type RankingSortBy =
   | 'ALERT_COUNT'
   | 'HIGH_RISK_COUNT'
   | 'AVG_RISK_SCORE'
-  | 'RECENT_ACTIVE_RISK_COUNT'
 
 export interface StatsFilterParams {
   fleetId?: string
-  vehicleId?: string
-  driverId?: string
-  riskType?: string
   riskLevel?: AlertRiskLevel
   status?: AlertStatus
-  versionInfo?: string
   startTime?: string
   endTime?: string
 }
@@ -48,10 +43,6 @@ export interface RealtimeOverviewData {
   alertCountLast5Minutes?: number
   highRiskCountLast5Minutes?: number
   handledCountLast5Minutes?: number
-  onlineDeviceCount?: number
-  activeRiskVehicleCount?: number
-  systemAnomalyCount?: number
-  lastUpdatedAt?: string
   latestAlerts: OverviewLatestAlertItem[]
   riskDistribution: RiskDistributionItem[]
 }
@@ -64,7 +55,6 @@ export interface TrendBucket {
   bucketTime: string
   alertCount: number
   highRiskCount: number
-  handledCount?: number
   avgRiskScore: number
   avgFatigueScore: number
   avgDistractionScore: number
@@ -73,12 +63,8 @@ export interface TrendBucket {
 export interface TrendData {
   groupBy: StatsGroupBy
   fleetId?: string | number | null
-  vehicleId?: string | number | null
-  driverId?: string | number | null
-  riskType?: string | null
   riskLevel?: AlertRiskLevel | null
   status?: AlertStatus | null
-  versionInfo?: string | null
   startTime: string
   endTime: string
   items: TrendBucket[]
@@ -95,7 +81,6 @@ export interface RankingItem {
   dimensionValue: string | number
   alertCount: number
   highRiskCount: number
-  recentActiveRiskCount?: number
   avgRiskScore: number
   avgFatigueScore: number
   avgDistractionScore: number

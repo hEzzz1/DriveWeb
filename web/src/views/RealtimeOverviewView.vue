@@ -52,14 +52,6 @@ const distributionEmpty = computed(() =>
   !overview.value?.riskDistribution?.some((item) => Number(item.count) > 0),
 )
 const distributionError = computed(() => (!overview.value ? moduleError.value : ''))
-const onlineDeviceCount = computed(() =>
-  typeof overview.value?.onlineDeviceCount === 'number' ? String(overview.value.onlineDeviceCount) : '-',
-)
-const activeRiskVehicleCount = computed(() =>
-  typeof overview.value?.activeRiskVehicleCount === 'number'
-    ? String(overview.value.activeRiskVehicleCount)
-    : '-',
-)
 const handledRateText = computed(() => {
   const total = overview.value?.alertCountLast5Minutes || 0
   const handled = overview.value?.handledCountLast5Minutes || 0
@@ -214,27 +206,27 @@ function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLates
 
       <div class="head-meta">
         <el-tag effect="plain" :type="realtimeStore.statusTagType">{{ realtimeStore.statusText }}</el-tag>
-        <span>最近刷新 {{ formatDateTime(lastRefreshAt || overview?.lastUpdatedAt) }}</span>
+        <span>最近刷新 {{ formatDateTime(lastRefreshAt) }}</span>
       </div>
     </div>
 
     <section class="kpi-grid">
       <el-card class="metric-card" shadow="never">
-        <p class="metric-label">在线设备数</p>
-        <strong>{{ onlineDeviceCount }}</strong>
-        <span>仅展示后端返回值</span>
-      </el-card>
-
-      <el-card class="metric-card" shadow="never">
-        <p class="metric-label">活跃风险车辆数</p>
-        <strong>{{ activeRiskVehicleCount }}</strong>
-        <span>仅展示后端返回值</span>
-      </el-card>
-
-      <el-card class="metric-card" shadow="never">
         <p class="metric-label">近 5 分钟告警数</p>
         <strong>{{ overview?.alertCountLast5Minutes ?? 0 }}</strong>
         <span>已处置 {{ overview?.handledCountLast5Minutes ?? 0 }} 条</span>
+      </el-card>
+
+      <el-card class="metric-card" shadow="never">
+        <p class="metric-label">高风险告警</p>
+        <strong>{{ overview?.highRiskCountLast5Minutes ?? 0 }}</strong>
+        <span>统计窗口内三级风险告警</span>
+      </el-card>
+
+      <el-card class="metric-card" shadow="never">
+        <p class="metric-label">已处置占比</p>
+        <strong>{{ handledRateText }}</strong>
+        <span>基于近 5 分钟告警窗口</span>
       </el-card>
 
       <el-card class="metric-card" shadow="never">
@@ -330,7 +322,7 @@ function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLates
         </template>
 
         <div class="info-list">
-          <p><span>接口刷新</span>{{ formatDateTime(lastRefreshAt || overview?.lastUpdatedAt) }}</p>
+          <p><span>接口刷新</span>{{ formatDateTime(lastRefreshAt) }}</p>
           <p><span>最近消息</span>{{ formatDateTime(realtimeStore.lastMessageAt) }}</p>
           <p><span>重连次数</span>{{ realtimeStore.reconnectAttempt }}</p>
           <p><span>窗口结束</span>{{ formatDateTime(overview?.windowEndTime) }}</p>

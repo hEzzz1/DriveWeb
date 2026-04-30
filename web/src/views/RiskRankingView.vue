@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EChartsOption } from 'echarts'
 import EChartPanel from '../components/EChartPanel.vue'
+import { getFleetList } from '../api/fleets'
+import { fetchAllPages } from '../api/pagination'
 import { getStatsRanking } from '../api/stats'
 import { riskLevelLabelMap, type AlertRiskLevel } from '../types/alerts'
 import type {
@@ -49,6 +51,8 @@ const filterModel = reactive<FilterModel>({
 const loading = ref(false)
 const moduleError = ref('')
 const rankingData = ref<RankingData | null>(null)
+const referenceLoading = ref(false)
+const fleetOptions = ref<Array<{ value: string; label: string }>>([])
 
 const riskOptions = [
   { label: riskLevelLabelMap[1], value: 1 as AlertRiskLevel },
@@ -120,8 +124,22 @@ const summaryItems = computed(() => {
 
 onMounted(async () => {
   hydrateFromRoute()
-  await fetchRanking(false)
+  await Promise.all([fetchFleetOptions(), fetchRanking(false)])
 })
+
+async function fetchFleetOptions(): Promise<void> {
+  referenceLoading.value = true
+
+  try {
+    const items = await fetchAllPages(getFleetList, {})
+    fleetOptions.value = items.map((item) => ({
+      value: String(item.id),
+      label: `${item.name} (#${item.id})`,
+    }))
+  } finally {
+    referenceLoading.value = false
+  }
+}
 
 async function fetchRanking(syncRoute = true): Promise<void> {
   const query = buildRankingQuery()
@@ -133,10 +151,6 @@ async function fetchRanking(syncRoute = true): Promise<void> {
   loading.value = true
 
   try {
-    if (query.sortBy === 'RECENT_ACTIVE_RISK_COUNT') {
-      throw new Error('后端当前未提供最近活跃风险数排序能力')
-    }
-
     rankingData.value = await getStatsRanking(query, { silentError: true })
     moduleError.value = ''
   } catch (error) {
@@ -182,7 +196,7 @@ function hydrateFromRoute(): void {
   filterModel.dimension = parseEnumQuery(route.query.dimension, ['VEHICLE_ID', 'DRIVER_ID'], 'VEHICLE_ID')
   filterModel.sortBy = parseEnumQuery(
     route.query.sortBy,
-    ['ALERT_COUNT', 'HIGH_RISK_COUNT', 'AVG_RISK_SCORE', 'RECENT_ACTIVE_RISK_COUNT'],
+    ['ALERT_COUNT', 'HIGH_RISK_COUNT', 'AVG_RISK_SCORE'],
     'ALERT_COUNT',
   )
   filterModel.limit = parsePositiveIntQuery(route.query.limit, 10, 100)
@@ -231,7 +245,14 @@ function syncRouteQuery(query: RankingQuery): void {
         </el-form-item>
 
         <el-form-item label="车队">
-          <el-input v-model="filterModel.fleetId" placeholder="1001" clearable />
+          <el-select v-model="filterModel.fleetId" clearable filterable :loading="referenceLoading" placeholder="全部车队">
+            <el-option
+              v-for="option in fleetOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="维度">
@@ -248,7 +269,7 @@ function syncRouteQuery(query: RankingQuery): void {
           <el-select v-model="filterModel.sortBy">
             <el-option label="风险总数" value="ALERT_COUNT" />
             <el-option label="高风险数" value="HIGH_RISK_COUNT" />
-            <el-option label="最近活跃风险数（待后端支持）" value="RECENT_ACTIVE_RISK_COUNT" />
+            <el-option label="平均风险分" value="AVG_RISK_SCORE" />
           </el-select>
         </el-form-item>
 
@@ -325,11 +346,6 @@ function syncRouteQuery(query: RankingQuery): void {
           <el-table-column prop="dimensionValue" label="对象" min-width="130" />
           <el-table-column prop="alertCount" label="风险总数" width="100" />
           <el-table-column prop="highRiskCount" label="高风险数" width="100" />
-          <el-table-column label="最近活跃风险数" width="130">
-            <template #default="{ row }">
-              {{ row.recentActiveRiskCount ?? '-' }}
-            </template>
-          </el-table-column>
           <el-table-column label="平均风险分" width="120">
             <template #default="{ row }">{{ formatPercent(row.avgRiskScore) }}</template>
           </el-table-column>

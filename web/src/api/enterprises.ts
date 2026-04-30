@@ -139,11 +139,3 @@ export function getOrgEnterpriseProfile(): Promise<EnterpriseDetail> {
     method: 'GET',
   }).then(normalizeEnterprise)
 }
-
-export function updateOrgEnterpriseProfile(payload: UpdateEnterprisePayload): Promise<EnterpriseDetail> {
-  return request<EnterpriseApiItem>({
-    url: '/org/enterprise-profile',
-    method: 'PUT',
-    data: payload,
-  }).then(normalizeEnterprise)
-}

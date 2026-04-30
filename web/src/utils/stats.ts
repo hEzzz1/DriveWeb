@@ -74,11 +74,7 @@ export function toFilterQuery(
 ): LocationQueryRaw {
   return {
     fleetId: params.fleetId || undefined,
-    vehicleId: params.vehicleId || undefined,
-    driverId: params.driverId || undefined,
-    riskType: params.riskType || undefined,
     riskLevel: params.riskLevel !== undefined ? String(params.riskLevel) : undefined,
-    versionInfo: params.versionInfo || undefined,
     groupBy: params.groupBy,
     dimension: params.dimension,
     sortBy: params.sortBy,
@@ -153,10 +149,6 @@ export function buildRankingSortValue(item: RankingItem, sortBy: RankingSortBy):
 
   if (sortBy === 'AVG_RISK_SCORE') {
     return item.avgRiskScore
-  }
-
-  if (sortBy === 'RECENT_ACTIVE_RISK_COUNT') {
-    return item.recentActiveRiskCount ?? item.highRiskCount ?? item.alertCount
   }
 
   return item.alertCount

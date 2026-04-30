@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EChartsOption } from 'echarts'
 import EChartPanel from '../components/EChartPanel.vue'
+import { getFleetList } from '../api/fleets'
+import { fetchAllPages } from '../api/pagination'
 import { getStatsRanking, getStatsTrend } from '../api/stats'
 import { riskLevelLabelMap, type AlertRiskLevel } from '../types/alerts'
 import type {
@@ -29,11 +31,7 @@ import {
 
 interface FilterModel {
   fleetId: string
-  vehicleId: string
-  driverId: string
-  riskType: string
   riskLevel?: AlertRiskLevel
-  versionInfo: string
   groupBy: StatsGroupBy
   timeRange: [Date, Date] | []
 }
@@ -43,11 +41,7 @@ const router = useRouter()
 
 const filterModel = reactive<FilterModel>({
   fleetId: '',
-  vehicleId: '',
-  driverId: '',
-  riskType: '',
   riskLevel: undefined,
-  versionInfo: '',
   groupBy: 'HOUR',
   timeRange: getDefaultStatsRange('HOUR'),
 })
@@ -58,6 +52,8 @@ const trendData = ref<TrendData | null>(null)
 const rankingLoading = ref(false)
 const rankingError = ref('')
 const rankingData = ref<RankingData | null>(null)
+const referenceLoading = ref(false)
+const fleetOptions = ref<Array<{ value: string; label: string }>>([])
 
 const riskOptions = [
   { label: riskLevelLabelMap[1], value: 1 as AlertRiskLevel },
@@ -82,16 +78,6 @@ const trendChartOption = computed<EChartsOption>(() => {
       data: (trendData.value?.items || []).map((item) => item.highRiskCount),
     },
   ]
-
-  if ((trendData.value?.items || []).some((item) => typeof item.handledCount === 'number')) {
-    series.push({
-      name: '处置完成趋势',
-      type: 'line',
-      smooth: true,
-      showSymbol: false,
-      data: (trendData.value?.items || []).map((item) => item.handledCount ?? null),
-    })
-  }
 
   return {
     tooltip: {
@@ -149,8 +135,22 @@ const summaryCards = computed(() => {
 
 onMounted(async () => {
   hydrateFromRoute()
-  await fetchAll(false)
+  await Promise.all([fetchFleetOptions(), fetchAll(false)])
 })
+
+async function fetchFleetOptions(): Promise<void> {
+  referenceLoading.value = true
+
+  try {
+    const items = await fetchAllPages(getFleetList, {})
+    fleetOptions.value = items.map((item) => ({
+      value: String(item.id),
+      label: `${item.name} (#${item.id})`,
+    }))
+  } finally {
+    referenceLoading.value = false
+  }
+}
 
 async function fetchAll(syncRoute = true): Promise<void> {
   const trendQuery = buildTrendQuery()
@@ -200,11 +200,7 @@ async function handleSearch(): Promise<void> {
 
 async function handleReset(): Promise<void> {
   filterModel.fleetId = ''
-  filterModel.vehicleId = ''
-  filterModel.driverId = ''
-  filterModel.riskType = ''
   filterModel.riskLevel = undefined
-  filterModel.versionInfo = ''
   filterModel.groupBy = 'HOUR'
   filterModel.timeRange = getDefaultStatsRange('HOUR')
   await fetchAll(true)
@@ -224,22 +220,14 @@ function handleOpenRanking(): void {
 function hydrateFromRoute(): void {
   filterModel.groupBy = parseEnumQuery(route.query.groupBy, ['HOUR', 'DAY'], 'HOUR')
   filterModel.fleetId = parseStringQuery(route.query.fleetId)
-  filterModel.vehicleId = parseStringQuery(route.query.vehicleId)
-  filterModel.driverId = parseStringQuery(route.query.driverId)
-  filterModel.riskType = parseStringQuery(route.query.riskType)
   filterModel.riskLevel = parseOptionalRiskLevel(route.query.riskLevel)
-  filterModel.versionInfo = parseStringQuery(route.query.versionInfo)
   filterModel.timeRange = parseDateRange(route.query, getDefaultStatsRange(filterModel.groupBy))
 }
 
 function buildTrendQuery(): TrendQuery {
   return {
     fleetId: filterModel.fleetId.trim() || undefined,
-    vehicleId: filterModel.vehicleId.trim() || undefined,
-    driverId: filterModel.driverId.trim() || undefined,
-    riskType: filterModel.riskType.trim() || undefined,
     riskLevel: filterModel.riskLevel,
-    versionInfo: filterModel.versionInfo.trim() || undefined,
     groupBy: filterModel.groupBy,
     ...toIsoRange(filterModel.timeRange),
   }
@@ -253,7 +241,7 @@ function syncRouteQuery(query: TrendQuery): void {
 }
 
 function getPreviewRankingDimension(): RankingDimension {
-  return filterModel.vehicleId ? 'DRIVER_ID' : 'VEHICLE_ID'
+  return 'VEHICLE_ID'
 }
 
 function calculateAverage(items: TrendBucket[], getter: (item: TrendBucket) => number): number | null {
@@ -289,19 +277,14 @@ function calculateAverage(items: TrendBucket[], getter: (item: TrendBucket) => n
         </el-form-item>
 
         <el-form-item label="车队">
-          <el-input v-model="filterModel.fleetId" placeholder="1001" clearable />
-        </el-form-item>
-
-        <el-form-item label="车辆">
-          <el-input v-model="filterModel.vehicleId" placeholder="veh_001" clearable />
-        </el-form-item>
-
-        <el-form-item label="司机">
-          <el-input v-model="filterModel.driverId" placeholder="drv_001" clearable />
-        </el-form-item>
-
-        <el-form-item label="风险类型">
-          <el-input v-model="filterModel.riskType" placeholder="FATIGUE / DISTRACTION" clearable />
+          <el-select v-model="filterModel.fleetId" clearable filterable :loading="referenceLoading" placeholder="全部车队">
+            <el-option
+              v-for="option in fleetOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="风险等级">
@@ -313,10 +296,6 @@ function calculateAverage(items: TrendBucket[], getter: (item: TrendBucket) => n
               :value="option.value"
             />
           </el-select>
-        </el-form-item>
-
-        <el-form-item label="版本信息">
-          <el-input v-model="filterModel.versionInfo" placeholder="v1.0.3" clearable />
         </el-form-item>
 
         <el-form-item label="时间粒度">
@@ -349,13 +328,6 @@ function calculateAverage(items: TrendBucket[], getter: (item: TrendBucket) => n
           <div class="head-tags">
             <el-tag effect="plain" type="info">
               {{ trendData?.groupBy === 'DAY' ? '按天聚合' : '按小时聚合' }}
-            </el-tag>
-            <el-tag
-              v-if="trendData?.items && !trendData.items.some((item) => typeof item.handledCount === 'number')"
-              effect="plain"
-              type="warning"
-            >
-              处置完成趋势待后端字段支持
             </el-tag>
           </div>
         </div>

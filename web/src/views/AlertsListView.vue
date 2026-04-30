@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AlertActionDialog from '../components/AlertActionDialog.vue'
 import { disposeAlert, getAlertDetail, getAlertList } from '../api/alerts'
+import { getDriverList } from '../api/drivers'
+import { getFleetList } from '../api/fleets'
+import { fetchAllPages } from '../api/pagination'
+import { getVehicleList } from '../api/vehicles'
 import { useAuthStore } from '../stores/auth'
 import { useRealtimeStore } from '../stores/realtime'
 import {
@@ -43,6 +47,7 @@ const authStore = useAuthStore()
 const realtimeStore = useRealtimeStore()
 
 const loading = ref(false)
+const referenceLoading = ref(false)
 const tableData = ref<AlertSummary[]>([])
 const total = ref(0)
 const currentPage = ref(1)
@@ -54,6 +59,10 @@ const activeRowId = ref<number | null>(null)
 const pendingRealtimeMatches = ref(0)
 const localMutationAtMap = new Map<number, number>()
 let unsubscribeRealtime: (() => void) | null = null
+
+const fleetOptions = ref<Array<{ value: string; label: string }>>([])
+const vehicleOptions = ref<Array<{ value: string; label: string; tableLabel: string; fleetId: string }>>([])
+const driverOptions = ref<Array<{ value: string; label: string; tableLabel: string; fleetId: string }>>([])
 
 const filterModel = reactive<FilterModel>({
   fleetId: '',
@@ -79,19 +88,77 @@ const statusOptions = [
 
 const totalText = computed(() => `共 ${total.value} 条告警`)
 const canDispose = computed(() => authStore.canDisposeAlerts())
+const filteredVehicleOptions = computed(() => {
+  if (!filterModel.fleetId) {
+    return vehicleOptions.value
+  }
+
+  return vehicleOptions.value.filter((item) => item.fleetId === filterModel.fleetId)
+})
+const filteredDriverOptions = computed(() => {
+  if (!filterModel.fleetId) {
+    return driverOptions.value
+  }
+
+  return driverOptions.value.filter((item) => item.fleetId === filterModel.fleetId)
+})
+
+watch(
+  () => filterModel.fleetId,
+  () => {
+    if (filterModel.vehicleId && !filteredVehicleOptions.value.some((item) => item.value === filterModel.vehicleId)) {
+      filterModel.vehicleId = ''
+    }
+
+    if (filterModel.driverId && !filteredDriverOptions.value.some((item) => item.value === filterModel.driverId)) {
+      filterModel.driverId = ''
+    }
+  },
+)
 
 onMounted(async () => {
   hydrateFromRoute()
   unsubscribeRealtime = realtimeStore.subscribe((event) => {
     void handleRealtimeEvent(event)
   })
-  await fetchList(false)
+  await Promise.all([fetchReferences(), fetchList(false)])
 })
 
 onBeforeUnmount(() => {
   unsubscribeRealtime?.()
   unsubscribeRealtime = null
 })
+
+async function fetchReferences(): Promise<void> {
+  referenceLoading.value = true
+
+  try {
+    const [fleets, vehicles, drivers] = await Promise.all([
+      fetchAllPages(getFleetList, {}),
+      fetchAllPages(getVehicleList, {}),
+      fetchAllPages(getDriverList, {}),
+    ])
+
+    fleetOptions.value = fleets.map((item) => ({
+      value: String(item.id),
+      label: `${item.name} (#${item.id})`,
+    }))
+    vehicleOptions.value = vehicles.map((item) => ({
+      value: String(item.id),
+      label: `${item.plateNumber} (#${item.id})`,
+      tableLabel: item.plateNumber,
+      fleetId: String(item.fleetId),
+    }))
+    driverOptions.value = drivers.map((item) => ({
+      value: String(item.id),
+      label: `${item.name}${item.driverCode ? ` / ${item.driverCode}` : ''} (#${item.id})`,
+      tableLabel: item.name,
+      fleetId: String(item.fleetId),
+    }))
+  } finally {
+    referenceLoading.value = false
+  }
+}
 
 async function fetchList(syncRoute = true): Promise<void> {
   loading.value = true
@@ -396,6 +463,14 @@ function getRiskLabel(level: number): string {
 function getStatusLabel(status: number): string {
   return statusLabelMap[status as AlertStatus] || '-'
 }
+
+function getVehicleLabel(vehicleId: string): string {
+  return vehicleOptions.value.find((item) => item.value === vehicleId)?.tableLabel || vehicleId || '-'
+}
+
+function getDriverLabel(driverId: string): string {
+  return driverOptions.value.find((item) => item.value === driverId)?.tableLabel || driverId || '-'
+}
 </script>
 
 <template>
@@ -411,15 +486,48 @@ function getStatusLabel(status: number): string {
     <el-card class="panel-card" shadow="never">
       <el-form class="filter-grid" label-position="top">
         <el-form-item label="车队">
-          <el-input v-model="filterModel.fleetId" placeholder="fleet_01" clearable />
+          <el-select v-model="filterModel.fleetId" clearable filterable :loading="referenceLoading" placeholder="全部车队">
+            <el-option
+              v-for="option in fleetOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="车辆">
-          <el-input v-model="filterModel.vehicleId" placeholder="veh_001" clearable />
+          <el-select
+            v-model="filterModel.vehicleId"
+            clearable
+            filterable
+            :loading="referenceLoading"
+            placeholder="全部车辆"
+          >
+            <el-option
+              v-for="option in filteredVehicleOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="司机">
-          <el-input v-model="filterModel.driverId" placeholder="drv_001" clearable />
+          <el-select
+            v-model="filterModel.driverId"
+            clearable
+            filterable
+            :loading="referenceLoading"
+            placeholder="全部司机"
+          >
+            <el-option
+              v-for="option in filteredDriverOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="风险等级">
@@ -484,11 +592,19 @@ function getStatusLabel(status: number): string {
       >
         <el-table-column label="告警编号" min-width="170">
           <template #default="{ row }">
-            <el-link type="primary" @click.stop="handleOpenDetail(row)">{{ row.alertNo }}</el-link>
+            <el-tooltip :content="row.alertNo" placement="top">
+              <el-link class="alert-no-link" type="primary" @click.stop="handleOpenDetail(row)">
+                {{ row.alertNo }}
+              </el-link>
+            </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column prop="vehicleId" label="车辆" min-width="120" />
-        <el-table-column prop="driverId" label="司机" min-width="120" />
+        <el-table-column label="车辆" min-width="140">
+          <template #default="{ row }">{{ getVehicleLabel(row.vehicleId) }}</template>
+        </el-table-column>
+        <el-table-column label="司机" min-width="140">
+          <template #default="{ row }">{{ getDriverLabel(row.driverId) }}</template>
+        </el-table-column>
         <el-table-column label="风险级别" min-width="110">
           <template #default="{ row }">
             <el-tag :type="getRiskTagType(row.riskLevel)">{{ getRiskLabel(row.riskLevel) }}</el-tag>
@@ -556,6 +672,15 @@ function getStatusLabel(status: number): string {
   padding: 26px 24px 34px;
   display: grid;
   gap: 16px;
+}
+
+.alert-no-link {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 .page-head {

@@ -3,13 +3,12 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
 import EnterpriseActivationCodePanel from '../components/enterprises/EnterpriseActivationCodePanel.vue'
-import EnterpriseEditDialog from '../components/enterprises/EnterpriseEditDialog.vue'
 import {
   disableOrgEnterpriseActivationCode,
   getOrgEnterpriseActivationCode,
   rotateOrgEnterpriseActivationCode,
 } from '../api/enterprise-activation-codes'
-import { getOrgEnterpriseProfile, updateOrgEnterpriseProfile } from '../api/enterprises'
+import { getOrgEnterpriseProfile } from '../api/enterprises'
 import { useAccess } from '../composables/useAccess'
 import type { EnterpriseActivationCodeSummary } from '../types/enterprise-activation-codes'
 import type { EnterpriseDetail } from '../types/enterprises'
@@ -17,9 +16,7 @@ import type { EnterpriseDetail } from '../types/enterprises'
 const access = useAccess()
 
 const loading = ref(false)
-const editSaving = ref(false)
 const activationCodeLoading = ref(false)
-const editVisible = ref(false)
 const errorText = ref('')
 const profile = ref<EnterpriseDetail | null>(null)
 const activationCode = ref<EnterpriseActivationCodeSummary | null>(null)
@@ -63,18 +60,6 @@ async function fetchActivationCode(): Promise<void> {
     activationCode.value = null
   } finally {
     activationCodeLoading.value = false
-  }
-}
-
-async function handleSaveProfile(payload: Parameters<typeof updateOrgEnterpriseProfile>[0]): Promise<void> {
-  editSaving.value = true
-
-  try {
-    profile.value = await updateOrgEnterpriseProfile(payload)
-    editVisible.value = false
-    ElMessage.success('企业资料已更新')
-  } finally {
-    editSaving.value = false
   }
 }
 
@@ -144,11 +129,10 @@ function formatDateTime(value?: string): string {
       <div>
         <p class="eyebrow">Organization</p>
         <h1>我的企业</h1>
-        <p class="subhead">企业域只查看和维护本企业资料，激活码也收口到本页，不再复用平台企业列表入口。</p>
+        <p class="subhead">企业域仅查看本企业资料，激活码也收口到本页，不再复用平台企业列表入口。</p>
       </div>
       <div class="head-actions">
         <el-button :loading="loading" @click="fetchProfile">刷新资料</el-button>
-        <el-button v-if="access.canManageEnterpriseProfile" type="primary" @click="editVisible = true">编辑企业</el-button>
       </div>
     </div>
 
@@ -197,13 +181,6 @@ function formatDateTime(value?: string): string {
         @disable="handleDisableActivationCode"
       />
     </PageSectionCard>
-
-    <EnterpriseEditDialog
-      v-model:visible="editVisible"
-      :loading="editSaving"
-      :enterprise="profile"
-      @save="handleSaveProfile"
-    />
   </div>
 </template>
 
