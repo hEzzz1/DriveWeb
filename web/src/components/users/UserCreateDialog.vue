@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { UserRole } from '../../types/api'
+import { requiresEnterpriseForRoles, roleLabelMap } from '../../access/auth-model'
 import type { CreateUserPayload, RoleOptionItem } from '../../types/users'
-import { userRoleLabelMap } from '../../types/users'
 
 const props = defineProps<{
   visible: boolean
@@ -30,10 +30,24 @@ const form = reactive({
   roles: [] as UserRole[],
 })
 
+const needsEnterprise = computed(() => requiresEnterpriseForRoles(form.roles))
+
 const rules: FormRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入初始密码', trigger: 'blur' }],
-  enterpriseId: [{ required: true, message: '请选择企业', trigger: 'change' }],
+  enterpriseId: [
+    {
+      validator: (_rule, value, callback) => {
+        if (!needsEnterprise.value || (value !== undefined && value !== null && value !== '')) {
+          callback()
+          return
+        }
+
+        callback(new Error('请选择企业'))
+      },
+      trigger: 'change',
+    },
+  ],
   roles: [{ required: true, message: '请选择角色', trigger: 'change' }],
 }
 
@@ -69,7 +83,7 @@ async function handleSave(): Promise<void> {
     username: form.username.trim(),
     password: form.password,
     nickname: form.nickname.trim() || undefined,
-    enterpriseId: form.enterpriseId,
+    enterpriseId: needsEnterprise.value ? form.enterpriseId : null,
     enabled: form.enabled,
     roles: [...form.roles],
   })
@@ -88,7 +102,7 @@ async function handleSave(): Promise<void> {
       <el-form-item label="昵称">
         <el-input v-model="form.nickname" clearable placeholder="为空时默认同用户名" />
       </el-form-item>
-      <el-form-item label="所属企业" prop="enterpriseId">
+      <el-form-item label="所属企业" prop="enterpriseId" :required="needsEnterprise">
         <el-select
           v-if="!lockEnterprise"
           v-model="form.enterpriseId"
@@ -97,11 +111,15 @@ async function handleSave(): Promise<void> {
           filterable
           allow-create
           default-first-option
-          placeholder="请选择或输入企业 ID"
+          :placeholder="needsEnterprise ? '请选择或输入企业 ID' : '平台级角色可留空'"
         >
           <el-option v-for="item in enterpriseOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
-        <el-input v-else :model-value="String(defaultEnterpriseId ?? '-')" disabled />
+        <el-input
+          v-else
+          :model-value="needsEnterprise ? String(defaultEnterpriseId ?? '-') : '平台级角色无需企业归属'"
+          disabled
+        />
       </el-form-item>
       <el-form-item label="状态">
         <el-switch v-model="form.enabled" inline-prompt active-text="启用" inactive-text="禁用" />
@@ -111,7 +129,7 @@ async function handleSave(): Promise<void> {
           <el-option
             v-for="item in roleOptions"
             :key="item.roleCode"
-            :label="item.roleName || userRoleLabelMap[item.roleCode]"
+            :label="item.roleName || roleLabelMap[item.roleCode]"
             :value="item.roleCode"
           />
         </el-select>

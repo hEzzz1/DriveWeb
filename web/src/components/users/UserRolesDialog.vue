@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import type { UserRole } from '../../types/api'
+import { roleLabelMap } from '../../access/auth-model'
 import type { RoleOptionItem } from '../../types/users'
-import { userRoleLabelMap } from '../../types/users'
 
 const props = defineProps<{
   visible: boolean
@@ -44,7 +44,7 @@ watch(
       <el-option
         v-for="item in roleOptions"
         :key="item.roleCode"
-        :label="item.roleName || userRoleLabelMap[item.roleCode]"
+        :label="item.roleName || roleLabelMap[item.roleCode]"
         :value="item.roleCode"
       />
     </el-select>

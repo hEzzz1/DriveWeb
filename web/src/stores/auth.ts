@@ -1,7 +1,31 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { CurrentUserData, LoginRequest, UserRole } from '../types/api'
+import type {
+  CurrentUserData,
+  DefaultScope,
+  LoginRequest,
+  PermissionCode,
+  PlatformRole,
+  ScopeMembership,
+  UserRole,
+} from '../types/api'
 import { getCurrentUser, login as loginApi } from '../api/auth'
+import {
+  buildDisplayRoles,
+  buildEffectiveRoles,
+  deriveMemberships,
+  derivePlatformRoles,
+  formatRoleLabel,
+  formatScopeLabel,
+  normalizeDefaultScope,
+  normalizePermissionList,
+  normalizePlatformRoleList,
+  normalizeScopeMembershipList,
+  normalizeUserRoleList,
+  resolveDefaultScope,
+  resolvePermissionsFromRoles,
+  ROLE_PRIORITY,
+} from '../access/auth-model'
 import {
   AUTH_STORAGE_KEY,
   formatExpiryLocal,
@@ -11,22 +35,16 @@ import {
 } from '../utils/auth'
 import { setAuthTokenGetter } from '../api/http'
 
-const ROLE_PRIORITY: UserRole[] = [
-  'SUPER_ADMIN',
-  'ENTERPRISE_ADMIN',
-  'SYS_ADMIN',
-  'RISK_ADMIN',
-  'OPERATOR',
-  'ANALYST',
-  'VIEWER',
-]
-
 export const useAuthStore = defineStore('auth', () => {
   const username = ref('')
   const nickname = ref('')
   const token = ref('')
   const expireAt = ref('')
   const roles = ref<UserRole[]>([])
+  const platformRoles = ref<PlatformRole[]>([])
+  const memberships = ref<ScopeMembership[]>([])
+  const permissions = ref<PermissionCode[]>([])
+  const defaultScope = ref<DefaultScope | null>(null)
   const userId = ref<number | string | null>(null)
   const enterpriseId = ref<number | string | null>(null)
   const enterpriseName = ref('')
@@ -37,17 +55,32 @@ export const useAuthStore = defineStore('auth', () => {
   setAuthTokenGetter(() => token.value)
 
   const isAuthenticated = computed(() => Boolean(token.value) && !isTokenExpired(expireAt.value))
-  const roleText = computed(() => (roles.value.length ? roles.value.join(' / ') : '-'))
+  const effectiveRoles = computed(() =>
+    buildEffectiveRoles(roles.value, platformRoles.value, memberships.value, enterpriseId.value),
+  )
+  const displayRoles = computed(() => buildDisplayRoles(roles.value, platformRoles.value, memberships.value))
+  const roleText = computed(() =>
+    displayRoles.value.length ? displayRoles.value.map((role) => formatRoleLabel(role)).join(' / ') : '-',
+  )
+  const scopeText = computed(() => formatScopeLabel(defaultScope.value))
   const expireAtText = computed(() => formatExpiryLocal(expireAt.value))
   const minutesLeft = computed(() => minutesUntilExpiry(expireAt.value))
   const willExpireSoon = computed(() => {
     const value = minutesLeft.value
     return value !== null && value >= 0 && value <= 30
   })
-  const primaryRole = computed(() => ROLE_PRIORITY.find((role) => roles.value.includes(role)) || null)
-  const isSuperAdmin = computed(() => roles.value.includes('SUPER_ADMIN'))
-  const isEnterpriseAdmin = computed(() => roles.value.includes('ENTERPRISE_ADMIN'))
-  const isUserAdmin = computed(() => isSuperAdmin.value || isEnterpriseAdmin.value)
+  const primaryRole = computed(() => ROLE_PRIORITY.find((role) => effectiveRoles.value.includes(role)) || null)
+  const isSuperAdmin = computed(
+    () =>
+      effectiveRoles.value.includes('SUPER_ADMIN') ||
+      effectiveRoles.value.includes('PLATFORM_SUPER_ADMIN'),
+  )
+  const isEnterpriseAdmin = computed(
+    () =>
+      effectiveRoles.value.includes('ENTERPRISE_ADMIN') ||
+      effectiveRoles.value.includes('ORG_ADMIN'),
+  )
+  const isUserAdmin = computed(() => hasPermission('user.manage'))
 
   function persist(): void {
     const payload: PersistedAuth = {
@@ -56,6 +89,10 @@ export const useAuthStore = defineStore('auth', () => {
       token: token.value,
       expireAt: expireAt.value,
       roles: roles.value,
+      platformRoles: platformRoles.value,
+      memberships: memberships.value,
+      permissions: permissions.value,
+      defaultScope: defaultScope.value,
       userId: userId.value ?? undefined,
       enterpriseId: enterpriseId.value ?? undefined,
       enterpriseName: enterpriseName.value || undefined,
@@ -72,6 +109,10 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = ''
     expireAt.value = ''
     roles.value = []
+    platformRoles.value = []
+    memberships.value = []
+    permissions.value = []
+    defaultScope.value = null
     userId.value = null
     enterpriseId.value = null
     enterpriseName.value = ''
@@ -99,12 +140,37 @@ export const useAuthStore = defineStore('auth', () => {
       nickname.value = parsed.nickname || ''
       token.value = parsed.token
       expireAt.value = parsed.expireAt
-      roles.value = (parsed.roles || []).filter(isRole) as UserRole[]
+      roles.value = normalizeUserRoleList(parsed.roles)
+      platformRoles.value = normalizePlatformRoleList(parsed.platformRoles)
+      memberships.value = normalizeScopeMembershipList(parsed.memberships)
+      permissions.value = normalizePermissionList(parsed.permissions)
+      defaultScope.value = normalizeDefaultScope(parsed.defaultScope)
       userId.value = parsed.userId ?? null
       enterpriseId.value = parsed.enterpriseId ?? null
       enterpriseName.value = parsed.enterpriseName || ''
       subjectType.value = parsed.subjectType || ''
       enabled.value = Boolean(parsed.enabled)
+
+      const resolvedPlatformRoles = platformRoles.value.length
+        ? platformRoles.value
+        : derivePlatformRoles(roles.value)
+      const resolvedMemberships = memberships.value.length
+        ? memberships.value
+        : deriveMemberships(roles.value, enterpriseId.value)
+
+      platformRoles.value = resolvedPlatformRoles
+      memberships.value = resolvedMemberships
+      permissions.value = permissions.value.length
+        ? permissions.value
+        : resolvePermissionsFromRoles(
+            buildEffectiveRoles(roles.value, resolvedPlatformRoles, resolvedMemberships, enterpriseId.value),
+          )
+      defaultScope.value = resolveDefaultScope(
+        defaultScope.value,
+        resolvedPlatformRoles,
+        resolvedMemberships,
+        enterpriseId.value,
+      )
 
       if (!isAuthenticated.value) {
         clear()
@@ -119,7 +185,8 @@ export const useAuthStore = defineStore('auth', () => {
     username.value = payload.username
     token.value = data.token
     expireAt.value = data.expireAt
-    roles.value = (data.roles || []).filter(isRole) as UserRole[]
+    roles.value = normalizeUserRoleList(data.roles)
+    permissions.value = normalizePermissionList(data.permissions)
     await syncCurrentUser()
     persist()
   }
@@ -138,8 +205,36 @@ export const useAuthStore = defineStore('auth', () => {
     userId.value = data.userId
     username.value = data.username
     nickname.value = data.nickname || ''
-    roles.value = (data.roles || []).filter(isRole) as UserRole[]
-    enterpriseId.value = data.enterpriseId ?? null
+    roles.value = normalizeUserRoleList(data.roles)
+    const explicitPlatformRoles = normalizePlatformRoleList(data.platformRoles)
+    const explicitMemberships = normalizeScopeMembershipList(data.memberships)
+    const resolvedPlatformRoles = explicitPlatformRoles.length
+      ? explicitPlatformRoles
+      : derivePlatformRoles(roles.value)
+    const resolvedMemberships = explicitMemberships.length
+      ? explicitMemberships
+      : deriveMemberships(roles.value, data.enterpriseId ?? null)
+    const effectiveRoleSet = buildEffectiveRoles(
+      roles.value,
+      resolvedPlatformRoles,
+      resolvedMemberships,
+      data.enterpriseId ?? null,
+    )
+    const explicitPermissions = normalizePermissionList(data.permissions)
+    const explicitDefaultScope = normalizeDefaultScope(data.defaultScope)
+
+    platformRoles.value = resolvedPlatformRoles
+    memberships.value = resolvedMemberships
+    permissions.value = explicitPermissions.length
+      ? explicitPermissions
+      : resolvePermissionsFromRoles(effectiveRoleSet)
+    defaultScope.value = resolveDefaultScope(
+      explicitDefaultScope,
+      resolvedPlatformRoles,
+      resolvedMemberships,
+      data.enterpriseId ?? null,
+    )
+    enterpriseId.value = data.enterpriseId ?? defaultScope.value?.enterpriseId ?? null
     enterpriseName.value = data.enterpriseName || ''
     subjectType.value = data.subjectType || ''
     enabled.value = Boolean(data.enabled)
@@ -150,63 +245,79 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function hasRole(role: UserRole): boolean {
-    return roles.value.includes(role)
+    return effectiveRoles.value.includes(role)
   }
 
   function hasAnyRole(targetRoles: UserRole[]): boolean {
-    return isSuperAdmin.value || targetRoles.some((role) => roles.value.includes(role))
+    return isSuperAdmin.value || targetRoles.some((role) => effectiveRoles.value.includes(role))
+  }
+
+  function hasPermission(permission: PermissionCode): boolean {
+    return permissions.value.includes(permission)
+  }
+
+  function hasAnyPermission(targetPermissions: PermissionCode[]): boolean {
+    return isSuperAdmin.value || targetPermissions.some((permission) => permissions.value.includes(permission))
   }
 
   function getDefaultRoute(): string {
-    if (isSuperAdmin.value) {
-      return '/sessions'
-    }
-
-    if (isEnterpriseAdmin.value) {
-      return '/sessions'
-    }
-
-    if (hasAnyRole(['SYS_ADMIN'])) {
+    if (hasAnyPermission(['audit.read'])) {
       return '/audit'
     }
 
-    if (hasAnyRole(['RISK_ADMIN'])) {
+    if (hasAnyPermission(['rule.read'])) {
       return '/rules'
     }
 
-    if (hasAnyRole(['OPERATOR'])) {
+    if (hasAnyPermission(['session.read'])) {
       return '/sessions'
     }
 
-    if (hasAnyRole(['ANALYST', 'VIEWER'])) {
+    if (hasAnyPermission(['stats.read'])) {
       return '/stats/trend'
+    }
+
+    if (hasAnyPermission(['overview.read'])) {
+      return '/overview'
+    }
+
+    if (hasAnyPermission(['user.read'])) {
+      return '/users'
+    }
+
+    if (hasAnyPermission(['enterprise.read'])) {
+      return '/enterprises'
+    }
+
+    if (hasAnyPermission(['system.read'])) {
+      return '/system/health'
     }
 
     return '/login'
   }
 
   function canDisposeAlerts(): boolean {
-    return hasAnyRole(['OPERATOR'])
+    return hasPermission('alert.handle')
   }
 
   function canManageRules(): boolean {
-    return hasAnyRole(['RISK_ADMIN'])
+    return hasPermission('rule.manage')
   }
 
   function canExportAudit(): boolean {
-    return hasAnyRole(['SYS_ADMIN'])
+    return hasPermission('audit.export')
   }
 
   function canManageSystem(): boolean {
-    return hasAnyRole(['SYS_ADMIN'])
+    return hasPermission('system.read')
   }
 
   function canManageUsers(): boolean {
-    return hasAnyRole(['SUPER_ADMIN', 'ENTERPRISE_ADMIN'])
+    return hasPermission('user.manage')
   }
 
   function canReadEnterprises(): boolean {
-    return hasAnyRole(['SUPER_ADMIN', 'SYS_ADMIN', 'ENTERPRISE_ADMIN'])
+    return hasPermission('enterprise.read')
   }
 
   return {
@@ -215,6 +326,10 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     expireAt,
     roles,
+    platformRoles,
+    memberships,
+    permissions,
+    defaultScope,
     userId,
     enterpriseId,
     enterpriseName,
@@ -222,7 +337,10 @@ export const useAuthStore = defineStore('auth', () => {
     enabled,
     hydrated,
     isAuthenticated,
+    effectiveRoles,
+    displayRoles,
     roleText,
+    scopeText,
     expireAtText,
     minutesLeft,
     willExpireSoon,
@@ -236,6 +354,8 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     hasRole,
     hasAnyRole,
+    hasPermission,
+    hasAnyPermission,
     getDefaultRoute,
     canDisposeAlerts,
     canManageRules,
@@ -245,7 +365,3 @@ export const useAuthStore = defineStore('auth', () => {
     canReadEnterprises,
   }
 })
-
-function isRole(value: string): value is UserRole {
-  return ROLE_PRIORITY.includes(value as UserRole)
-}

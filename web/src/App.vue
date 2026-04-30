@@ -42,16 +42,16 @@ const navItems = computed<NavItem[]>(() => [
   { key: 'device-bind-logs', badge: '绑', section: 'business', label: '设备绑定日志', subtitle: '设备认领记录、企业激活码脱敏值与绑定流水', visible: access.value.canViewDeviceApprovals, path: '/device-bind-logs' },
   { key: 'devices', badge: '设', section: 'business', label: '设备管理', subtitle: '设备台账、归属信息与车辆分配', visible: access.value.canViewDevices, path: '/devices' },
   { key: 'sessions', badge: '会', section: 'monitor', label: '驾驶会话', subtitle: '会话列表、最近心跳与强制签退', visible: access.value.canViewSessions, path: '/sessions' },
-  { key: 'alerts', badge: '警', section: 'monitor', label: '告警中心', subtitle: '告警筛选、详情查看与处置', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/alerts' },
-  { key: 'overview', badge: '览', section: 'monitor', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/overview' },
-  { key: 'trend', badge: '势', section: 'monitor', label: '趋势分析', subtitle: '趋势洞察与波动分析', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/trend' },
-  { key: 'ranking', badge: '排', section: 'monitor', label: '风险排行', subtitle: '车辆与司机风险排行', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/ranking' },
+  { key: 'alerts', badge: '警', section: 'monitor', label: '告警中心', subtitle: '告警筛选、详情查看与处置', visible: authStore.hasPermission('alert.read'), path: '/alerts' },
+  { key: 'overview', badge: '览', section: 'monitor', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', visible: authStore.hasPermission('overview.read'), path: '/overview' },
+  { key: 'trend', badge: '势', section: 'monitor', label: '趋势分析', subtitle: '趋势洞察与波动分析', visible: authStore.hasPermission('stats.read'), path: '/stats/trend' },
+  { key: 'ranking', badge: '排', section: 'monitor', label: '风险排行', subtitle: '车辆与司机风险排行', visible: authStore.hasPermission('stats.read'), path: '/stats/ranking' },
   { key: 'users', badge: '户', section: 'platform', label: '用户管理', subtitle: '后台账号、角色、企业归属与启停', visible: access.value.canViewUsers, path: '/users' },
   { key: 'audit', badge: '审', section: 'platform', label: '审计日志', subtitle: '审计列表、详情与导出', visible: access.value.canViewSystemAudit, path: '/audit' },
   { key: 'health', badge: '康', section: 'platform', label: '系统健康', subtitle: '健康概览与监控摘要', visible: access.value.canViewSystemHealth, path: '/system/health' },
   { key: 'services', badge: '服', section: 'platform', label: '服务状态', subtitle: '服务探测状态与最近检查时间', visible: access.value.canViewServiceStatus, path: '/system/services' },
   { key: 'version', badge: '版', section: 'platform', label: '版本信息', subtitle: '应用版本、构建时间与提交号', visible: access.value.canViewVersionInfo, path: '/system/version' },
-  { key: 'rules', badge: '规', section: 'platform', label: '规则管理', subtitle: '规则配置、发布与回滚', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'RISK_ADMIN']), path: '/rules' },
+  { key: 'rules', badge: '规', section: 'platform', label: '规则管理', subtitle: '规则配置、发布与回滚', visible: authStore.hasPermission('rule.read'), path: '/rules' },
   { key: 'account-session', badge: '登', section: 'platform', label: '登录会话', subtitle: '当前账号令牌与角色映射', visible: authStore.isAuthenticated, path: '/account/session' },
 ])
 
@@ -279,6 +279,7 @@ function handleReconnect(): void {
         <div v-if="!sidebarCollapsed" class="footer-card">
           <p class="footer-label">当前角色</p>
           <p class="footer-value">{{ authStore.roleText }}</p>
+          <p class="footer-note">当前范围 {{ authStore.scopeText }}</p>
           <p class="footer-note">已授权 {{ visibleNavItems.length }} 个工作项</p>
         </div>
 
@@ -330,7 +331,7 @@ function handleReconnect(): void {
 
             <div class="account-copy">
               <strong>{{ authStore.username || '未登录用户' }}</strong>
-              <span>{{ authStore.roleText }}</span>
+              <span>{{ authStore.roleText }} · {{ authStore.scopeText }}</span>
             </div>
           </div>
 

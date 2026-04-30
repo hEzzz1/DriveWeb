@@ -1,4 +1,12 @@
-import type { PageQuery, PageResult, UserRole } from './api'
+import type {
+  DefaultScope,
+  PageQuery,
+  PageResult,
+  PermissionCode,
+  PlatformRole,
+  ScopeMembership,
+  UserRole,
+} from './api'
 import type { AuditListData } from './audit'
 
 export interface UserListQuery extends PageQuery {
@@ -15,6 +23,10 @@ export interface UserSummary {
   enterpriseName?: string
   enabled: boolean
   roles: UserRole[]
+  platformRoles?: PlatformRole[]
+  memberships?: ScopeMembership[]
+  permissions?: PermissionCode[]
+  defaultScope?: DefaultScope | null
   lastLoginAt?: string
   createdAt?: string
   updatedAt?: string
@@ -58,13 +70,3 @@ export interface ResetUserPasswordPayload {
 }
 
 export type UserAuditListData = AuditListData
-
-export const userRoleLabelMap: Record<UserRole, string> = {
-  SUPER_ADMIN: '超级管理员',
-  ENTERPRISE_ADMIN: '企业管理员',
-  SYS_ADMIN: '系统管理员',
-  RISK_ADMIN: '风控管理员',
-  OPERATOR: '运营人员',
-  ANALYST: '分析人员',
-  VIEWER: '访客',
-}

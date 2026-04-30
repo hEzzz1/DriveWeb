@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import type { UserRole } from '../types/api'
+import type { PermissionCode } from '../types/api'
 import LoginView from '../views/LoginView.vue'
 import AuthStatusView from '../views/AuthStatusView.vue'
 import RealtimeOverviewView from '../views/RealtimeOverviewView.vue'
@@ -22,13 +22,20 @@ import DeviceApprovalListView from '../views/DeviceApprovalListView.vue'
 import DeviceApprovalDetailView from '../views/DeviceApprovalDetailView.vue'
 import DrivingSessionManagementView from '../views/DrivingSessionManagementView.vue'
 
-const OPS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
-const ANALYSIS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST']
-const RULE_ROLES: UserRole[] = ['SUPER_ADMIN', 'RISK_ADMIN']
-const SYSTEM_ROLES: UserRole[] = ['SUPER_ADMIN', 'SYS_ADMIN']
-const USER_ADMIN_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN']
-const BUSINESS_READ_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'OPERATOR']
-const ALL_AUTH_ROLES: UserRole[] = ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'SYS_ADMIN', 'RISK_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
+const OVERVIEW_PERMISSIONS: PermissionCode[] = ['overview.read']
+const ALERT_PERMISSIONS: PermissionCode[] = ['alert.read']
+const STATS_PERMISSIONS: PermissionCode[] = ['stats.read']
+const RULE_PERMISSIONS: PermissionCode[] = ['rule.read']
+const AUDIT_PERMISSIONS: PermissionCode[] = ['audit.read']
+const SYSTEM_PERMISSIONS: PermissionCode[] = ['system.read']
+const USER_PERMISSIONS: PermissionCode[] = ['user.read']
+const ENTERPRISE_PERMISSIONS: PermissionCode[] = ['enterprise.read']
+const FLEET_PERMISSIONS: PermissionCode[] = ['fleet.read']
+const DRIVER_PERMISSIONS: PermissionCode[] = ['driver.read']
+const VEHICLE_PERMISSIONS: PermissionCode[] = ['vehicle.read']
+const DEVICE_PERMISSIONS: PermissionCode[] = ['device.read']
+const ACTIVATION_CODE_PERMISSIONS: PermissionCode[] = ['activation_code.read']
+const SESSION_PERMISSIONS: PermissionCode[] = ['session.read']
 
 const router = createRouter({
   history: createWebHistory(),
@@ -41,55 +48,59 @@ const router = createRouter({
     },
     {
       path: '/',
-      redirect: '/sessions',
+      redirect: () => {
+        const authStore = useAuthStore()
+        authStore.hydrate()
+        return authStore.isAuthenticated ? authStore.getDefaultRoute() : '/login'
+      },
     },
     {
       path: '/overview',
       name: 'realtime-overview',
       component: RealtimeOverviewView,
-      meta: { requiresAuth: true, roles: OPS_ROLES },
+      meta: { requiresAuth: true, permissions: OVERVIEW_PERMISSIONS },
     },
     {
       path: '/account/session',
       name: 'auth-status',
       component: AuthStatusView,
-      meta: { requiresAuth: true, roles: ALL_AUTH_ROLES },
+      meta: { requiresAuth: true },
     },
     {
       path: '/alerts',
       name: 'alerts-list',
       component: AlertsListView,
-      meta: { requiresAuth: true, roles: OPS_ROLES },
+      meta: { requiresAuth: true, permissions: ALERT_PERMISSIONS },
     },
     {
       path: '/alerts/:id',
       name: 'alert-detail',
       component: AlertDetailView,
-      meta: { requiresAuth: true, roles: OPS_ROLES },
+      meta: { requiresAuth: true, permissions: ALERT_PERMISSIONS },
     },
     {
       path: '/stats/trend',
       name: 'trend-analysis',
       component: TrendAnalysisView,
-      meta: { requiresAuth: true, roles: ANALYSIS_ROLES },
+      meta: { requiresAuth: true, permissions: STATS_PERMISSIONS },
     },
     {
       path: '/stats/ranking',
       name: 'risk-ranking',
       component: RiskRankingView,
-      meta: { requiresAuth: true, roles: ANALYSIS_ROLES },
+      meta: { requiresAuth: true, permissions: STATS_PERMISSIONS },
     },
     {
       path: '/rules',
       name: 'rules-management',
       component: RulesManagementView,
-      meta: { requiresAuth: true, roles: RULE_ROLES },
+      meta: { requiresAuth: true, permissions: RULE_PERMISSIONS },
     },
     {
       path: '/audit',
       name: 'audit-logs',
       component: AuditStatusView,
-      meta: { requiresAuth: true, roles: SYSTEM_ROLES },
+      meta: { requiresAuth: true, permissions: AUDIT_PERMISSIONS },
     },
     {
       path: '/system',
@@ -99,43 +110,43 @@ const router = createRouter({
       path: '/system/health',
       name: 'system-health',
       component: SystemManagementView,
-      meta: { requiresAuth: true, roles: SYSTEM_ROLES },
+      meta: { requiresAuth: true, permissions: SYSTEM_PERMISSIONS },
     },
     {
       path: '/system/services',
       name: 'service-status',
       component: SystemManagementView,
-      meta: { requiresAuth: true, roles: SYSTEM_ROLES },
+      meta: { requiresAuth: true, permissions: SYSTEM_PERMISSIONS },
     },
     {
       path: '/system/version',
       name: 'version-info',
       component: SystemManagementView,
-      meta: { requiresAuth: true, roles: SYSTEM_ROLES },
+      meta: { requiresAuth: true, permissions: SYSTEM_PERMISSIONS },
     },
     {
       path: '/users',
       name: 'user-management',
       component: UserManagementView,
-      meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+      meta: { requiresAuth: true, permissions: USER_PERMISSIONS },
     },
     {
       path: '/fleets',
       name: 'fleet-management',
       component: FleetManagementView,
-      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
+      meta: { requiresAuth: true, permissions: FLEET_PERMISSIONS },
     },
     {
       path: '/drivers',
       name: 'driver-management',
       component: DriverManagementView,
-      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
+      meta: { requiresAuth: true, permissions: DRIVER_PERMISSIONS },
     },
     {
       path: '/vehicles',
       name: 'vehicle-management',
       component: VehicleManagementView,
-      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
+      meta: { requiresAuth: true, permissions: VEHICLE_PERMISSIONS },
     },
     {
       path: '/device-approvals',
@@ -145,7 +156,7 @@ const router = createRouter({
       path: '/device-bind-logs',
       name: 'device-bind-log-list',
       component: DeviceApprovalListView,
-      meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+      meta: { requiresAuth: true, permissions: ACTIVATION_CODE_PERMISSIONS },
     },
     {
       path: '/device-approvals/:id',
@@ -158,31 +169,31 @@ const router = createRouter({
       path: '/device-bind-logs/:id',
       name: 'device-bind-log-detail',
       component: DeviceApprovalDetailView,
-      meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+      meta: { requiresAuth: true, permissions: ACTIVATION_CODE_PERMISSIONS },
     },
     {
       path: '/devices',
       name: 'device-management',
       component: DeviceManagementView,
-      meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+      meta: { requiresAuth: true, permissions: DEVICE_PERMISSIONS },
     },
     {
       path: '/devices/:id',
       name: 'device-detail',
       component: DeviceDetailView,
-      meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+      meta: { requiresAuth: true, permissions: DEVICE_PERMISSIONS },
     },
     {
       path: '/sessions',
       name: 'session-management',
       component: DrivingSessionManagementView,
-      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
+      meta: { requiresAuth: true, permissions: SESSION_PERMISSIONS },
     },
     {
       path: '/enterprises',
       name: 'enterprise-management',
       component: EnterpriseManagementView,
-      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
+      meta: { requiresAuth: true, permissions: ENTERPRISE_PERMISSIONS },
     },
     {
       path: '/:pathMatch(.*)*',
@@ -212,12 +223,9 @@ router.beforeEach((to) => {
     }
   }
 
-  const requiredRoles = Array.isArray(to.meta.roles) ? to.meta.roles : []
+  const requiredPermissions = Array.isArray(to.meta.permissions) ? to.meta.permissions : []
 
-  if (
-    requiredRoles.length &&
-    !authStore.hasAnyRole(requiredRoles as UserRole[])
-  ) {
+  if (requiredPermissions.length && !authStore.hasAnyPermission(requiredPermissions as PermissionCode[])) {
     return authStore.getDefaultRoute()
   }
 

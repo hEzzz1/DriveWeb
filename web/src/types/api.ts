@@ -1,4 +1,4 @@
-export type UserRole =
+export type LegacyUserRole =
   | 'SUPER_ADMIN'
   | 'ENTERPRISE_ADMIN'
   | 'SYS_ADMIN'
@@ -6,7 +6,57 @@ export type UserRole =
   | 'OPERATOR'
   | 'ANALYST'
   | 'VIEWER'
+export type PlatformRole =
+  | 'PLATFORM_SUPER_ADMIN'
+  | 'PLATFORM_SYS_ADMIN'
+  | 'PLATFORM_RISK_ADMIN'
+export type BusinessRole =
+  | 'ORG_ADMIN'
+  | 'ORG_OPERATOR'
+  | 'ORG_ANALYST'
+  | 'ORG_VIEWER'
+export type UserRole = LegacyUserRole | PlatformRole | BusinessRole
+export type ScopeType = 'PLATFORM' | 'ENTERPRISE' | 'FLEET'
+export type PermissionCode =
+  | 'overview.read'
+  | 'alert.read'
+  | 'alert.handle'
+  | 'stats.read'
+  | 'rule.read'
+  | 'rule.manage'
+  | 'audit.read'
+  | 'audit.export'
+  | 'system.read'
+  | 'user.read'
+  | 'user.manage'
+  | 'enterprise.read'
+  | 'enterprise.manage'
+  | 'activation_code.read'
+  | 'activation_code.manage'
+  | 'fleet.read'
+  | 'fleet.manage'
+  | 'driver.read'
+  | 'driver.manage'
+  | 'vehicle.read'
+  | 'vehicle.manage'
+  | 'device.read'
+  | 'device.manage'
+  | 'session.read'
+  | 'session.force_sign_out'
 export type SortOrder = 'ASC' | 'DESC'
+
+export interface ScopeMembership {
+  role: UserRole
+  scopeType: ScopeType
+  enterpriseId?: number | string | null
+  fleetId?: number | string | null
+}
+
+export interface DefaultScope {
+  scopeType: ScopeType
+  enterpriseId?: number | string | null
+  fleetId?: number | string | null
+}
 
 export interface ApiResponse<T> {
   code: number
@@ -23,15 +73,20 @@ export interface LoginRequest {
 export interface LoginData {
   token: string
   expireAt: string
-  roles: UserRole[]
+  roles?: UserRole[]
+  permissions?: PermissionCode[]
 }
 
 export interface CurrentUserData {
-  userId: number
+  userId: number | string
   username: string
   nickname?: string
-  roles: UserRole[]
-  enterpriseId?: number | null
+  roles?: UserRole[]
+  platformRoles?: PlatformRole[]
+  memberships?: ScopeMembership[]
+  permissions?: PermissionCode[]
+  defaultScope?: DefaultScope | null
+  enterpriseId?: number | string | null
   enterpriseName?: string | null
   subjectType?: string
   enabled: boolean

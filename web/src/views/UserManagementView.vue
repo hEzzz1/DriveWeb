@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { buildDisplayRoles } from '../access/auth-model'
 import PageSectionCard from '../components/PageSectionCard.vue'
 import AuditDetailDrawer from '../components/audit/AuditDetailDrawer.vue'
 import UserCreateDialog from '../components/users/UserCreateDialog.vue'
@@ -83,14 +84,24 @@ const enabledOptions = [
 const summaryItems = computed(() => [
   { label: '用户总数', value: total.value },
   { label: '启用用户', value: items.value.filter((item) => item.enabled).length },
-  { label: '企业范围', value: access.value.canCreateUser && authStore.isSuperAdmin ? '全平台' : authStore.enterpriseName || authStore.enterpriseId || '-' },
+  { label: '企业范围', value: access.value.canCreateUser && authStore.isSuperAdmin ? '全平台' : authStore.scopeText },
   { label: '可分配角色数', value: roleOptions.value.length },
 ])
 
 const pageSubhead = computed(() =>
   authStore.isSuperAdmin
-    ? '用户列表、详情、编辑、角色分配、密码重置和用户域审计已拆成独立模块组件。'
-    : '当前以企业管理员视角进入，只显示本企业用户，并且角色分配范围由后端白名单控制。',
+    ? '当前按完整权限模型兼容展示，可同时承接旧角色与新权限点结构。'
+    : '当前按默认作用域展示本企业或归属范围内用户，角色与权限点口径已兼容升级。',
+)
+
+const activeRoleModel = computed(() =>
+  activeDetail.value
+    ? buildDisplayRoles(
+        activeDetail.value.roles || [],
+        activeDetail.value.platformRoles || [],
+        activeDetail.value.memberships || [],
+      )
+    : [],
 )
 
 onMounted(async () => {
@@ -393,7 +404,7 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
       v-model:visible="rolesVisible"
       :loading="roleSaving"
       :role-options="roleOptions"
-      :model-value="activeDetail?.roles || []"
+      :model-value="activeRoleModel"
       @save="handleSaveRoles"
     />
 

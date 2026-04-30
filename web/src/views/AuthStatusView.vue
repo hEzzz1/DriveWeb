@@ -1,24 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import type { UserRole } from '../types/api'
+import { formatRoleLabel, formatScopeLabel, permissionLabelMap, roleDescriptionMap } from '../access/auth-model'
 
 const authStore = useAuthStore()
 authStore.hydrate()
 
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
-const roleDescMap: Record<UserRole, string> = {
-  SUPER_ADMIN: '可访问全部域并执行全部动作。',
-  ENTERPRISE_ADMIN: '仅可管理本企业用户，不能跨企业分配高权限角色。',
-  SYS_ADMIN: '可访问审计日志与系统运维域。',
-  RISK_ADMIN: '可访问规则管理并执行规则变更。',
-  OPERATOR: '可查看运营工作台并执行告警处置。',
-  ANALYST: '可查看运营工作台分析页，默认只读。',
-  VIEWER: '可查看风险总览与告警中心基础信息。',
-}
-
-const roles = computed(() => authStore.roles)
+const roles = computed(() => authStore.displayRoles)
+const platformRoles = computed(() => authStore.platformRoles)
+const memberships = computed(() => authStore.memberships)
+const permissions = computed(() => [...authStore.permissions].sort((left, right) => left.localeCompare(right)))
 const maskedToken = computed(() => {
   const source = authStore.token
 
@@ -74,7 +67,9 @@ const expireInfo = computed(() => {
         <p><span>昵称</span>{{ authStore.nickname || '-' }}</p>
         <p><span>用户 ID</span>{{ authStore.userId ?? '-' }}</p>
         <p><span>角色</span>{{ authStore.roleText }}</p>
+        <p><span>平台角色</span>{{ platformRoles.length ? platformRoles.map((role) => formatRoleLabel(role)).join(' / ') : '-' }}</p>
         <p><span>所属企业</span>{{ authStore.enterpriseName || authStore.enterpriseId || '-' }}</p>
+        <p><span>默认范围</span>{{ authStore.scopeText }}</p>
         <p><span>主体类型</span>{{ authStore.subjectType || '-' }}</p>
         <p><span>账号状态</span>{{ authStore.enabled ? '启用中' : '已禁用' }}</p>
         <p><span>过期时间</span>{{ authStore.expireAtText }}</p>
@@ -92,18 +87,49 @@ const expireInfo = computed(() => {
 
     <el-card class="role-card" shadow="never">
       <template #header>
-        <div class="card-title">角色权限说明</div>
+        <div class="card-title">角色模板</div>
       </template>
 
       <div class="role-list">
         <div v-for="role in roles" :key="role" class="role-item">
           <el-tag effect="dark" type="success">{{ role }}</el-tag>
-          <p>{{ roleDescMap[role] }}</p>
+          <p>{{ roleDescriptionMap[role] }}</p>
         </div>
 
         <p v-if="roles.length === 0" class="empty-text">未获取到角色信息。</p>
       </div>
     </el-card>
+
+    <section class="cards secondary">
+      <el-card class="info-card" shadow="never">
+        <template #header>
+          <div class="card-title">业务归属</div>
+        </template>
+
+        <div v-if="memberships.length" class="membership-list">
+          <div v-for="item in memberships" :key="`${item.role}-${item.scopeType}-${item.enterpriseId ?? 'na'}-${item.fleetId ?? 'na'}`" class="membership-item">
+            <el-tag effect="plain">{{ formatRoleLabel(item.role) }}</el-tag>
+            <span>{{ formatScopeLabel(item) }}</span>
+          </div>
+        </div>
+
+        <p v-else class="empty-text">未返回业务归属，当前可能仍处于旧角色兼容模式。</p>
+      </el-card>
+
+      <el-card class="info-card" shadow="never">
+        <template #header>
+          <div class="card-title">权限点</div>
+        </template>
+
+        <div class="permission-list">
+          <el-tag v-for="permission in permissions" :key="permission" effect="plain" type="info">
+            {{ permissionLabelMap[permission] || permission }}
+          </el-tag>
+        </div>
+
+        <p v-if="!permissions.length" class="empty-text">未获取到权限点列表。</p>
+      </el-card>
+    </section>
   </div>
 </template>
 
@@ -153,6 +179,10 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 16px;
+}
+
+.cards.secondary {
+  margin-top: 16px;
 }
 
 .info-card,
@@ -211,6 +241,23 @@ h1 {
 .empty-text {
   margin: 0;
   color: #5f7b82;
+}
+
+.membership-list,
+.permission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.membership-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f7fbfa;
+  color: #355a61;
 }
 
 @keyframes reveal {

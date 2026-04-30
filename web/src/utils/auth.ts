@@ -1,3 +1,5 @@
+import type { DefaultScope, PermissionCode, PlatformRole, ScopeMembership } from '../types/api'
+
 export const AUTH_STORAGE_KEY = 'driveweb.auth'
 
 export interface PersistedAuth {
@@ -6,6 +8,10 @@ export interface PersistedAuth {
   token: string
   expireAt: string
   roles: string[]
+  platformRoles?: PlatformRole[]
+  memberships?: ScopeMembership[]
+  permissions?: PermissionCode[]
+  defaultScope?: DefaultScope | null
   userId?: number | string
   enterpriseId?: number | string
   enterpriseName?: string

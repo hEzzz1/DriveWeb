@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UserRole } from '../../types/api'
+import { buildDisplayRoles, formatRoleLabel, getRoleTagType } from '../../access/auth-model'
 import type { UserSummary } from '../../types/users'
-import { userRoleLabelMap } from '../../types/users'
 
 defineProps<{
   items: UserSummary[]
@@ -26,28 +26,12 @@ function formatDateTime(value?: string): string {
   return Number.isNaN(time) ? value : new Date(time).toLocaleString()
 }
 
-function getRoleTagType(role: UserRole): '' | 'success' | 'warning' | 'info' | 'primary' | 'danger' {
-  if (role === 'SUPER_ADMIN') {
-    return 'danger'
-  }
-
-  if (role === 'ENTERPRISE_ADMIN' || role === 'SYS_ADMIN') {
-    return 'warning'
-  }
-
-  if (role === 'RISK_ADMIN') {
-    return 'success'
-  }
-
-  if (role === 'OPERATOR') {
-    return 'primary'
-  }
-
-  return 'info'
+function resolveRoles(row: UserSummary): UserRole[] {
+  return buildDisplayRoles(row.roles || [], row.platformRoles || [], row.memberships || [])
 }
 
 function formatRole(role: UserRole | string): string {
-  return userRoleLabelMap[role as UserRole] || role
+  return formatRoleLabel(role as UserRole) || role
 }
 </script>
 
@@ -68,10 +52,10 @@ function formatRole(role: UserRole | string): string {
       <el-table-column label="角色" min-width="260">
         <template #default="{ row }">
           <div class="role-tags">
-            <el-tag v-for="role in row.roles" :key="role" effect="plain" :type="getRoleTagType(role)">
+            <el-tag v-for="role in resolveRoles(row)" :key="role" effect="plain" :type="getRoleTagType(role)">
               {{ formatRole(role) }}
             </el-tag>
-            <span v-if="!row.roles.length" class="empty-text">未分配角色</span>
+            <span v-if="!resolveRoles(row).length" class="empty-text">未分配角色</span>
           </div>
         </template>
       </el-table-column>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { AuditSummary } from '../../types/audit'
 import type { UserRole } from '../../types/api'
+import { buildDisplayRoles, formatRoleLabel, formatScopeLabel, getRoleTagType } from '../../access/auth-model'
 import type { UserDetail } from '../../types/users'
-import { userRoleLabelMap } from '../../types/users'
 import AuditListTable from '../audit/AuditListTable.vue'
 
 defineProps<{
@@ -40,24 +40,8 @@ function formatDateTime(value?: string): string {
   return Number.isNaN(time) ? value : new Date(time).toLocaleString()
 }
 
-function getRoleTagType(role: UserRole): '' | 'success' | 'warning' | 'info' | 'primary' | 'danger' {
-  if (role === 'SUPER_ADMIN') {
-    return 'danger'
-  }
-
-  if (role === 'ENTERPRISE_ADMIN' || role === 'SYS_ADMIN') {
-    return 'warning'
-  }
-
-  if (role === 'RISK_ADMIN') {
-    return 'success'
-  }
-
-  if (role === 'OPERATOR') {
-    return 'primary'
-  }
-
-  return 'info'
+function resolveRoles(detail: UserDetail): UserRole[] {
+  return buildDisplayRoles(detail.roles || [], detail.platformRoles || [], detail.memberships || [])
 }
 </script>
 
@@ -77,11 +61,24 @@ function getRoleTagType(role: UserRole): '' | 'success' | 'warning' | 'info' | '
             <el-descriptions-item label="用户名">{{ detail.username }}</el-descriptions-item>
             <el-descriptions-item label="昵称">{{ detail.nickname || '-' }}</el-descriptions-item>
             <el-descriptions-item label="企业">{{ detail.enterpriseName || detail.enterpriseId || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="默认范围">{{ formatScopeLabel(detail.defaultScope) }}</el-descriptions-item>
             <el-descriptions-item label="角色">
               <div class="role-tags">
-                <el-tag v-for="role in detail.roles" :key="role" effect="plain" :type="getRoleTagType(role)">
-                  {{ userRoleLabelMap[role] || role }}
+                <el-tag v-for="role in resolveRoles(detail)" :key="role" effect="plain" :type="getRoleTagType(role)">
+                  {{ formatRoleLabel(role) || role }}
                 </el-tag>
+              </div>
+            </el-descriptions-item>
+            <el-descriptions-item label="业务归属" :span="2">
+              <div class="membership-tags">
+                <span
+                  v-for="item in detail.memberships || []"
+                  :key="`${item.role}-${item.scopeType}-${item.enterpriseId ?? 'na'}-${item.fleetId ?? 'na'}`"
+                  class="membership-chip"
+                >
+                  {{ formatRoleLabel(item.role) }} · {{ formatScopeLabel(item) }}
+                </span>
+                <span v-if="!(detail.memberships || []).length" class="empty-text">未返回业务归属</span>
               </div>
             </el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatDateTime(detail.createdAt) }}</el-descriptions-item>
@@ -134,6 +131,27 @@ function getRoleTagType(role: UserRole): '' | 'success' | 'warning' | 'info' | '
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.membership-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.membership-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f5f8f9;
+  color: #47616a;
+  font-size: 13px;
+}
+
+.empty-text {
+  color: var(--text-soft);
 }
 
 .action-row {

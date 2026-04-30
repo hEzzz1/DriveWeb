@@ -5,7 +5,7 @@ import { resolveCapabilities } from '../access/capabilities'
 
 export function useAccess() {
   const authStore = useAuthStore()
-  const { roles } = storeToRefs(authStore)
+  const { permissions } = storeToRefs(authStore)
 
-  return computed(() => resolveCapabilities({ roles: roles.value }))
+  return computed(() => resolveCapabilities({ permissions: permissions.value }))
 }

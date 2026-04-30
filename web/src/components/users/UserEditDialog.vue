@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { buildDisplayRoles, requiresEnterpriseForRoles } from '../../access/auth-model'
 import type { UpdateUserProfilePayload, UserDetail } from '../../types/users'
 
 const props = defineProps<{
@@ -23,9 +24,27 @@ const form = reactive({
   enterpriseId: undefined as number | undefined,
 })
 
+const needsEnterprise = computed(() =>
+  requiresEnterpriseForRoles(
+    buildDisplayRoles(props.user?.roles || [], props.user?.platformRoles || [], props.user?.memberships || []),
+  ),
+)
+
 const rules: FormRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  enterpriseId: [{ required: true, message: '请选择企业', trigger: 'change' }],
+  enterpriseId: [
+    {
+      validator: (_rule, value, callback) => {
+        if (!needsEnterprise.value || (value !== undefined && value !== null && value !== '')) {
+          callback()
+          return
+        }
+
+        callback(new Error('请选择企业'))
+      },
+      trigger: 'change',
+    },
+  ],
 }
 
 watch(
@@ -57,7 +76,7 @@ async function handleSave(): Promise<void> {
   emit('save', {
     username: form.username.trim(),
     nickname: form.nickname.trim() || undefined,
-    enterpriseId: form.enterpriseId,
+    enterpriseId: needsEnterprise.value ? form.enterpriseId : null,
   })
 }
 </script>
@@ -71,7 +90,7 @@ async function handleSave(): Promise<void> {
       <el-form-item label="昵称">
         <el-input v-model="form.nickname" clearable placeholder="请输入昵称" />
       </el-form-item>
-      <el-form-item label="所属企业" prop="enterpriseId">
+      <el-form-item label="所属企业" prop="enterpriseId" :required="needsEnterprise">
         <el-select
           v-if="!lockEnterprise"
           v-model="form.enterpriseId"
@@ -80,11 +99,15 @@ async function handleSave(): Promise<void> {
           filterable
           allow-create
           default-first-option
-          placeholder="请选择或输入企业 ID"
+          :placeholder="needsEnterprise ? '请选择或输入企业 ID' : '平台级角色可留空'"
         >
           <el-option v-for="item in enterpriseOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
-        <el-input v-else :model-value="String(form.enterpriseId ?? '-')" disabled />
+        <el-input
+          v-else
+          :model-value="needsEnterprise ? String(form.enterpriseId ?? '-') : '平台级角色无需企业归属'"
+          disabled
+        />
       </el-form-item>
     </el-form>
     <template #footer>

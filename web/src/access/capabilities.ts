@@ -1,7 +1,7 @@
-import type { UserRole } from '../types/api'
+import type { PermissionCode } from '../types/api'
 
 export interface AccessContext {
-  roles: UserRole[]
+  permissions: PermissionCode[]
 }
 
 export interface CapabilityMap {
@@ -36,46 +36,49 @@ export interface CapabilityMap {
   canViewVersionInfo: boolean
 }
 
-function hasRole(roles: UserRole[], targets: UserRole[]): boolean {
-  return targets.some((role) => roles.includes(role))
+function hasPermission(permissions: PermissionCode[], targets: PermissionCode[]): boolean {
+  return targets.some((permission) => permissions.includes(permission))
 }
 
 export function resolveCapabilities(context: AccessContext): CapabilityMap {
-  const { roles } = context
-  const isSuperAdmin = roles.includes('SUPER_ADMIN')
-  const isEnterpriseAdmin = roles.includes('ENTERPRISE_ADMIN')
-  const isSystemAdmin = roles.includes('SYS_ADMIN')
-  const canReadBusinessDomain = hasRole(roles, ['SUPER_ADMIN', 'ENTERPRISE_ADMIN', 'OPERATOR'])
+  const { permissions } = context
+  const canReadBusinessDomain = hasPermission(permissions, [
+    'fleet.read',
+    'driver.read',
+    'vehicle.read',
+    'device.read',
+    'session.read',
+  ])
 
   return {
-    canViewUsers: isSuperAdmin || isEnterpriseAdmin,
-    canCreateUser: isSuperAdmin || isEnterpriseAdmin,
-    canEditUser: isSuperAdmin || isEnterpriseAdmin,
-    canAssignUserRoles: isSuperAdmin || isEnterpriseAdmin,
-    canResetUserPassword: isSuperAdmin || isEnterpriseAdmin,
-    canToggleUserStatus: isSuperAdmin || isEnterpriseAdmin,
+    canViewUsers: hasPermission(permissions, ['user.read']),
+    canCreateUser: hasPermission(permissions, ['user.manage']),
+    canEditUser: hasPermission(permissions, ['user.manage']),
+    canAssignUserRoles: hasPermission(permissions, ['user.manage']),
+    canResetUserPassword: hasPermission(permissions, ['user.manage']),
+    canToggleUserStatus: hasPermission(permissions, ['user.manage']),
     canViewBusinessDomains: canReadBusinessDomain,
-    canViewFleets: canReadBusinessDomain,
-    canManageFleets: isSuperAdmin || isEnterpriseAdmin,
-    canViewDrivers: canReadBusinessDomain,
-    canManageDrivers: isSuperAdmin || isEnterpriseAdmin,
-    canViewVehicles: canReadBusinessDomain,
-    canManageVehicles: isSuperAdmin || isEnterpriseAdmin,
-    canViewDevices: isSuperAdmin || isEnterpriseAdmin,
-    canManageDevices: isSuperAdmin || isEnterpriseAdmin,
-    canViewDeviceApprovals: isSuperAdmin || isEnterpriseAdmin,
-    canManageDeviceApprovals: isSuperAdmin || isEnterpriseAdmin,
-    canViewSessions: canReadBusinessDomain,
-    canManageSessions: isSuperAdmin || isEnterpriseAdmin,
-    canViewEnterprises: canReadBusinessDomain,
-    canManageEnterprises: isSuperAdmin,
-    canEditEnterprise: isSuperAdmin,
-    canViewEnterpriseActivationCodes: isSuperAdmin || isEnterpriseAdmin,
-    canManageEnterpriseActivationCodes: isSuperAdmin || isEnterpriseAdmin,
-    canViewSystemAudit: isSuperAdmin || isSystemAdmin,
-    canExportSystemAudit: isSuperAdmin || isSystemAdmin,
-    canViewSystemHealth: hasRole(roles, ['SUPER_ADMIN', 'SYS_ADMIN']),
-    canViewServiceStatus: hasRole(roles, ['SUPER_ADMIN', 'SYS_ADMIN']),
-    canViewVersionInfo: hasRole(roles, ['SUPER_ADMIN', 'SYS_ADMIN']),
+    canViewFleets: hasPermission(permissions, ['fleet.read']),
+    canManageFleets: hasPermission(permissions, ['fleet.manage']),
+    canViewDrivers: hasPermission(permissions, ['driver.read']),
+    canManageDrivers: hasPermission(permissions, ['driver.manage']),
+    canViewVehicles: hasPermission(permissions, ['vehicle.read']),
+    canManageVehicles: hasPermission(permissions, ['vehicle.manage']),
+    canViewDevices: hasPermission(permissions, ['device.read']),
+    canManageDevices: hasPermission(permissions, ['device.manage']),
+    canViewDeviceApprovals: hasPermission(permissions, ['activation_code.read']),
+    canManageDeviceApprovals: hasPermission(permissions, ['activation_code.manage']),
+    canViewSessions: hasPermission(permissions, ['session.read']),
+    canManageSessions: hasPermission(permissions, ['session.force_sign_out']),
+    canViewEnterprises: hasPermission(permissions, ['enterprise.read']),
+    canManageEnterprises: hasPermission(permissions, ['enterprise.manage']),
+    canEditEnterprise: hasPermission(permissions, ['enterprise.manage']),
+    canViewEnterpriseActivationCodes: hasPermission(permissions, ['activation_code.read']),
+    canManageEnterpriseActivationCodes: hasPermission(permissions, ['activation_code.manage']),
+    canViewSystemAudit: hasPermission(permissions, ['audit.read']),
+    canExportSystemAudit: hasPermission(permissions, ['audit.export']),
+    canViewSystemHealth: hasPermission(permissions, ['system.read']),
+    canViewServiceStatus: hasPermission(permissions, ['system.read']),
+    canViewVersionInfo: hasPermission(permissions, ['system.read']),
   }
 }
