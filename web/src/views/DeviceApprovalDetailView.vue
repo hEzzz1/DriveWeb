@@ -5,29 +5,22 @@ import { useRoute, useRouter } from 'vue-router'
 import DeviceActivationPanel from '../components/devices/DeviceActivationPanel.vue'
 import PageSectionCard from '../components/PageSectionCard.vue'
 import { approveDeviceApproval, getDeviceApprovalDetail, rejectDeviceApproval } from '../api/device-approvals'
-import { getEnterpriseList } from '../api/enterprises'
-import { fetchAllPages } from '../api/pagination'
-import { getFleetList } from '../api/fleets'
-import { getVehicleList } from '../api/vehicles'
-import { useAuthStore } from '../stores/auth'
 import type { DeviceApprovalDetail } from '../types/device-approvals'
-import type { EnterpriseSummary } from '../types/enterprises'
-import type { FleetSummary } from '../types/fleets'
-import type { VehicleSummary } from '../types/vehicles'
+import {
+  approvalStatusTagType,
+  approvalStatusText,
+  effectiveStageTagType,
+  effectiveStageText,
+  lifecycleStatusTagType,
+  lifecycleStatusText,
+} from '../utils/device-status'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
 
 const loading = ref(false)
 const actionLoading = ref(false)
 const detail = ref<DeviceApprovalDetail | null>(null)
-const enterprises = ref<EnterpriseSummary[]>([])
-const fleets = ref<FleetSummary[]>([])
-const vehicles = ref<VehicleSummary[]>([])
-const enterpriseMap = ref(new Map<number, EnterpriseSummary>())
-const fleetMap = ref(new Map<number, FleetSummary>())
-const vehicleMap = ref(new Map<number, VehicleSummary>())
 
 const reviewForm = reactive({
   approveRemark: '',
@@ -38,61 +31,15 @@ const approvalId = computed(() => route.params.id as string)
 const isPending = computed(() => detail.value?.status === 'PENDING')
 
 onMounted(async () => {
-  authStore.hydrate()
-  await authStore.syncCurrentUser()
-  await fetchReferences()
   await fetchDetail()
 })
-
-async function fetchReferences(): Promise<void> {
-  if (authStore.isSuperAdmin) {
-    const enterpriseItems = await fetchAllPages(getEnterpriseList, {})
-    enterprises.value = enterpriseItems
-    enterpriseMap.value = new Map(enterpriseItems.map((item) => [item.id, item]))
-  } else {
-    const currentId = Number(authStore.enterpriseId)
-    if (currentId) {
-      const current = { id: currentId, code: '', name: authStore.enterpriseName || `企业 ${currentId}`, enabled: true, status: 1 as const }
-      enterprises.value = [current]
-      enterpriseMap.value = new Map([[currentId, current]])
-    }
-  }
-
-  const enterpriseId = authStore.isSuperAdmin ? undefined : Number(authStore.enterpriseId) || undefined
-  const [fleetItems, vehicleItems] = await Promise.all([
-    fetchAllPages(getFleetList, { enterpriseId }),
-    fetchAllPages(getVehicleList, { enterpriseId }),
-  ])
-  fleets.value = fleetItems
-  vehicles.value = vehicleItems
-  fleetMap.value = new Map(fleetItems.map((item) => [item.id, item]))
-  vehicleMap.value = new Map(vehicleItems.map((item) => [item.id, item]))
-}
 
 async function fetchDetail(): Promise<void> {
   loading.value = true
   try {
-    const result = await getDeviceApprovalDetail(approvalId.value)
-    detail.value = enrichDetail(result)
+    detail.value = await getDeviceApprovalDetail(approvalId.value)
   } finally {
     loading.value = false
-  }
-}
-
-function enrichDetail(item: DeviceApprovalDetail): DeviceApprovalDetail {
-  if (!item.device) {
-    return item
-  }
-
-  return {
-    ...item,
-    enterpriseName: enterpriseMap.value.get(item.enterpriseId)?.name || item.enterpriseName,
-    device: {
-      ...item.device,
-      enterpriseName: enterpriseMap.value.get(item.device.enterpriseId)?.name || item.device.enterpriseName,
-      fleetName: fleetMap.value.get(item.device.fleetId)?.name || item.device.fleetName,
-      vehiclePlateNumber: vehicleMap.value.get(item.device.vehicleId)?.plateNumber || item.device.vehiclePlateNumber,
-    },
   }
 }
 
@@ -101,15 +48,20 @@ function formatDateTime(value?: string): string {
 }
 
 function historyActionText(action: DeviceApprovalDetail['history'][number]['action']): string {
-  if (action === 'SUBMITTED') {
-    return '发起申请'
+  switch (action) {
+    case 'SUBMITTED':
+      return '发起申请'
+    case 'APPROVED':
+      return '审批通过'
+    case 'REJECTED':
+      return '审批驳回'
+    case 'EXPIRED':
+      return '申请过期'
+    case 'RESUBMITTED':
+      return '重新提交'
+    case 'CANCELED':
+      return '申请取消'
   }
-
-  if (action === 'APPROVED') {
-    return '审批通过'
-  }
-
-  return '审批驳回'
 }
 
 async function handleApprove(): Promise<void> {
@@ -122,10 +74,11 @@ async function handleApprove(): Promise<void> {
     const result = await approveDeviceApproval(detail.value.id, {
       remark: reviewForm.approveRemark.trim() || undefined,
     })
-    detail.value = enrichDetail(result)
+    detail.value = result
     ElMessage.success('审批已通过，正在进入设备详情')
-    if (detail.value.deviceId) {
-      await router.push(`/devices/${detail.value.deviceId}`)
+    const targetDeviceId = result.deviceId || result.device?.id
+    if (targetDeviceId) {
+      await router.push(`/devices/${targetDeviceId}`)
     }
   } finally {
     actionLoading.value = false
@@ -145,8 +98,7 @@ async function handleReject(): Promise<void> {
 
   actionLoading.value = true
   try {
-    const result = await rejectDeviceApproval(detail.value.id, { reason })
-    detail.value = enrichDetail(result)
+    detail.value = await rejectDeviceApproval(detail.value.id, { reason })
     ElMessage.success('审批已驳回')
   } finally {
     actionLoading.value = false
@@ -160,31 +112,67 @@ async function handleReject(): Promise<void> {
       <div>
         <p class="eyebrow">Approval Detail</p>
         <h1>审批详情</h1>
-        <p class="subhead">展示设备申请背景、审批历史和处理动作；驳回原因必须明确可回传 Edge 端。</p>
+        <p class="subhead">审批详情完全依赖服务端返回的申请单、设备状态和历史记录，驳回原因会直接回传 Edge。</p>
       </div>
     </div>
 
     <el-skeleton :loading="loading" animated :rows="10">
       <template #default>
-        <PageSectionCard title="设备信息" description="这里展示申请中的设备主信息，以及当前企业、车队、车辆归属。">
+        <PageSectionCard title="申请单信息" description="展示当前审批单的标准字段，包括申请时间、审批时间、过期时间和服务端计算的设备阶段。">
           <el-descriptions v-if="detail" :column="2" border>
             <el-descriptions-item label="设备码">{{ detail.deviceCode }}</el-descriptions-item>
             <el-descriptions-item label="设备名">{{ detail.deviceName }}</el-descriptions-item>
             <el-descriptions-item label="申请企业">{{ detail.enterpriseName || detail.enterpriseId }}</el-descriptions-item>
-            <el-descriptions-item label="申请时间">{{ formatDateTime(detail.appliedAt) }}</el-descriptions-item>
-            <el-descriptions-item label="最近在线">{{ formatDateTime(detail.lastOnlineAt) }}</el-descriptions-item>
+            <el-descriptions-item label="申请时间">{{ formatDateTime(detail.submittedAt) }}</el-descriptions-item>
+            <el-descriptions-item label="审批时间">{{ formatDateTime(detail.reviewedAt) }}</el-descriptions-item>
+            <el-descriptions-item label="过期时间">{{ formatDateTime(detail.expiresAt) }}</el-descriptions-item>
+            <el-descriptions-item label="最近在线">{{ formatDateTime(detail.lastSeenAt) }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <el-tag effect="plain" :type="detail.status === 'PENDING' ? 'warning' : detail.status === 'APPROVED' ? 'success' : 'danger'">
-                {{ detail.status === 'PENDING' ? '待审批' : detail.status === 'APPROVED' ? '已通过' : '已驳回' }}
+              <el-tag effect="plain" :type="approvalStatusTagType(detail.status)">
+                {{ approvalStatusText(detail.status) }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="当前车队">{{ detail.device?.fleetName || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="当前车辆">{{ detail.device?.vehiclePlateNumber || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="设备阶段">
+              <el-tag v-if="detail.effectiveStage" effect="plain" :type="effectiveStageTagType(detail.effectiveStage)">
+                {{ effectiveStageText(detail.effectiveStage) }}
+              </el-tag>
+              <span v-else>-</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="审批人">{{ detail.reviewedBy || '-' }}</el-descriptions-item>
           </el-descriptions>
         </PageSectionCard>
 
-        <PageSectionCard title="申请备注" description="用于还原设备在 Edge 端发起绑定申请时的说明信息。">
-          <div class="note-card">{{ detail?.applyRemark || '-' }}</div>
+        <PageSectionCard title="设备当前状态" description="审批页仅读取审批详情接口携带的设备快照，不再额外拼装兼容字段。">
+          <el-descriptions v-if="detail?.device" :column="2" border>
+            <el-descriptions-item label="当前企业">{{ detail.device.enterpriseName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="当前车队">{{ detail.device.fleetName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="当前车辆">{{ detail.device.vehiclePlateNumber || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="生命周期">
+              <el-tag effect="plain" :type="lifecycleStatusTagType(detail.device.lifecycleStatus)">
+                {{ lifecycleStatusText(detail.device.lifecycleStatus) }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="最后激活">{{ formatDateTime(detail.device.lastActivatedAt) }}</el-descriptions-item>
+            <el-descriptions-item label="最近在线">{{ formatDateTime(detail.device.lastSeenAt) }}</el-descriptions-item>
+          </el-descriptions>
+          <div v-else class="note-card">当前审批单未返回设备快照。</div>
+        </PageSectionCard>
+
+        <PageSectionCard title="申请备注与审批反馈" description="申请备注、通过备注和驳回原因分字段展示，避免继续混用 `remark` / `reason`。">
+          <div class="note-grid">
+            <div class="note-box">
+              <span class="note-label">申请备注</span>
+              <div class="note-card">{{ detail?.applyRemark || '-' }}</div>
+            </div>
+            <div class="note-box">
+              <span class="note-label">通过备注</span>
+              <div class="note-card">{{ detail?.approveRemark || '-' }}</div>
+            </div>
+            <div class="note-box">
+              <span class="note-label">驳回原因</span>
+              <div class="note-card">{{ detail?.rejectReason || '-' }}</div>
+            </div>
+          </div>
         </PageSectionCard>
 
         <PageSectionCard title="激活与认领" description="审批页直接展示原始 activationCode、认领码和二维码，便于审核时同步核验。">
@@ -195,7 +183,7 @@ async function handleReject(): Promise<void> {
           />
         </PageSectionCard>
 
-        <PageSectionCard title="历史审批记录" description="完整保留申请、通过、驳回动作及备注。">
+        <PageSectionCard title="历史审批记录" description="时间线完全使用审批详情接口返回的 `history` 数据。">
           <el-timeline>
             <el-timeline-item
               v-for="record in detail?.history || []"
@@ -210,14 +198,14 @@ async function handleReject(): Promise<void> {
           </el-timeline>
         </PageSectionCard>
 
-        <PageSectionCard v-if="detail && isPending" title="审批动作" description="通过后将跳转到设备详情继续分配车队和车辆；驳回必须填写原因。">
+        <PageSectionCard v-if="detail && isPending" title="审批动作" description="通过只发送 `{ remark }`，驳回只发送 `{ reason }`。">
           <div class="review-grid">
             <el-form label-position="top">
               <el-form-item label="通过备注">
                 <el-input v-model="reviewForm.approveRemark" type="textarea" :rows="3" placeholder="可选，记录审批说明" />
               </el-form-item>
               <el-form-item label="驳回原因">
-                <el-input v-model="reviewForm.rejectReason" type="textarea" :rows="3" placeholder="必填，Edge 端会展示此原因" />
+                <el-input v-model="reviewForm.rejectReason" type="textarea" :rows="3" placeholder="必填，Edge 端会直接展示此原因" />
               </el-form-item>
             </el-form>
             <div class="action-row">
@@ -232,6 +220,21 @@ async function handleReject(): Promise<void> {
 </template>
 
 <style scoped>
+.note-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.note-box {
+  display: grid;
+  gap: 8px;
+}
+
+.note-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
 .note-card {
   min-height: 72px;
   padding: 16px;

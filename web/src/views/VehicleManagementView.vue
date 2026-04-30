@@ -259,6 +259,14 @@ async function handleToggleStatus(row?: VehicleSummary): Promise<void> {
 function syncTableRow(detail: VehicleDetail): void {
   items.value = items.value.map((item) => (item.id === detail.id ? { ...item, ...detail } : item))
 }
+
+function boundDeviceText(item: VehicleSummary): string {
+  if (item.boundDeviceCode && item.boundDeviceName) {
+    return `${item.boundDeviceCode} / ${item.boundDeviceName}`
+  }
+
+  return item.boundDeviceCode || item.boundDeviceName || '-'
+}
 </script>
 
 <template>
@@ -320,7 +328,7 @@ function syncTableRow(detail: VehicleDetail): void {
             <template #default="{ row }">{{ row.fleetName || row.fleetId }}</template>
           </el-table-column>
           <el-table-column label="当前绑定设备" min-width="160">
-            <template #default="{ row }">{{ row.boundDeviceCode || '-' }}</template>
+            <template #default="{ row }">{{ boundDeviceText(row) }}</template>
           </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
@@ -362,7 +370,7 @@ function syncTableRow(detail: VehicleDetail): void {
             <el-descriptions-item label="车辆编号">{{ activeDetail.id }}</el-descriptions-item>
             <el-descriptions-item label="所属企业">{{ activeDetail.enterpriseName || activeDetail.enterpriseId }}</el-descriptions-item>
             <el-descriptions-item label="所属车队">{{ activeDetail.fleetName || activeDetail.fleetId }}</el-descriptions-item>
-            <el-descriptions-item label="绑定设备">{{ activeDetail.boundDeviceCode || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="绑定设备">{{ boundDeviceText(activeDetail) }}</el-descriptions-item>
             <el-descriptions-item label="VIN">{{ activeDetail.vin || '-' }}</el-descriptions-item>
             <el-descriptions-item label="状态">
               <el-tag effect="plain" :type="activeDetail.enabled ? 'success' : 'info'">{{ activeDetail.enabled ? '启用中' : '已停用' }}</el-tag>

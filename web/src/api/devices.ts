@@ -1,8 +1,11 @@
 import { request } from './http'
 import type {
   CreateDevicePayload,
+  DeviceActiveSession,
+  DeviceApiActiveSession,
+  DeviceApiCurrentDriver,
   DeviceApiItem,
-  DeviceApiPageData,
+  DeviceCurrentDriver,
   DeviceDetail,
   DeviceListData,
   DeviceListQuery,
@@ -13,30 +16,49 @@ import type {
   UpdateDeviceStatusPayload,
 } from '../types/devices'
 
-function normalizeDevice(item: DeviceApiItem): DeviceDetail {
-  const status = item.status === 0 ? 0 : 1
-  const activationStatus = item.activationStatus || (item.lastActivatedAt ? 'ACTIVATED' : 'PENDING')
-  const onlineStatus = item.onlineStatus || (item.lastOnlineAt ? 'ONLINE' : 'UNKNOWN')
+function normalizeCurrentDriver(item?: DeviceApiCurrentDriver | null): DeviceCurrentDriver | undefined {
+  if (!item) {
+    return undefined
+  }
 
   return {
     id: item.id,
-    enterpriseId: item.enterpriseId,
-    fleetId: item.fleetId,
-    vehicleId: item.vehicleId,
+    code: item.code || undefined,
+    name: item.name || undefined,
+  }
+}
+
+function normalizeActiveSession(item?: DeviceApiActiveSession | null): DeviceActiveSession | undefined {
+  if (!item) {
+    return undefined
+  }
+
+  return {
+    id: item.id,
+  }
+}
+
+export function normalizeDevice(item: DeviceApiItem): DeviceDetail {
+  return {
+    id: item.id,
+    enterpriseId: item.enterprise?.id ?? item.enterpriseId ?? undefined,
+    enterpriseName: item.enterprise?.name || item.enterpriseName || undefined,
+    fleetId: item.fleet?.id ?? item.fleetId ?? undefined,
+    fleetName: item.fleet?.name || item.fleetName || undefined,
+    vehicleId: item.vehicle?.id ?? item.vehicleId ?? undefined,
+    vehiclePlateNumber: item.vehicle?.plateNumber || item.vehiclePlateNumber || undefined,
     deviceCode: item.deviceCode,
     deviceName: item.deviceName,
     activationCode: item.activationCode || undefined,
-    enabled: status === 1,
-    status,
-    activationStatus,
-    onlineStatus,
+    lifecycleStatus: item.lifecycleStatus,
+    enterpriseBindStatus: item.enterpriseBindStatus,
+    vehicleBindStatus: item.vehicleBindStatus,
+    sessionStage: item.sessionStage,
+    effectiveStage: item.effectiveStage,
     lastActivatedAt: item.lastActivatedAt || undefined,
-    lastOnlineAt: item.lastOnlineAt || undefined,
-    tokenRotatedAt: item.tokenRotatedAt || undefined,
-    currentDriverId: item.currentDriverId || undefined,
-    currentDriverCode: item.currentDriverCode || undefined,
-    currentDriverName: item.currentDriverName || undefined,
-    currentSessionId: item.currentSessionId || undefined,
+    lastSeenAt: item.lastSeenAt || undefined,
+    currentDriver: normalizeCurrentDriver(item.currentDriver),
+    activeSession: normalizeActiveSession(item.activeSession),
     remark: item.remark || undefined,
     createdAt: item.createdAt || undefined,
     updatedAt: item.updatedAt || undefined,
@@ -44,7 +66,7 @@ function normalizeDevice(item: DeviceApiItem): DeviceDetail {
 }
 
 export function getDeviceList(params: DeviceListQuery): Promise<DeviceListData> {
-  return request<DeviceApiPageData>({
+  return request<import('../types/devices').DeviceApiPageData>({
     url: '/devices',
     method: 'GET',
     params,

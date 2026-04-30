@@ -1,14 +1,24 @@
 import type { PageQuery, PageResult } from './api'
-import type { DeviceDetail } from './devices'
+import type { DeviceDetail, DeviceApiItem, EffectiveStage } from './devices'
+
+export type DeviceApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED'
+export type DeviceApprovalHistoryAction =
+  | 'SUBMITTED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'RESUBMITTED'
+  | 'CANCELED'
 
 export interface DeviceApprovalListQuery extends PageQuery {
   enterpriseId?: number
-  status?: 'PENDING' | 'APPROVED' | 'REJECTED'
+  status?: DeviceApprovalStatus
+  deviceCode?: string
 }
 
 export interface DeviceApprovalHistoryRecord {
   id: number
-  action: 'SUBMITTED' | 'APPROVED' | 'REJECTED'
+  action: DeviceApprovalHistoryAction
   operatorId?: number
   operatorName?: string
   remark?: string
@@ -23,11 +33,16 @@ export interface DeviceApprovalSummary {
   activationCode?: string
   enterpriseId: number
   enterpriseName?: string
+  status: DeviceApprovalStatus
   applyRemark?: string
-  appliedAt?: string
-  status: 'PENDING' | 'APPROVED' | 'REJECTED'
-  reviewRemark?: string
-  lastOnlineAt?: string
+  approveRemark?: string
+  rejectReason?: string
+  submittedAt?: string
+  reviewedAt?: string
+  reviewedBy?: string
+  expiresAt?: string
+  lastSeenAt?: string
+  effectiveStage?: EffectiveStage
 }
 
 export interface DeviceApprovalDetail extends DeviceApprovalSummary {
@@ -37,14 +52,17 @@ export interface DeviceApprovalDetail extends DeviceApprovalSummary {
 
 export type DeviceApprovalListData = PageResult<DeviceApprovalSummary>
 
-export interface ReviewDeviceApprovalPayload {
+export interface ApproveDeviceApprovalPayload {
   remark?: string
-  reason?: string
+}
+
+export interface RejectDeviceApprovalPayload {
+  reason: string
 }
 
 export interface DeviceApprovalApiHistoryItem {
   id: number
-  action: 'SUBMITTED' | 'APPROVED' | 'REJECTED'
+  action: DeviceApprovalHistoryAction
   operatorId?: number | null
   operatorName?: string | null
   remark?: string | null
@@ -59,12 +77,17 @@ export interface DeviceApprovalApiItem {
   activationCode?: string | null
   enterpriseId: number
   enterpriseName?: string | null
+  status: DeviceApprovalStatus
   applyRemark?: string | null
-  appliedAt?: string | null
-  status: 'PENDING' | 'APPROVED' | 'REJECTED'
-  reviewRemark?: string | null
-  lastOnlineAt?: string | null
-  device?: import('./devices').DeviceApiItem | null
+  approveRemark?: string | null
+  rejectReason?: string | null
+  submittedAt?: string | null
+  reviewedAt?: string | null
+  reviewedBy?: string | null
+  expiresAt?: string | null
+  lastSeenAt?: string | null
+  effectiveStage?: EffectiveStage | null
+  device?: DeviceApiItem | null
   history?: DeviceApprovalApiHistoryItem[] | null
 }
 

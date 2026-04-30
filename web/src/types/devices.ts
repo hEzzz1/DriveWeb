@@ -1,33 +1,53 @@
 import type { PageQuery, PageResult } from './api'
 
+export type DeviceLifecycleStatus = 'NEW' | 'ACTIVATED' | 'DISABLED'
+export type EnterpriseBindStatus = 'UNBOUND' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED'
+export type VehicleBindStatus = 'UNASSIGNED' | 'ASSIGNED'
+export type SessionStage = 'IDLE' | 'ACTIVE'
+export type EffectiveStage =
+  | 'APPLY_BIND'
+  | 'PENDING_APPROVAL'
+  | 'WAITING_VEHICLE'
+  | 'READY_SIGN_IN'
+  | 'IN_SESSION'
+  | 'DISABLED'
+
 export interface DeviceListQuery extends PageQuery {
   enterpriseId?: number
   fleetId?: number
   vehicleId?: number
 }
 
+export interface DeviceCurrentDriver {
+  id: number
+  code?: string
+  name?: string
+}
+
+export interface DeviceActiveSession {
+  id: number
+}
+
 export interface DeviceSummary {
   id: number
-  enterpriseId: number
+  enterpriseId?: number
   enterpriseName?: string
-  fleetId: number
+  fleetId?: number
   fleetName?: string
-  vehicleId: number
+  vehicleId?: number
   vehiclePlateNumber?: string
   deviceCode: string
   deviceName: string
   activationCode?: string
-  enabled: boolean
-  status: 0 | 1
-  activationStatus?: 'ACTIVATED' | 'PENDING'
-  onlineStatus?: 'ONLINE' | 'OFFLINE' | 'UNKNOWN'
+  lifecycleStatus: DeviceLifecycleStatus
+  enterpriseBindStatus: EnterpriseBindStatus
+  vehicleBindStatus: VehicleBindStatus
+  sessionStage: SessionStage
+  effectiveStage: EffectiveStage
   lastActivatedAt?: string
-  lastOnlineAt?: string
-  tokenRotatedAt?: string
-  currentDriverId?: number
-  currentDriverCode?: string
-  currentDriverName?: string
-  currentSessionId?: number
+  lastSeenAt?: string
+  currentDriver?: DeviceCurrentDriver
+  activeSession?: DeviceActiveSession
   remark?: string
   createdAt?: string
   updatedAt?: string
@@ -38,7 +58,7 @@ export interface DeviceDetail extends DeviceSummary {}
 export type DeviceListData = PageResult<DeviceSummary>
 
 export interface CreateDevicePayload {
-  vehicleId: number
+  vehicleId?: number
   deviceCode: string
   deviceName: string
   activationCode?: string
@@ -56,7 +76,6 @@ export interface UpdateDeviceStatusPayload {
 }
 
 export interface ReassignDeviceVehiclePayload {
-  fleetId?: number
   vehicleId: number
 }
 
@@ -67,24 +86,49 @@ export interface RotateDeviceTokenData {
   rotatedAt?: string
 }
 
+export interface DeviceApiPartyRef {
+  id: number
+  name?: string | null
+}
+
+export interface DeviceApiVehicleRef {
+  id: number
+  plateNumber?: string | null
+}
+
+export interface DeviceApiCurrentDriver {
+  id: number
+  code?: string | null
+  name?: string | null
+}
+
+export interface DeviceApiActiveSession {
+  id: number
+}
+
 export interface DeviceApiItem {
   id: number
-  enterpriseId: number
-  fleetId: number
-  vehicleId: number
   deviceCode: string
   deviceName: string
   activationCode?: string | null
-  status?: number | null
-  activationStatus?: 'ACTIVATED' | 'PENDING' | null
-  onlineStatus?: 'ONLINE' | 'OFFLINE' | 'UNKNOWN' | null
+  enterpriseId?: number | null
+  enterpriseName?: string | null
+  fleetId?: number | null
+  fleetName?: string | null
+  vehicleId?: number | null
+  vehiclePlateNumber?: string | null
+  enterprise?: DeviceApiPartyRef | null
+  fleet?: DeviceApiPartyRef | null
+  vehicle?: DeviceApiVehicleRef | null
+  lifecycleStatus: DeviceLifecycleStatus
+  enterpriseBindStatus: EnterpriseBindStatus
+  vehicleBindStatus: VehicleBindStatus
+  sessionStage: SessionStage
+  effectiveStage: EffectiveStage
   lastActivatedAt?: string | null
-  lastOnlineAt?: string | null
-  tokenRotatedAt?: string | null
-  currentDriverId?: number | null
-  currentDriverCode?: string | null
-  currentDriverName?: string | null
-  currentSessionId?: number | null
+  lastSeenAt?: string | null
+  currentDriver?: DeviceApiCurrentDriver | null
+  activeSession?: DeviceApiActiveSession | null
   remark?: string | null
   createdAt?: string | null
   updatedAt?: string | null

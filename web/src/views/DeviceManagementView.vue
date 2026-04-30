@@ -6,14 +6,22 @@ import { fetchAllPages } from '../api/pagination'
 import { getDeviceList } from '../api/devices'
 import { getEnterpriseList } from '../api/enterprises'
 import { getFleetList } from '../api/fleets'
-import { getVehicleList } from '../api/vehicles'
 import { useAccess } from '../composables/useAccess'
 import { useAuthStore } from '../stores/auth'
-import type { DeviceDetail, DeviceSummary } from '../types/devices'
+import type { DeviceSummary } from '../types/devices'
 import type { EnterpriseSummary } from '../types/enterprises'
 import type { FleetSummary } from '../types/fleets'
-import type { VehicleSummary } from '../types/vehicles'
 import { formatClaimCode } from '../utils/device-claim'
+import {
+  effectiveStageTagType,
+  effectiveStageText,
+  enterpriseBindStatusTagType,
+  enterpriseBindStatusText,
+  lifecycleStatusTagType,
+  lifecycleStatusText,
+  vehicleBindStatusTagType,
+  vehicleBindStatusText,
+} from '../utils/device-status'
 
 interface FilterModel {
   enterpriseId?: number
@@ -33,10 +41,8 @@ const pageSize = ref(10)
 
 const enterprises = ref<EnterpriseSummary[]>([])
 const fleets = ref<FleetSummary[]>([])
-const vehicles = ref<VehicleSummary[]>([])
 const enterpriseMap = ref(new Map<number, EnterpriseSummary>())
 const fleetMap = ref(new Map<number, FleetSummary>())
-const vehicleMap = ref(new Map<number, VehicleSummary>())
 
 const filters = reactive<FilterModel>({
   enterpriseId: undefined,
@@ -80,14 +86,9 @@ async function fetchReferences(): Promise<void> {
   }
 
   const enterpriseId = authStore.isSuperAdmin ? undefined : Number(authStore.enterpriseId) || undefined
-  const [fleetItems, vehicleItems] = await Promise.all([
-    fetchAllPages(getFleetList, { enterpriseId }),
-    fetchAllPages(getVehicleList, { enterpriseId }),
-  ])
+  const fleetItems = await fetchAllPages(getFleetList, { enterpriseId })
   fleets.value = fleetItems
-  vehicles.value = vehicleItems
   fleetMap.value = new Map(fleetItems.map((item) => [item.id, item]))
-  vehicleMap.value = new Map(vehicleItems.map((item) => [item.id, item]))
 }
 
 async function fetchList(): Promise<void> {
@@ -111,36 +112,24 @@ async function fetchList(): Promise<void> {
   }
 }
 
-function enrichDevice(item: DeviceDetail): DeviceDetail {
-  const enterprise = enterpriseMap.value.get(item.enterpriseId)
-  const fleet = fleetMap.value.get(item.fleetId)
-  const vehicle = vehicleMap.value.get(item.vehicleId)
+function enrichDevice(item: DeviceSummary): DeviceSummary {
   return {
     ...item,
-    enterpriseName: enterprise?.name || item.enterpriseName,
-    fleetName: fleet?.name || item.fleetName,
-    vehiclePlateNumber: vehicle?.plateNumber || item.vehiclePlateNumber,
+    enterpriseName: item.enterpriseName || (item.enterpriseId ? enterpriseMap.value.get(item.enterpriseId)?.name : undefined),
+    fleetName: item.fleetName || (item.fleetId ? fleetMap.value.get(item.fleetId)?.name : undefined),
   }
-}
-
-function activationStatusText(row: DeviceSummary): string {
-  return row.activationStatus === 'ACTIVATED' ? '已激活' : '待激活'
-}
-
-function onlineStatusText(row: DeviceSummary): string {
-  if (row.onlineStatus === 'ONLINE') {
-    return '在线'
-  }
-
-  if (row.onlineStatus === 'OFFLINE') {
-    return '离线'
-  }
-
-  return '未知'
 }
 
 function formatDateTime(value?: string): string {
   return value ? new Date(value).toLocaleString() : '-'
+}
+
+function vehicleText(row: DeviceSummary): string {
+  if (row.vehiclePlateNumber && row.fleetName) {
+    return `${row.vehiclePlateNumber} / ${row.fleetName}`
+  }
+
+  return row.vehiclePlateNumber || row.fleetName || '-'
 }
 
 function openDetail(row: DeviceSummary): void {
@@ -154,11 +143,11 @@ function openDetail(row: DeviceSummary): void {
       <div>
         <p class="eyebrow">Device Registry</p>
         <h1>设备管理</h1>
-        <p class="subhead">平台管理员查看全部设备，企业管理员仅管理本企业设备，并继续完成审批后的车辆分配。</p>
+        <p class="subhead">设备台账只展示服务端统一状态模型，审批后的分车动作在设备详情继续处理。</p>
       </div>
     </div>
 
-    <PageSectionCard title="筛选条件" description="企业管理员自动锁定当前企业；设备台账按企业与车队维度查看。">
+    <PageSectionCard title="筛选条件" description="企业管理员自动锁定当前企业；设备列表按企业和车队维度查看。">
       <div class="filter-bar">
         <el-form inline>
           <el-form-item v-if="authStore.isSuperAdmin" label="所属企业">
@@ -192,35 +181,45 @@ function openDetail(row: DeviceSummary): void {
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="120">
+          <el-table-column label="生命周期" width="120">
             <template #default="{ row }">
-              <el-tag effect="plain" :type="row.enabled ? 'success' : 'info'">{{ row.enabled ? '启用' : '停用' }}</el-tag>
+              <el-tag effect="plain" :type="lifecycleStatusTagType(row.lifecycleStatus)">
+                {{ lifecycleStatusText(row.lifecycleStatus) }}
+              </el-tag>
             </template>
           </el-table-column>
           <el-table-column label="企业" min-width="170">
-            <template #default="{ row }">{{ row.enterpriseName || row.enterpriseId }}</template>
+            <template #default="{ row }">{{ row.enterpriseName || row.enterpriseId || '-' }}</template>
           </el-table-column>
-          <el-table-column label="车队" min-width="150">
-            <template #default="{ row }">{{ row.fleetName || '-' }}</template>
+          <el-table-column label="车辆 / 车队" min-width="180">
+            <template #default="{ row }">{{ vehicleText(row) }}</template>
           </el-table-column>
-          <el-table-column label="车辆" min-width="150">
-            <template #default="{ row }">{{ row.vehiclePlateNumber || '-' }}</template>
+          <el-table-column label="企业绑定" min-width="180">
+            <template #default="{ row }">
+              <el-tag effect="plain" :type="enterpriseBindStatusTagType(row.enterpriseBindStatus)">
+                {{ enterpriseBindStatusText(row.enterpriseBindStatus) }}
+              </el-tag>
+            </template>
           </el-table-column>
-          <el-table-column label="最后在线" min-width="180">
-            <template #default="{ row }">{{ formatDateTime(row.lastOnlineAt) }}</template>
+          <el-table-column label="车辆绑定" min-width="130">
+            <template #default="{ row }">
+              <el-tag effect="plain" :type="vehicleBindStatusTagType(row.vehicleBindStatus)">
+                {{ vehicleBindStatusText(row.vehicleBindStatus) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="当前阶段" min-width="170">
+            <template #default="{ row }">
+              <el-tag effect="plain" :type="effectiveStageTagType(row.effectiveStage)">
+                {{ effectiveStageText(row.effectiveStage) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="最近在线" min-width="180">
+            <template #default="{ row }">{{ formatDateTime(row.lastSeenAt) }}</template>
           </el-table-column>
           <el-table-column label="最后激活" min-width="180">
             <template #default="{ row }">{{ formatDateTime(row.lastActivatedAt) }}</template>
-          </el-table-column>
-          <el-table-column label="激活状态" width="120">
-            <template #default="{ row }">
-              <el-tag effect="plain" :type="row.activationStatus === 'ACTIVATED' ? 'success' : 'warning'">{{ activationStatusText(row) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="在线状态" width="120">
-            <template #default="{ row }">
-              <el-tag effect="plain" :type="row.onlineStatus === 'ONLINE' ? 'success' : 'info'">{{ onlineStatusText(row) }}</el-tag>
-            </template>
           </el-table-column>
           <el-table-column v-if="access.canManageDevices" label="操作" width="120" fixed="right">
             <template #default="{ row }">

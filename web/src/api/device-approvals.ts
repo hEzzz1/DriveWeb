@@ -1,6 +1,7 @@
 import { request } from './http'
-import type { DeviceApiItem, DeviceDetail } from '../types/devices'
+import { normalizeDevice } from './devices'
 import type {
+  ApproveDeviceApprovalPayload,
   DeviceApprovalApiHistoryItem,
   DeviceApprovalApiItem,
   DeviceApprovalApiPageData,
@@ -9,38 +10,8 @@ import type {
   DeviceApprovalListData,
   DeviceApprovalListQuery,
   DeviceApprovalSummary,
-  ReviewDeviceApprovalPayload,
+  RejectDeviceApprovalPayload,
 } from '../types/device-approvals'
-
-function normalizeDevice(item: DeviceApiItem): DeviceDetail {
-  const status = item.status === 0 ? 0 : 1
-  const activationStatus = item.activationStatus || (item.lastActivatedAt ? 'ACTIVATED' : 'PENDING')
-  const onlineStatus = item.onlineStatus || (item.lastOnlineAt ? 'ONLINE' : 'UNKNOWN')
-
-  return {
-    id: item.id,
-    enterpriseId: item.enterpriseId,
-    fleetId: item.fleetId,
-    vehicleId: item.vehicleId,
-    deviceCode: item.deviceCode,
-    deviceName: item.deviceName,
-    activationCode: item.activationCode || undefined,
-    enabled: status === 1,
-    status,
-    activationStatus,
-    onlineStatus,
-    lastActivatedAt: item.lastActivatedAt || undefined,
-    lastOnlineAt: item.lastOnlineAt || undefined,
-    tokenRotatedAt: item.tokenRotatedAt || undefined,
-    currentDriverId: item.currentDriverId || undefined,
-    currentDriverCode: item.currentDriverCode || undefined,
-    currentDriverName: item.currentDriverName || undefined,
-    currentSessionId: item.currentSessionId || undefined,
-    remark: item.remark || undefined,
-    createdAt: item.createdAt || undefined,
-    updatedAt: item.updatedAt || undefined,
-  }
-}
 
 function normalizeHistory(item: DeviceApprovalApiHistoryItem): DeviceApprovalHistoryRecord {
   return {
@@ -56,17 +27,22 @@ function normalizeHistory(item: DeviceApprovalApiHistoryItem): DeviceApprovalHis
 function normalizeApproval(item: DeviceApprovalApiItem): DeviceApprovalSummary {
   return {
     id: item.id,
-    deviceId: item.deviceId || undefined,
+    deviceId: item.deviceId ?? item.device?.id ?? undefined,
     deviceCode: item.deviceCode,
     deviceName: item.deviceName,
     activationCode: item.activationCode || item.device?.activationCode || undefined,
     enterpriseId: item.enterpriseId,
     enterpriseName: item.enterpriseName || undefined,
-    applyRemark: item.applyRemark || undefined,
-    appliedAt: item.appliedAt || undefined,
     status: item.status,
-    reviewRemark: item.reviewRemark || undefined,
-    lastOnlineAt: item.lastOnlineAt || undefined,
+    applyRemark: item.applyRemark || undefined,
+    approveRemark: item.approveRemark || undefined,
+    rejectReason: item.rejectReason || undefined,
+    submittedAt: item.submittedAt || undefined,
+    reviewedAt: item.reviewedAt || undefined,
+    reviewedBy: item.reviewedBy || undefined,
+    expiresAt: item.expiresAt || undefined,
+    lastSeenAt: item.lastSeenAt || undefined,
+    effectiveStage: item.effectiveStage || undefined,
   }
 }
 
@@ -98,7 +74,7 @@ export function getDeviceApprovalDetail(id: number | string): Promise<DeviceAppr
 
 export function approveDeviceApproval(
   id: number | string,
-  payload?: ReviewDeviceApprovalPayload,
+  payload?: ApproveDeviceApprovalPayload,
 ): Promise<DeviceApprovalDetail> {
   return request<DeviceApprovalApiItem>({
     url: `/admin/edge/bind-requests/${id}/approve`,
@@ -109,7 +85,7 @@ export function approveDeviceApproval(
 
 export function rejectDeviceApproval(
   id: number | string,
-  payload: ReviewDeviceApprovalPayload,
+  payload: RejectDeviceApprovalPayload,
 ): Promise<DeviceApprovalDetail> {
   return request<DeviceApprovalApiItem>({
     url: `/admin/edge/bind-requests/${id}/reject`,
