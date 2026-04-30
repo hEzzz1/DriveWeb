@@ -300,6 +300,10 @@ export function isPlatformRole(value: string): value is PlatformRole {
   return PLATFORM_ROLES.includes(value as PlatformRole)
 }
 
+export function isLegacyRole(value: string): value is LegacyUserRole {
+  return LEGACY_USER_ROLES.includes(value as LegacyUserRole)
+}
+
 export function isPermissionCode(value: string): value is PermissionCode {
   return ALL_PERMISSIONS.includes(value as PermissionCode)
 }
@@ -494,6 +498,10 @@ export function resolvePermissionsFromRoles(roles: readonly UserRole[]): Permiss
   return [...permissions]
 }
 
+export function getRolePermissions(role: UserRole): PermissionCode[] {
+  return [...(ROLE_PERMISSION_MAP[role] || [])]
+}
+
 export function resolveDefaultScope(
   explicitScope: DefaultScope | null,
   platformRoles: readonly PlatformRole[],
@@ -589,4 +597,24 @@ export function requiresEnterpriseForRoles(roles: readonly UserRole[]): boolean 
       role === 'ANALYST' ||
       role === 'VIEWER',
   )
+}
+
+export function getRoleScopeHint(role: UserRole): string {
+  if (requiresEnterpriseForRoles([role])) {
+    return '默认按企业或车队作用域生效，需要业务归属。'
+  }
+
+  return '默认按平台作用域生效，可不绑定企业。'
+}
+
+export function getRoleTypeLabel(role: UserRole): string {
+  if (isPlatformRole(role)) {
+    return '平台角色'
+  }
+
+  if (isLegacyRole(role)) {
+    return '兼容角色'
+  }
+
+  return '业务角色'
 }

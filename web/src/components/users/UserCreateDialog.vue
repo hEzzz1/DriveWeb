@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { UserRole } from '../../types/api'
 import { requiresEnterpriseForRoles, roleLabelMap } from '../../access/auth-model'
+import RolePermissionGuide from './RolePermissionGuide.vue'
 import type { CreateUserPayload, RoleOptionItem } from '../../types/users'
 
 const props = defineProps<{
@@ -91,7 +92,7 @@ async function handleSave(): Promise<void> {
 </script>
 
 <template>
-  <el-dialog :model-value="visible" width="560px" title="新建用户" @close="emit('update:visible', false)">
+  <el-dialog :model-value="visible" width="760px" title="新建用户" @close="emit('update:visible', false)">
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
       <el-form-item label="用户名" prop="username">
         <el-input v-model="form.username" clearable placeholder="请输入用户名" />
@@ -131,9 +132,16 @@ async function handleSave(): Promise<void> {
             :key="item.roleCode"
             :label="item.roleName || roleLabelMap[item.roleCode]"
             :value="item.roleCode"
-          />
+          >
+            <div class="role-option">
+              <span>{{ item.roleName || roleLabelMap[item.roleCode] }}</span>
+              <span class="role-option-code">{{ item.roleCode }}</span>
+            </div>
+          </el-option>
         </el-select>
       </el-form-item>
+
+      <RolePermissionGuide :role-options="roleOptions" :selected-roles="form.roles" />
     </el-form>
     <template #footer>
       <div class="actions">
@@ -153,5 +161,17 @@ async function handleSave(): Promise<void> {
 
 .full-width {
   width: 100%;
+}
+
+.role-option {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.role-option-code {
+  color: var(--text-soft);
+  font-size: 12px;
 }
 </style>

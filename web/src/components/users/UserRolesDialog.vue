@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import type { UserRole } from '../../types/api'
 import { roleLabelMap } from '../../access/auth-model'
+import RolePermissionGuide from './RolePermissionGuide.vue'
 import type { RoleOptionItem } from '../../types/users'
 
 const props = defineProps<{
@@ -30,7 +31,7 @@ watch(
 </script>
 
 <template>
-  <el-dialog :model-value="visible" width="520px" title="分配角色" @close="emit('update:visible', false)">
+  <el-dialog :model-value="visible" width="760px" title="分配角色" @close="emit('update:visible', false)">
     <el-select
       v-model="selectedRoles"
       class="full-width"
@@ -46,8 +47,14 @@ watch(
         :key="item.roleCode"
         :label="item.roleName || roleLabelMap[item.roleCode]"
         :value="item.roleCode"
-      />
+      >
+        <div class="role-option">
+          <span>{{ item.roleName || roleLabelMap[item.roleCode] }}</span>
+          <span class="role-option-code">{{ item.roleCode }}</span>
+        </div>
+      </el-option>
     </el-select>
+    <RolePermissionGuide :role-options="roleOptions" :selected-roles="selectedRoles" />
     <template #footer>
       <div class="actions">
         <el-button @click="emit('update:visible', false)">取消</el-button>
@@ -66,5 +73,17 @@ watch(
 
 .full-width {
   width: 100%;
+}
+
+.role-option {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.role-option-code {
+  color: var(--text-soft);
+  font-size: 12px;
 }
 </style>
