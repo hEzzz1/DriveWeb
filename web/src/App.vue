@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { useAccess } from './composables/useAccess'
@@ -9,6 +9,7 @@ import { formatDateTime } from './utils/alerts'
 
 interface NavItem {
   key: string
+  badge: string
   section: 'business' | 'monitor' | 'platform'
   label: string
   subtitle: string
@@ -16,32 +17,42 @@ interface NavItem {
   path?: string
 }
 
+interface VisitedTag {
+  key: string
+  label: string
+  path: string
+}
+
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const access = useAccess()
 const realtimeStore = useRealtimeStore()
+const sidebarCollapsed = ref(false)
+const mobileSidebarOpen = ref(false)
+const visitedTags = ref<VisitedTag[]>([])
+
 authStore.hydrate()
 
 const navItems = computed<NavItem[]>(() => [
-  { key: 'enterprises', section: 'business', label: '企业管理', subtitle: '企业资料、激活码与启停管理', visible: access.value.canViewEnterprises, path: '/enterprises' },
-  { key: 'fleets', section: 'business', label: '车队管理', subtitle: '企业归属、车队状态与资源规模', visible: access.value.canViewFleets, path: '/fleets' },
-  { key: 'drivers', section: 'business', label: '驾驶员管理', subtitle: '驾驶员编号、车队归属与 PIN 管理', visible: access.value.canViewDrivers, path: '/drivers' },
-  { key: 'vehicles', section: 'business', label: '车辆管理', subtitle: '车辆主数据与设备绑定状态', visible: access.value.canViewVehicles, path: '/vehicles' },
-  { key: 'device-bind-logs', section: 'business', label: '设备绑定日志', subtitle: '设备认领记录、企业激活码脱敏值与绑定流水', visible: access.value.canViewDeviceApprovals, path: '/device-bind-logs' },
-  { key: 'devices', section: 'business', label: '设备管理', subtitle: '设备台账、归属信息与车辆分配', visible: access.value.canViewDevices, path: '/devices' },
-  { key: 'sessions', section: 'monitor', label: '驾驶会话', subtitle: '会话列表、最近心跳与强制签退', visible: access.value.canViewSessions, path: '/sessions' },
-  { key: 'alerts', section: 'monitor', label: '告警中心', subtitle: '告警筛选、详情查看与处置', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/alerts' },
-  { key: 'overview', section: 'monitor', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/overview' },
-  { key: 'trend', section: 'monitor', label: '趋势分析', subtitle: '趋势洞察与波动分析', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/trend' },
-  { key: 'ranking', section: 'monitor', label: '风险排行', subtitle: '车辆与司机风险排行', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/ranking' },
-  { key: 'users', section: 'platform', label: '用户管理', subtitle: '后台账号、角色、企业归属与启停', visible: access.value.canViewUsers, path: '/users' },
-  { key: 'audit', section: 'platform', label: '审计日志', subtitle: '审计列表、详情与导出', visible: access.value.canViewSystemAudit, path: '/audit' },
-  { key: 'health', section: 'platform', label: '系统健康', subtitle: '健康概览与监控摘要', visible: access.value.canViewSystemHealth, path: '/system/health' },
-  { key: 'services', section: 'platform', label: '服务状态', subtitle: '服务探测状态与最近检查时间', visible: access.value.canViewServiceStatus, path: '/system/services' },
-  { key: 'version', section: 'platform', label: '版本信息', subtitle: '应用版本、构建时间与提交号', visible: access.value.canViewVersionInfo, path: '/system/version' },
-  { key: 'rules', section: 'platform', label: '规则管理', subtitle: '规则配置、发布与回滚', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'RISK_ADMIN']), path: '/rules' },
-  { key: 'account-session', section: 'platform', label: '登录会话', subtitle: '当前账号令牌与角色映射', visible: authStore.isAuthenticated, path: '/account/session' },
+  { key: 'enterprises', badge: '企', section: 'business', label: '企业管理', subtitle: '企业资料、激活码与启停管理', visible: access.value.canViewEnterprises, path: '/enterprises' },
+  { key: 'fleets', badge: '队', section: 'business', label: '车队管理', subtitle: '企业归属、车队状态与资源规模', visible: access.value.canViewFleets, path: '/fleets' },
+  { key: 'drivers', badge: '司', section: 'business', label: '驾驶员管理', subtitle: '驾驶员编号、车队归属与 PIN 管理', visible: access.value.canViewDrivers, path: '/drivers' },
+  { key: 'vehicles', badge: '车', section: 'business', label: '车辆管理', subtitle: '车辆主数据与设备绑定状态', visible: access.value.canViewVehicles, path: '/vehicles' },
+  { key: 'device-bind-logs', badge: '绑', section: 'business', label: '设备绑定日志', subtitle: '设备认领记录、企业激活码脱敏值与绑定流水', visible: access.value.canViewDeviceApprovals, path: '/device-bind-logs' },
+  { key: 'devices', badge: '设', section: 'business', label: '设备管理', subtitle: '设备台账、归属信息与车辆分配', visible: access.value.canViewDevices, path: '/devices' },
+  { key: 'sessions', badge: '会', section: 'monitor', label: '驾驶会话', subtitle: '会话列表、最近心跳与强制签退', visible: access.value.canViewSessions, path: '/sessions' },
+  { key: 'alerts', badge: '警', section: 'monitor', label: '告警中心', subtitle: '告警筛选、详情查看与处置', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/alerts' },
+  { key: 'overview', badge: '览', section: 'monitor', label: '风险总览', subtitle: '总体态势、连接状态与风险概览', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/overview' },
+  { key: 'trend', badge: '势', section: 'monitor', label: '趋势分析', subtitle: '趋势洞察与波动分析', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/trend' },
+  { key: 'ranking', badge: '排', section: 'monitor', label: '风险排行', subtitle: '车辆与司机风险排行', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST']), path: '/stats/ranking' },
+  { key: 'users', badge: '户', section: 'platform', label: '用户管理', subtitle: '后台账号、角色、企业归属与启停', visible: access.value.canViewUsers, path: '/users' },
+  { key: 'audit', badge: '审', section: 'platform', label: '审计日志', subtitle: '审计列表、详情与导出', visible: access.value.canViewSystemAudit, path: '/audit' },
+  { key: 'health', badge: '康', section: 'platform', label: '系统健康', subtitle: '健康概览与监控摘要', visible: access.value.canViewSystemHealth, path: '/system/health' },
+  { key: 'services', badge: '服', section: 'platform', label: '服务状态', subtitle: '服务探测状态与最近检查时间', visible: access.value.canViewServiceStatus, path: '/system/services' },
+  { key: 'version', badge: '版', section: 'platform', label: '版本信息', subtitle: '应用版本、构建时间与提交号', visible: access.value.canViewVersionInfo, path: '/system/version' },
+  { key: 'rules', badge: '规', section: 'platform', label: '规则管理', subtitle: '规则配置、发布与回滚', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'RISK_ADMIN']), path: '/rules' },
+  { key: 'account-session', badge: '登', section: 'platform', label: '登录会话', subtitle: '当前账号令牌与角色映射', visible: authStore.isAuthenticated, path: '/account/session' },
 ])
 
 const isPublicPage = computed(() => Boolean(route.meta.public))
@@ -56,7 +67,7 @@ const activeNavKey = computed(
         return false
       }
 
-      return route.path.startsWith(item.path)
+      return route.path === item.path || route.path.startsWith(`${item.path}/`)
     })?.key || '',
 )
 const currentNavItem = computed(
@@ -67,6 +78,10 @@ const navSections = computed(() => [
   { key: 'monitor', label: '运行监控', items: visibleNavItems.value.filter((item) => item.section === 'monitor') },
   { key: 'platform', label: '平台管理', items: visibleNavItems.value.filter((item) => item.section === 'platform') },
 ].filter((section) => section.items.length))
+const currentSectionLabel = computed(
+  () =>
+    navSections.value.find((section) => section.items.some((item) => item.key === activeNavKey.value))?.label || '工作区',
+)
 const showRealtimeStatus = computed(() => authStore.isAuthenticated && !isPublicPage.value)
 const realtimeHint = computed(() => {
   if (realtimeStore.status === 'connected' && realtimeStore.lastMessageAt) {
@@ -83,6 +98,7 @@ const realtimeHint = computed(() => {
 
   return '等待实时消息'
 })
+const userInitial = computed(() => (authStore.username || 'D').slice(0, 1).toUpperCase())
 
 watch(
   () => authStore.isAuthenticated,
@@ -93,6 +109,15 @@ watch(
     }
 
     realtimeStore.disconnect()
+  },
+  { immediate: true },
+)
+
+watch(
+  [visibleNavItems, () => route.path],
+  () => {
+    syncVisitedTags()
+    mobileSidebarOpen.value = false
   },
   { immediate: true },
 )
@@ -116,12 +141,89 @@ async function handleLogout(): Promise<void> {
   await router.replace('/login')
 }
 
-function handleNavigate(item: NavItem): void {
+function syncVisitedTags(): void {
+  const availableMap = new Map<string, NavItem>()
+
+  for (const item of visibleNavItems.value) {
+    if (item.path) {
+      availableMap.set(item.path, item)
+    }
+  }
+
+  const nextTags = visitedTags.value
+    .filter((tag) => availableMap.has(tag.path))
+    .map((tag) => {
+      const item = availableMap.get(tag.path)
+
+      return item ? { key: item.key, label: item.label, path: tag.path } : tag
+    })
+
+  if (currentNavItem.value?.path && availableMap.has(currentNavItem.value.path) && !nextTags.some((tag) => tag.path === currentNavItem.value?.path)) {
+    nextTags.push({
+      key: currentNavItem.value.key,
+      label: currentNavItem.value.label,
+      path: currentNavItem.value.path,
+    })
+  }
+
+  if (nextTags.length) {
+    visitedTags.value = nextTags
+    return
+  }
+
+  const fallbackItem = visibleNavItems.value.find((item) => item.path)
+
+  visitedTags.value = fallbackItem?.path
+    ? [{ key: fallbackItem.key, label: fallbackItem.label, path: fallbackItem.path }]
+    : []
+}
+
+function handleNavigate(item: Pick<NavItem, 'path'>): void {
   if (!item.path || item.path === route.path) {
     return
   }
 
+  mobileSidebarOpen.value = false
   router.push(item.path)
+}
+
+function handleToggleSidebar(): void {
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1080px)').matches) {
+    mobileSidebarOpen.value = !mobileSidebarOpen.value
+    return
+  }
+
+  sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
+function isTagActive(tag: VisitedTag): boolean {
+  return route.path === tag.path || route.path.startsWith(`${tag.path}/`)
+}
+
+function handleCloseTag(tag: VisitedTag): void {
+  if (visitedTags.value.length <= 1) {
+    return
+  }
+
+  const closingIndex = visitedTags.value.findIndex((item) => item.path === tag.path)
+
+  if (closingIndex === -1) {
+    return
+  }
+
+  const nextTags = visitedTags.value.filter((item) => item.path !== tag.path)
+  const shouldRedirect = isTagActive(tag)
+  visitedTags.value = nextTags
+
+  if (!shouldRedirect) {
+    return
+  }
+
+  const fallbackTag = nextTags[closingIndex] || nextTags[closingIndex - 1] || nextTags[0]
+
+  if (fallbackTag) {
+    router.push(fallbackTag.path)
+  }
 }
 
 function handleReconnect(): void {
@@ -132,51 +234,87 @@ function handleReconnect(): void {
 <template>
   <RouterView v-if="isPublicPage" />
 
-  <div v-else class="app-shell">
-    <aside class="global-nav">
-      <div class="brand-panel">
-        <p class="brand-mark">DriveWeb</p>
-        <strong>企业运营后台</strong>
+  <div
+    v-else
+    class="admin-shell"
+    :class="{
+      'is-collapsed': sidebarCollapsed,
+      'is-mobile-open': mobileSidebarOpen,
+    }"
+  >
+    <div class="shell-mask" @click="mobileSidebarOpen = false"></div>
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-badge">DW</div>
+        <div v-if="!sidebarCollapsed" class="brand-copy">
+          <strong>DriveWeb</strong>
+          <span>企业运营管理台</span>
+        </div>
       </div>
 
-      <div v-for="section in navSections" :key="section.key" class="nav-group">
-        <p class="nav-title">{{ section.label }}</p>
-        <button
-          v-for="item in section.items"
-          :key="item.key"
-          class="nav-item"
-          :class="{ active: item.key === activeNavKey }"
-          @click="handleNavigate(item)"
-        >
-          <span class="nav-label">{{ item.label }}</span>
-          <span class="nav-sub">{{ item.subtitle }}</span>
-        </button>
+      <div class="sidebar-scroll">
+        <div v-for="section in navSections" :key="section.key" class="sidebar-group">
+          <p v-if="!sidebarCollapsed" class="sidebar-section">{{ section.label }}</p>
+
+          <button
+            v-for="item in section.items"
+            :key="item.key"
+            class="sidebar-item"
+            :class="{ active: item.key === activeNavKey }"
+            :title="sidebarCollapsed ? item.label : ''"
+            @click="handleNavigate(item)"
+          >
+            <span class="sidebar-item-badge">{{ item.badge }}</span>
+
+            <span v-if="!sidebarCollapsed" class="sidebar-item-copy">
+              <span class="sidebar-item-label">{{ item.label }}</span>
+              <span class="sidebar-item-sub">{{ item.subtitle }}</span>
+            </span>
+          </button>
+        </div>
       </div>
 
-      <div class="nav-foot">
-        <span>当前角色</span>
-        <strong>{{ authStore.roleText }}</strong>
+      <div class="sidebar-footer">
+        <div v-if="!sidebarCollapsed" class="footer-card">
+          <p class="footer-label">当前角色</p>
+          <p class="footer-value">{{ authStore.roleText }}</p>
+          <p class="footer-note">已授权 {{ visibleNavItems.length }} 个工作项</p>
+        </div>
+
+        <div v-else class="footer-mini" :title="`已授权 ${visibleNavItems.length} 个工作项`">
+          {{ visibleNavItems.length }}
+        </div>
       </div>
     </aside>
 
-    <section class="workspace">
-      <header class="global-head">
-        <div class="head-main">
-          <div class="head-breadcrumb">
-            <span>企业后台</span>
-            <span class="separator">/</span>
-            <span>{{ currentNavItem?.label || '工作区' }}</span>
-          </div>
-          <div class="head-title">
-            <h1>{{ currentNavItem?.label || '企业运营后台' }}</h1>
-            <p>{{ currentNavItem?.subtitle || '负责维护主数据并查看设备、司机和驾驶会话运行状态。' }}</p>
+    <section class="shell-main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" type="button" aria-label="切换导航" @click="handleToggleSidebar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+
+          <div class="breadcrumb">
+            <span>DriveWeb</span>
+            <span class="breadcrumb-separator">/</span>
+            <span>{{ currentSectionLabel }}</span>
+            <span class="breadcrumb-separator">/</span>
+            <strong>{{ currentNavItem?.label || '工作区' }}</strong>
           </div>
         </div>
 
-        <div class="user-wrap">
-          <div v-if="showRealtimeStatus" class="realtime-status">
+        <div class="topbar-right">
+          <div v-if="showRealtimeStatus" class="realtime-card">
             <el-tag size="small" effect="plain" :type="realtimeStore.statusTagType">{{ realtimeStore.statusText }}</el-tag>
-            <span>{{ realtimeHint }}</span>
+
+            <div class="realtime-copy">
+              <strong>实时通道</strong>
+              <span>{{ realtimeHint }}</span>
+            </div>
+
             <el-button
               v-if="realtimeStore.status !== 'connected'"
               link
@@ -187,13 +325,32 @@ function handleReconnect(): void {
             </el-button>
           </div>
 
-          <div class="user-meta">
-            <p class="name">{{ authStore.username || '未登录用户' }}</p>
-            <p class="role">{{ authStore.roleText }}</p>
+          <div class="account-card">
+            <div class="avatar-badge">{{ userInitial }}</div>
+
+            <div class="account-copy">
+              <strong>{{ authStore.username || '未登录用户' }}</strong>
+              <span>{{ authStore.roleText }}</span>
+            </div>
           </div>
+
           <el-button plain @click="handleLogout">退出</el-button>
         </div>
       </header>
+
+      <div v-if="visitedTags.length" class="tags-bar">
+        <button
+          v-for="tag in visitedTags"
+          :key="tag.path"
+          class="tag-chip"
+          :class="{ active: isTagActive(tag) }"
+          type="button"
+          @click="handleNavigate({ path: tag.path })"
+        >
+          <span>{{ tag.label }}</span>
+          <span v-if="visitedTags.length > 1" class="tag-close" @click.stop="handleCloseTag(tag)">×</span>
+        </button>
+      </div>
 
       <main class="global-main">
         <RouterView />
@@ -203,238 +360,501 @@ function handleReconnect(): void {
 </template>
 
 <style scoped>
-.app-shell {
+.admin-shell {
+  --sidebar-width: 248px;
+  --sidebar-collapsed-width: 84px;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  background: #0f1720;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  background: var(--page-bg);
 }
 
-.global-nav {
-  display: grid;
-  align-content: start;
-  gap: 18px;
-  padding: 18px 14px;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  background: #111827;
+.admin-shell.is-collapsed {
+  grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
 }
 
-.brand-panel {
-  display: grid;
-  gap: 4px;
-  padding: 6px 10px 14px;
+.shell-mask {
+  display: none;
+}
+
+.sidebar {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--sidebar-bg);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.06);
+  transition: transform 0.2s ease;
+}
+
+.sidebar-brand {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 18px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.brand-mark {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.7);
+.brand-badge {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b9bff, #1966d2);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
-.brand-panel strong {
-  color: #f8fafc;
-  font-size: 18px;
+.brand-copy strong {
+  display: block;
+  color: #ffffff;
+  font-size: 17px;
   font-weight: 600;
 }
 
-.nav-group {
-  display: grid;
-  gap: 6px;
+.brand-copy span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
 }
 
-.nav-title {
-  margin: 0 10px 4px;
-  color: rgba(148, 163, 184, 0.8);
+.sidebar-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 14px 12px 18px;
+}
+
+.sidebar-group {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.sidebar-section {
+  margin: 0 10px 6px;
+  color: rgba(255, 255, 255, 0.4);
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.nav-item {
-  border: 1px solid transparent;
+.sidebar-item {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 0;
+  border-radius: 10px;
   background: transparent;
-  border-radius: 8px;
-  padding: 10px 12px;
-  text-align: left;
   cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sidebar-item:hover {
+  background: var(--sidebar-hover);
+}
+
+.sidebar-item.active {
+  background: linear-gradient(90deg, rgba(64, 158, 255, 0.22), rgba(64, 158, 255, 0.08));
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+
+.sidebar-item-badge {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sidebar-item.active .sidebar-item-badge {
+  background: rgba(64, 158, 255, 0.2);
+  color: #dbeafe;
+}
+
+.sidebar-item-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  text-align: left;
+}
+
+.sidebar-item-label {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.sidebar-item-sub {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-shell.is-collapsed .sidebar-brand {
+  justify-content: center;
+  padding-right: 12px;
+  padding-left: 12px;
+}
+
+.admin-shell.is-collapsed .sidebar-group {
+  margin-bottom: 14px;
+}
+
+.admin-shell.is-collapsed .sidebar-item {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.admin-shell.is-collapsed .sidebar-item-badge {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+}
+
+.sidebar-footer {
+  padding: 14px 18px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-card {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 12px 14px;
+}
+
+.footer-label {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 12px;
+}
+
+.footer-value {
+  margin: 6px 0 0;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.footer-note {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+}
+
+.footer-mini {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.shell-main {
+  min-width: 0;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.topbar-left,
+.topbar-right {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+}
+
+.menu-toggle {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  align-content: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.menu-toggle:hover {
+  background: var(--surface);
+}
+
+.menu-toggle span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background: #475569;
+}
+
+.breadcrumb {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.breadcrumb strong {
+  overflow: hidden;
+  color: var(--text-main);
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.breadcrumb-separator {
+  color: #c0c4cc;
+}
+
+.realtime-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-bg);
+  padding: 8px 12px;
+}
+
+.realtime-copy {
   display: grid;
   gap: 2px;
 }
 
-.nav-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.nav-item.active {
-  background: rgba(59, 130, 246, 0.18);
-  border-color: rgba(59, 130, 246, 0.34);
-}
-
-.nav-label {
-  color: rgba(241, 245, 249, 0.96);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.nav-sub {
-  color: rgba(148, 163, 184, 0.82);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.nav-foot {
-  margin-top: auto;
-  display: grid;
-  gap: 4px;
-  padding: 12px 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.nav-foot span {
-  color: rgba(148, 163, 184, 0.8);
-  font-size: 12px;
-}
-
-.nav-foot strong {
-  color: #f8fafc;
-  font-size: 14px;
-}
-
-.workspace {
-  min-width: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  background: #f5f7fa;
-}
-
-.global-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 18px 22px 14px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.head-main {
-  min-width: 0;
-  display: grid;
-  gap: 6px;
-}
-
-.head-breadcrumb {
-  display: flex;
-  gap: 8px;
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.separator {
-  color: #9ca3af;
-}
-
-.head-title h1 {
-  margin: 0;
-  color: #111827;
-  font-size: 26px;
-  font-weight: 600;
-}
-
-.head-title p {
-  margin: 4px 0 0;
-  color: #6b7280;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.user-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.realtime-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #6b7280;
+.realtime-copy strong {
+  color: var(--text-main);
   font-size: 13px;
-}
-
-.user-meta {
-  text-align: right;
-}
-
-.name {
-  margin: 0;
-  color: #111827;
-  font-size: 14px;
   font-weight: 600;
 }
 
-.role {
-  margin: 2px 0 0;
-  color: #6b7280;
+.realtime-copy span {
+  color: var(--text-faint);
   font-size: 12px;
+}
+
+.account-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  padding: 6px 12px 6px 8px;
+}
+
+.avatar-badge {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #409eff, #1d6ce0);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.account-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.account-copy strong {
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.account-copy span {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.tags-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+  padding: 10px 20px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text-soft);
+  cursor: pointer;
+  padding: 8px 12px;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.tag-chip:hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.tag-chip.active {
+  border-color: var(--brand);
+  background: var(--brand);
+  box-shadow: 0 4px 10px rgba(64, 158, 255, 0.18);
+  color: #ffffff;
+}
+
+.tag-close {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.tag-chip:not(.active) .tag-close {
+  background: var(--surface);
+  color: var(--text-faint);
 }
 
 .global-main {
   min-width: 0;
-  padding: 20px 22px 24px;
+  min-height: 0;
+  overflow: auto;
+  background: var(--page-bg);
+  padding: 20px;
 }
 
-@media (max-width: 960px) {
-  .app-shell {
+@media (max-width: 1080px) {
+  .admin-shell,
+  .admin-shell.is-collapsed {
     grid-template-columns: 1fr;
   }
 
-  .global-nav {
-    gap: 12px;
-    border-right: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  .shell-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: block;
+    background: rgba(15, 23, 42, 0.36);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
   }
 
-  .nav-group {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .admin-shell.is-mobile-open .shell-mask {
+    opacity: 1;
+    pointer-events: auto;
   }
 
-  .nav-title {
-    grid-column: 1 / -1;
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--sidebar-width);
+    transform: translateX(-100%);
+    box-shadow: 12px 0 28px rgba(15, 23, 42, 0.18);
+  }
+
+  .admin-shell.is-mobile-open .sidebar {
+    transform: translateX(0);
   }
 }
 
-@media (max-width: 720px) {
-  .global-head {
-    flex-direction: column;
+@media (max-width: 900px) {
+  .topbar {
+    height: auto;
+    padding: 12px 16px;
   }
 
-  .user-wrap {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .user-meta {
-    text-align: left;
-  }
-
-  .realtime-status {
+  .topbar,
+  .topbar-right {
     flex-wrap: wrap;
+  }
+
+  .tags-bar {
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .global-main {
     padding: 16px;
   }
+}
 
-  .nav-group {
-    grid-template-columns: 1fr;
+@media (max-width: 720px) {
+  .topbar-left,
+  .topbar-right,
+  .realtime-card {
+    width: 100%;
+  }
+
+  .topbar-right {
+    align-items: stretch;
+  }
+
+  .account-card {
+    justify-content: flex-start;
+  }
+
+  .breadcrumb {
+    font-size: 12px;
+  }
+
+  .realtime-card {
+    flex-wrap: wrap;
   }
 }
 </style>
