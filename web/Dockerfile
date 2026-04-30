@@ -4,11 +4,17 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ARG RUN_TYPECHECK=false
+
 COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+
+# Keep image builds focused on asset bundling.
+# Type checking can be enabled explicitly when needed.
+RUN if [ "$RUN_TYPECHECK" = "true" ]; then npm run typecheck; fi
+RUN npm run build:bundle
 
 FROM nginx:1.27-alpine
 

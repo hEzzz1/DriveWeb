@@ -8,8 +8,10 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
-    "release": "vue-tsc -b && vite build --mode production",
+    "typecheck": "vue-tsc -b",
+    "build:bundle": "vite build",
+    "build": "npm run typecheck && npm run build:bundle",
+    "release": "npm run typecheck && vite build --mode production",
     "preview": "vite preview"
   },
   "dependencies": {
