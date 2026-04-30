@@ -4,6 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AlertActionDialog from '../components/AlertActionDialog.vue'
 import { disposeAlert, getAlertDetail } from '../api/alerts'
+import { getDriverDetail } from '../api/drivers'
+import { getFleetDetail } from '../api/fleets'
+import { getVehicleDetail } from '../api/vehicles'
 import { useAuthStore } from '../stores/auth'
 import { useRealtimeStore } from '../stores/realtime'
 import {
@@ -60,6 +63,9 @@ const timeline = computed(() => {
 
 const canDispose = computed(() => authStore.canDisposeAlerts())
 const canViewDebugInfo = computed(() => authStore.hasPermission('system.read'))
+const fleetLabel = ref('-')
+const vehicleLabel = ref('-')
+const driverLabel = ref('-')
 
 const availableActions = computed(() => getAvailableAlertActions(detail.value?.status))
 const realtimeEventTypeText = computed(() => {
@@ -141,8 +147,10 @@ async function fetchDetail(): Promise<void> {
   loading.value = true
 
   try {
-    detail.value = await getAlertDetail(alertId.value)
+    const data = await getAlertDetail(alertId.value)
+    detail.value = data
     pendingRealtimeRefresh.value = false
+    await fetchContextLabels(data)
   } finally {
     loading.value = false
   }
@@ -196,6 +204,30 @@ function showValue(value: unknown): string {
   }
 
   return String(value)
+}
+
+async function fetchContextLabels(data: AlertDetail): Promise<void> {
+  fleetLabel.value = showValue(data.fleetId)
+  vehicleLabel.value = showValue(data.vehicleId)
+  driverLabel.value = showValue(data.driverId)
+
+  const [fleetResult, vehicleResult, driverResult] = await Promise.allSettled([
+    getFleetDetail(data.fleetId),
+    getVehicleDetail(data.vehicleId),
+    getDriverDetail(data.driverId),
+  ])
+
+  if (fleetResult.status === 'fulfilled') {
+    fleetLabel.value = fleetResult.value.name || showValue(data.fleetId)
+  }
+
+  if (vehicleResult.status === 'fulfilled') {
+    vehicleLabel.value = vehicleResult.value.plateNumber || showValue(data.vehicleId)
+  }
+
+  if (driverResult.status === 'fulfilled') {
+    driverLabel.value = driverResult.value.name || showValue(data.driverId)
+  }
 }
 
 async function handleRealtimeEvent(event: NormalizedAlertRealtimeEvent): Promise<void> {
@@ -346,9 +378,9 @@ watch(
         </template>
 
         <el-descriptions :column="3" border>
-          <el-descriptions-item label="车队">{{ detail.fleetId }}</el-descriptions-item>
-          <el-descriptions-item label="车辆">{{ detail.vehicleId }}</el-descriptions-item>
-          <el-descriptions-item label="司机">{{ detail.driverId }}</el-descriptions-item>
+          <el-descriptions-item label="车队">{{ fleetLabel }}</el-descriptions-item>
+          <el-descriptions-item label="车辆">{{ vehicleLabel }}</el-descriptions-item>
+          <el-descriptions-item label="司机">{{ driverLabel }}</el-descriptions-item>
           <el-descriptions-item label="算法版本">{{ showValue(detail.algorithmVer) }}</el-descriptions-item>
           <el-descriptions-item label="头姿态">{{ showValue(detail.headPose) }}</el-descriptions-item>
           <el-descriptions-item label="事件时间">{{ formatDateTime(detail.eventTime) }}</el-descriptions-item>
