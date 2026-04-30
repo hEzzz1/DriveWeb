@@ -56,6 +56,15 @@ const navItems = computed<NavItem[]>(() => {
         path: '/platform/enterprise-admins',
       },
       {
+        key: 'internal-users',
+        badge: '内',
+        section: 'platform-core',
+        label: '平台内部账号',
+        subtitle: '平台角色账号、密码、启停与角色分配',
+        visible: access.value.canViewPlatformInternalUsers,
+        path: '/platform/internal-users',
+      },
+      {
         key: 'rules',
         badge: '规',
         section: 'platform-core',

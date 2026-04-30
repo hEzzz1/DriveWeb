@@ -14,6 +14,8 @@ export interface CapabilityMap {
   canManageEnterprises: boolean
   canViewEnterpriseAdmins: boolean
   canManageEnterpriseAdmins: boolean
+  canViewPlatformInternalUsers: boolean
+  canManagePlatformInternalUsers: boolean
   canViewPlatformAudit: boolean
   canExportPlatformAudit: boolean
   canViewPlatformSystem: boolean
@@ -58,6 +60,8 @@ export function resolveCapabilities(context: AccessContext): CapabilityMap {
     canManageEnterprises: isPlatformDomain && hasPermission(permissions, ['enterprise.manage']),
     canViewEnterpriseAdmins: isPlatformDomain && hasPermission(permissions, ['user.read']),
     canManageEnterpriseAdmins: isPlatformDomain && hasPermission(permissions, ['user.manage']),
+    canViewPlatformInternalUsers: isPlatformDomain && hasPermission(permissions, ['user.read']),
+    canManagePlatformInternalUsers: isPlatformDomain && hasPermission(permissions, ['user.manage']),
     canViewPlatformAudit: isPlatformDomain && hasPermission(permissions, ['audit.read']),
     canExportPlatformAudit: isPlatformDomain && hasPermission(permissions, ['audit.export']),
     canViewPlatformSystem: isPlatformDomain && hasPermission(permissions, ['system.read']),

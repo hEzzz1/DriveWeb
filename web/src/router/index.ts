@@ -12,6 +12,7 @@ import RulesManagementView from '../views/RulesManagementView.vue'
 import AuditStatusView from '../views/AuditStatusView.vue'
 import SystemManagementView from '../views/SystemManagementView.vue'
 import PlatformEnterpriseAdminManagementView from '../views/PlatformEnterpriseAdminManagementView.vue'
+import PlatformInternalUserManagementView from '../views/PlatformInternalUserManagementView.vue'
 import OrgUserManagementView from '../views/OrgUserManagementView.vue'
 import EnterpriseManagementView from '../views/EnterpriseManagementView.vue'
 import FleetManagementView from '../views/FleetManagementView.vue'
@@ -75,6 +76,12 @@ const router = createRouter({
       path: '/platform/enterprise-admins',
       name: 'enterprise-admin-management',
       component: PlatformEnterpriseAdminManagementView,
+      meta: { requiresAuth: true, permissions: USER_PERMISSIONS, domain: 'platform' },
+    },
+    {
+      path: '/platform/internal-users',
+      name: 'platform-internal-user-management',
+      component: PlatformInternalUserManagementView,
       meta: { requiresAuth: true, permissions: USER_PERMISSIONS, domain: 'platform' },
     },
     {

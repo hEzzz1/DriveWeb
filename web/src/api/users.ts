@@ -92,6 +92,7 @@ function createUserApi(prefix: string) {
 
 const legacyUsersApi = createUserApi('/users')
 const platformEnterpriseAdminApi = createUserApi('/platform/enterprise-admins')
+const platformInternalUsersApi = createUserApi('/platform/internal-users')
 const orgUsersApi = createUserApi('/org/users')
 
 export function getUserList(params: UserListQuery): Promise<UserListData> {
@@ -184,6 +185,57 @@ export function getPlatformEnterpriseAdminAudits(
   params: Pick<UserListQuery, 'page' | 'size'>,
 ): Promise<UserAuditListData> {
   return platformEnterpriseAdminApi.getAudits(id, params)
+}
+
+export function getPlatformInternalUserList(params: UserListQuery): Promise<UserListData> {
+  return platformInternalUsersApi.getList(params)
+}
+
+export function getPlatformInternalUserDetail(id: number | string): Promise<UserDetail> {
+  return platformInternalUsersApi.getDetail(id)
+}
+
+export function updatePlatformInternalUser(
+  id: number | string,
+  payload: UpdateUserProfilePayload,
+): Promise<UserDetail> {
+  return platformInternalUsersApi.update(id, payload)
+}
+
+export function updatePlatformInternalUserRoles(
+  id: number | string,
+  payload: UpdateUserRolesPayload,
+): Promise<UserDetail> {
+  return platformInternalUsersApi.updateRoles(id, payload)
+}
+
+export function updatePlatformInternalUserStatus(
+  id: number | string,
+  payload: UpdateUserStatusPayload,
+): Promise<UserDetail> {
+  return platformInternalUsersApi.updateStatus(id, payload)
+}
+
+export function getPlatformInternalUserRoleOptions(): Promise<RoleOptionItem[]> {
+  return platformInternalUsersApi.getRoleOptions()
+}
+
+export function createPlatformInternalUser(payload: CreateUserPayload): Promise<UserDetail> {
+  return platformInternalUsersApi.create(payload)
+}
+
+export function resetPlatformInternalUserPassword(
+  id: number | string,
+  payload: ResetUserPasswordPayload,
+): Promise<UserDetail> {
+  return platformInternalUsersApi.resetPassword(id, payload)
+}
+
+export function getPlatformInternalUserAudits(
+  id: number | string,
+  params: Pick<UserListQuery, 'page' | 'size'>,
+): Promise<UserAuditListData> {
+  return platformInternalUsersApi.getAudits(id, params)
 }
 
 export function getOrgUserList(params: UserListQuery): Promise<UserListData> {

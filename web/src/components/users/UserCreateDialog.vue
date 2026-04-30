@@ -13,6 +13,7 @@ const props = defineProps<{
   enterpriseOptions: Array<{ value: number; label: string }>
   defaultEnterpriseId?: number | null
   lockEnterprise?: boolean
+  hideEnterprise?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -103,7 +104,7 @@ async function handleSave(): Promise<void> {
       <el-form-item label="昵称">
         <el-input v-model="form.nickname" clearable placeholder="为空时默认同用户名" />
       </el-form-item>
-      <el-form-item label="所属企业" prop="enterpriseId" :required="needsEnterprise">
+      <el-form-item v-if="!hideEnterprise" label="所属企业" prop="enterpriseId" :required="needsEnterprise">
         <el-select
           v-if="!lockEnterprise"
           v-model="form.enterpriseId"
