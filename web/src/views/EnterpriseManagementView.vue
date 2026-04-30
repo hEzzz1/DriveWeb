@@ -7,7 +7,7 @@ import EnterpriseCreateDialog from '../components/enterprises/EnterpriseCreateDi
 import EnterpriseDetailDrawer from '../components/enterprises/EnterpriseDetailDrawer.vue'
 import EnterpriseEditDialog from '../components/enterprises/EnterpriseEditDialog.vue'
 import EnterpriseListTable from '../components/enterprises/EnterpriseListTable.vue'
-import { getAuditDetail, getAuditList } from '../api/audit'
+import { getPlatformAuditDetail, getPlatformAuditList } from '../api/audit'
 import {
   createPlatformEnterprise,
   getPlatformEnterpriseDetail,
@@ -142,7 +142,7 @@ async function fetchEnterpriseAudits(): Promise<void> {
   auditLoading.value = true
 
   try {
-    const data = await getAuditList({
+    const data = await getPlatformAuditList({
       module: 'ENTERPRISE',
       targetType: 'ENTERPRISE',
       targetId: String(activeDetail.value.id),
@@ -227,7 +227,7 @@ function syncTableRow(detail: EnterpriseDetail): void {
 }
 
 async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
-  activeAuditDetail.value = normalizeAuditDetail(await getAuditDetail(row.id))
+  activeAuditDetail.value = normalizeAuditDetail(await getPlatformAuditDetail(row.id))
   auditDetailVisible.value = true
 }
 </script>

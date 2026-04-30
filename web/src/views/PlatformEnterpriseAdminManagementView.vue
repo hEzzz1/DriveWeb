@@ -8,7 +8,7 @@ import UserDetailDrawer from '../components/users/UserDetailDrawer.vue'
 import UserEditDialog from '../components/users/UserEditDialog.vue'
 import UserListTable from '../components/users/UserListTable.vue'
 import UserResetPasswordDialog from '../components/users/UserResetPasswordDialog.vue'
-import { getAuditDetail } from '../api/audit'
+import { getPlatformAuditDetail } from '../api/audit'
 import { getPlatformEnterpriseList } from '../api/enterprises'
 import {
   createPlatformEnterpriseAdmin,
@@ -280,7 +280,7 @@ function syncTableRow(detail: UserDetail): void {
 }
 
 async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
-  activeAuditDetail.value = normalizeAuditDetail(await getAuditDetail(row.id))
+  activeAuditDetail.value = normalizeAuditDetail(await getPlatformAuditDetail(row.id))
   auditDetailVisible.value = true
 }
 </script>

@@ -297,6 +297,10 @@ export const useAuthStore = defineStore('auth', () => {
       return '/org/users'
     }
 
+    if (hasAnyPermission(['audit.read'])) {
+      return '/org/audit'
+    }
+
     if (hasAnyPermission(['fleet.read'])) {
       return '/org/fleets'
     }
@@ -319,10 +323,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (hasAnyPermission(['enterprise.read'])) {
       return '/org/enterprise-profile'
-    }
-
-    if (hasAnyPermission(['audit.read'])) {
-      return '/platform/audit'
     }
 
     if (hasAnyPermission(['rule.read'])) {

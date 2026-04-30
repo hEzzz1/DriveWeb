@@ -18,6 +18,8 @@ export interface CapabilityMap {
   canManagePlatformInternalUsers: boolean
   canViewPlatformAudit: boolean
   canExportPlatformAudit: boolean
+  canViewOrgAudit: boolean
+  canExportOrgAudit: boolean
   canViewPlatformSystem: boolean
   canViewPlatformRules: boolean
   canManagePlatformRules: boolean
@@ -64,6 +66,8 @@ export function resolveCapabilities(context: AccessContext): CapabilityMap {
     canManagePlatformInternalUsers: isPlatformDomain && hasPermission(permissions, ['user.manage']),
     canViewPlatformAudit: isPlatformDomain && hasPermission(permissions, ['audit.read']),
     canExportPlatformAudit: isPlatformDomain && hasPermission(permissions, ['audit.export']),
+    canViewOrgAudit: isOrgDomain && hasPermission(permissions, ['audit.read']),
+    canExportOrgAudit: isOrgDomain && hasPermission(permissions, ['audit.export']),
     canViewPlatformSystem: isPlatformDomain && hasPermission(permissions, ['system.read']),
     canViewPlatformRules: isPlatformDomain && hasPermission(permissions, ['rule.read']),
     canManagePlatformRules: isPlatformDomain && hasPermission(permissions, ['rule.manage']),

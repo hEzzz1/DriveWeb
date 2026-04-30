@@ -5,11 +5,7 @@ import PageSectionCard from '../components/PageSectionCard.vue'
 import AuditDetailDrawer from '../components/audit/AuditDetailDrawer.vue'
 import AuditFilterBar from '../components/audit/AuditFilterBar.vue'
 import AuditListTable from '../components/audit/AuditListTable.vue'
-import {
-  exportPlatformAuditLogs,
-  getPlatformAuditDetail,
-  getPlatformAuditList,
-} from '../api/audit'
+import { exportOrgAuditLogs, getOrgAuditDetail, getOrgAuditList } from '../api/audit'
 import { useAccess } from '../composables/useAccess'
 import type { AuditDetail, AuditFilter, AuditSummary } from '../types/audit'
 import { normalizeAuditDetail } from '../utils/audit'
@@ -38,11 +34,12 @@ const filters = reactive<AuditFilter>({
 
 const summaryItems = computed(() => [
   { label: '审计总量', value: total.value },
-  { label: '用户域记录', value: items.value.filter((item) => item.module === 'USER').length },
-  { label: '企业域记录', value: items.value.filter((item) => item.module === 'ENTERPRISE').length },
+  { label: '告警相关', value: items.value.filter((item) => item.module === 'ALERT').length },
+  { label: '用户相关', value: items.value.filter((item) => item.module === 'USER').length },
   { label: '当前页', value: currentPage.value },
 ])
-const canExport = computed(() => access.value.canExportPlatformAudit)
+
+const canExport = computed(() => access.value.canExportOrgAudit)
 
 onMounted(async () => {
   await fetchList()
@@ -52,7 +49,7 @@ async function fetchList(): Promise<void> {
   loading.value = true
 
   try {
-    const data = await getPlatformAuditList({
+    const data = await getOrgAuditList({
       ...filters,
       page: currentPage.value,
       size: pageSize.value,
@@ -63,7 +60,7 @@ async function fetchList(): Promise<void> {
     pageSize.value = data.size || pageSize.value
     errorText.value = ''
   } catch (error) {
-    errorText.value = error instanceof Error ? error.message : '审计列表加载失败'
+    errorText.value = error instanceof Error ? error.message : '企业审计列表加载失败'
   } finally {
     loading.value = false
   }
@@ -92,7 +89,7 @@ async function handleOpenDetail(row: AuditSummary): Promise<void> {
   detailLoading.value = true
 
   try {
-    activeDetail.value = normalizeAuditDetail(await getPlatformAuditDetail(row.id))
+    activeDetail.value = normalizeAuditDetail(await getOrgAuditDetail(row.id))
   } finally {
     detailLoading.value = false
   }
@@ -106,8 +103,8 @@ async function handleExport(): Promise<void> {
   exportLoading.value = true
 
   try {
-    const result = await exportPlatformAuditLogs({ ...filters })
-    ElMessage.success(`审计导出完成，共 ${result.total} 条`)
+    const result = await exportOrgAuditLogs({ ...filters })
+    ElMessage.success(`企业审计导出完成，共 ${result.total} 条`)
   } finally {
     exportLoading.value = false
   }
@@ -129,9 +126,9 @@ async function handleSizeChange(size: number): Promise<void> {
   <div class="page-shell">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Audit</p>
-        <h1>审计日志</h1>
-        <p class="subhead">平台域审计只展示平台侧治理和系统操作记录，不承接企业业务原始明细。</p>
+        <p class="eyebrow">Organization</p>
+        <h1>企业审计</h1>
+        <p class="subhead">企业域审计只展示当前企业范围内的管理与业务操作记录，不进入平台治理日志。</p>
       </div>
     </div>
 
@@ -157,7 +154,7 @@ async function handleSizeChange(size: number): Promise<void> {
       />
     </PageSectionCard>
 
-    <PageSectionCard title="审计列表" description="查看列表并下钻到详情抽屉。">
+    <PageSectionCard title="审计列表" description="查看当前企业范围内的审计记录并下钻详情。">
       <el-alert v-if="errorText" :closable="false" type="error" :title="errorText" show-icon />
       <AuditListTable
         :items="items"

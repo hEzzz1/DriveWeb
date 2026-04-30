@@ -159,6 +159,15 @@ const navItems = computed<NavItem[]>(() => {
       path: '/org/users',
     },
     {
+      key: 'org-audit',
+      badge: '审',
+      section: 'org-admin',
+      label: '企业审计',
+      subtitle: '当前企业范围内的管理与业务操作记录',
+      visible: access.value.canViewOrgAudit,
+      path: '/org/audit',
+    },
+    {
       key: 'enterprise-profile',
       badge: '企',
       section: 'org-admin',

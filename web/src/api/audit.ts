@@ -6,7 +6,7 @@ import type {
 } from '../types/audit'
 import { request } from './http'
 
-export function getAuditList(params: AuditFilter): Promise<AuditListData> {
+export function getPlatformAuditList(params: AuditFilter): Promise<AuditListData> {
   return request<AuditListData>({
     method: 'GET',
     url: '/platform/audit',
@@ -14,17 +14,40 @@ export function getAuditList(params: AuditFilter): Promise<AuditListData> {
   })
 }
 
-export function getAuditDetail(id: number | string): Promise<AuditDetail> {
+export function getPlatformAuditDetail(id: number | string): Promise<AuditDetail> {
   return request<AuditDetail>({
     method: 'GET',
-    url: `/audits/${id}`,
+    url: `/platform/audit/${id}`,
   })
 }
 
-export function exportAuditLogs(payload: AuditFilter): Promise<AuditExportData> {
+export function exportPlatformAuditLogs(payload: AuditFilter): Promise<AuditExportData> {
   return request<AuditExportData>({
     method: 'GET',
     url: '/platform/audit/export',
+    params: payload,
+  })
+}
+
+export function getOrgAuditList(params: AuditFilter): Promise<AuditListData> {
+  return request<AuditListData>({
+    method: 'GET',
+    url: '/org/audit',
+    params,
+  })
+}
+
+export function getOrgAuditDetail(id: number | string): Promise<AuditDetail> {
+  return request<AuditDetail>({
+    method: 'GET',
+    url: `/org/audit/${id}`,
+  })
+}
+
+export function exportOrgAuditLogs(payload: AuditFilter): Promise<AuditExportData> {
+  return request<AuditExportData>({
+    method: 'GET',
+    url: '/org/audit/export',
     params: payload,
   })
 }

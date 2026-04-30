@@ -10,7 +10,7 @@ import UserEditDialog from '../components/users/UserEditDialog.vue'
 import UserListTable from '../components/users/UserListTable.vue'
 import UserResetPasswordDialog from '../components/users/UserResetPasswordDialog.vue'
 import UserRolesDialog from '../components/users/UserRolesDialog.vue'
-import { getAuditDetail } from '../api/audit'
+import { getOrgAuditDetail } from '../api/audit'
 import {
   createOrgUser,
   getOrgUserAudits,
@@ -297,7 +297,7 @@ function syncTableRow(detail: UserDetail): void {
 }
 
 async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
-  activeAuditDetail.value = normalizeAuditDetail(await getAuditDetail(row.id))
+  activeAuditDetail.value = normalizeAuditDetail(await getOrgAuditDetail(row.id))
   auditDetailVisible.value = true
 }
 </script>

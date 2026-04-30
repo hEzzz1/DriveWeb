@@ -10,6 +10,7 @@ import TrendAnalysisView from '../views/TrendAnalysisView.vue'
 import RiskRankingView from '../views/RiskRankingView.vue'
 import RulesManagementView from '../views/RulesManagementView.vue'
 import AuditStatusView from '../views/AuditStatusView.vue'
+import OrgAuditStatusView from '../views/OrgAuditStatusView.vue'
 import SystemManagementView from '../views/SystemManagementView.vue'
 import PlatformEnterpriseAdminManagementView from '../views/PlatformEnterpriseAdminManagementView.vue'
 import PlatformInternalUserManagementView from '../views/PlatformInternalUserManagementView.vue'
@@ -153,6 +154,12 @@ const router = createRouter({
       name: 'org-user-management',
       component: OrgUserManagementView,
       meta: { requiresAuth: true, permissions: USER_PERMISSIONS, domain: 'org' },
+    },
+    {
+      path: '/org/audit',
+      name: 'org-audit-logs',
+      component: OrgAuditStatusView,
+      meta: { requiresAuth: true, permissions: AUDIT_PERMISSIONS, domain: 'org' },
     },
     {
       path: '/org/fleets',
