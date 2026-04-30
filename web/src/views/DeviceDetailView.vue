@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
+import DeviceActivationPanel from '../components/devices/DeviceActivationPanel.vue'
 import PageSectionCard from '../components/PageSectionCard.vue'
 import { getDeviceDetail, reassignDeviceVehicle } from '../api/devices'
 import { getEnterpriseList } from '../api/enterprises'
@@ -180,6 +181,15 @@ async function submitAssignment(): Promise<void> {
             <el-descriptions-item label="最后同步时间">{{ formatDateTime(detail.lastOnlineAt) }}</el-descriptions-item>
             <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
           </el-descriptions>
+        </PageSectionCard>
+
+        <PageSectionCard title="激活与认领" description="同时展示原始 activationCode、便于人工核验的认领码，以及扫码可读的二维码。">
+          <DeviceActivationPanel
+            v-if="detail"
+            :device-code="detail.deviceCode"
+            :device-name="detail.deviceName"
+            :activation-code="detail.activationCode"
+          />
         </PageSectionCard>
 
         <PageSectionCard title="设备分配车辆" description="审批通过后，企业管理员可继续为设备指定车队和车辆。">

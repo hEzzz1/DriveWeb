@@ -59,6 +59,7 @@ function normalizeApproval(item: DeviceApprovalApiItem): DeviceApprovalSummary {
     deviceId: item.deviceId || undefined,
     deviceCode: item.deviceCode,
     deviceName: item.deviceName,
+    activationCode: item.activationCode || item.device?.activationCode || undefined,
     enterpriseId: item.enterpriseId,
     enterpriseName: item.enterpriseName || undefined,
     applyRemark: item.applyRemark || undefined,

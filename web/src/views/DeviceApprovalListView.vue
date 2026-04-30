@@ -8,6 +8,7 @@ import { getEnterpriseList } from '../api/enterprises'
 import { useAuthStore } from '../stores/auth'
 import type { DeviceApprovalSummary } from '../types/device-approvals'
 import type { EnterpriseSummary } from '../types/enterprises'
+import { formatClaimCode } from '../utils/device-claim'
 
 interface FilterModel {
   enterpriseId?: number
@@ -139,6 +140,14 @@ function openDetail(row: DeviceApprovalSummary): void {
         <el-table :data="items" :loading="loading" stripe>
           <el-table-column prop="deviceCode" label="设备码" min-width="140" />
           <el-table-column prop="deviceName" label="设备名" min-width="160" />
+          <el-table-column label="激活码 / 认领码" min-width="220">
+            <template #default="{ row }">
+              <div class="activation-cell">
+                <span class="activation-code">{{ row.activationCode || '-' }}</span>
+                <span v-if="row.activationCode" class="claim-code">{{ formatClaimCode(row.activationCode) }}</span>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column label="申请企业" min-width="180">
             <template #default="{ row }">{{ row.enterpriseName || row.enterpriseId }}</template>
           </el-table-column>
@@ -187,6 +196,35 @@ function openDetail(row: DeviceApprovalSummary): void {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.activation-cell {
+  display: grid;
+  gap: 6px;
+}
+
+.activation-code {
+  font-family:
+    'SFMono-Regular', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 13px;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+.claim-code {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-family:
+    'SFMono-Regular', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  word-break: break-all;
 }
 
 @media (max-width: 720px) {

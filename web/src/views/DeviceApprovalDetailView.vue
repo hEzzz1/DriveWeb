@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
+import DeviceActivationPanel from '../components/devices/DeviceActivationPanel.vue'
 import PageSectionCard from '../components/PageSectionCard.vue'
 import { approveDeviceApproval, getDeviceApprovalDetail, rejectDeviceApproval } from '../api/device-approvals'
 import { getEnterpriseList } from '../api/enterprises'
@@ -184,6 +185,14 @@ async function handleReject(): Promise<void> {
 
         <PageSectionCard title="申请备注" description="用于还原设备在 Edge 端发起绑定申请时的说明信息。">
           <div class="note-card">{{ detail?.applyRemark || '-' }}</div>
+        </PageSectionCard>
+
+        <PageSectionCard title="激活与认领" description="审批页直接展示原始 activationCode、认领码和二维码，便于审核时同步核验。">
+          <DeviceActivationPanel
+            :device-code="detail?.deviceCode"
+            :device-name="detail?.deviceName"
+            :activation-code="detail?.activationCode || detail?.device?.activationCode"
+          />
         </PageSectionCard>
 
         <PageSectionCard title="历史审批记录" description="完整保留申请、通过、驳回动作及备注。">

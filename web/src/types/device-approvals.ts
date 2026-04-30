@@ -20,6 +20,7 @@ export interface DeviceApprovalSummary {
   deviceId?: number
   deviceCode: string
   deviceName: string
+  activationCode?: string
   enterpriseId: number
   enterpriseName?: string
   applyRemark?: string
@@ -55,6 +56,7 @@ export interface DeviceApprovalApiItem {
   deviceId?: number | null
   deviceCode: string
   deviceName: string
+  activationCode?: string | null
   enterpriseId: number
   enterpriseName?: string | null
   applyRemark?: string | null
