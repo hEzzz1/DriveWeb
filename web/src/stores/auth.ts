@@ -70,16 +70,8 @@ export const useAuthStore = defineStore('auth', () => {
     return value !== null && value >= 0 && value <= 30
   })
   const primaryRole = computed(() => ROLE_PRIORITY.find((role) => effectiveRoles.value.includes(role)) || null)
-  const isSuperAdmin = computed(
-    () =>
-      effectiveRoles.value.includes('SUPER_ADMIN') ||
-      effectiveRoles.value.includes('PLATFORM_SUPER_ADMIN'),
-  )
-  const isEnterpriseAdmin = computed(
-    () =>
-      effectiveRoles.value.includes('ENTERPRISE_ADMIN') ||
-      effectiveRoles.value.includes('ORG_ADMIN'),
-  )
+  const isSuperAdmin = computed(() => effectiveRoles.value.includes('PLATFORM_SUPER_ADMIN'))
+  const isEnterpriseAdmin = computed(() => effectiveRoles.value.includes('ORG_ADMIN'))
   const isUserAdmin = computed(() => hasPermission('user.manage'))
 
   function persist(): void {

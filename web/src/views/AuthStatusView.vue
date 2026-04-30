@@ -92,7 +92,7 @@ const expireInfo = computed(() => {
 
       <div class="role-list">
         <div v-for="role in roles" :key="role" class="role-item">
-          <el-tag effect="dark" type="success">{{ role }}</el-tag>
+          <el-tag effect="dark" type="success">{{ formatRoleLabel(role) }}</el-tag>
           <p>{{ roleDescriptionMap[role] }}</p>
         </div>
 
@@ -113,7 +113,7 @@ const expireInfo = computed(() => {
           </div>
         </div>
 
-        <p v-else class="empty-text">未返回业务归属，当前可能仍处于旧角色兼容模式。</p>
+        <p v-else class="empty-text">未返回业务归属，当前账号可能仅配置了平台级角色。</p>
       </el-card>
 
       <el-card class="info-card" shadow="never">

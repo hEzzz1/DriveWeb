@@ -59,7 +59,7 @@ const timeline = computed(() => {
 })
 
 const canDispose = computed(() => authStore.canDisposeAlerts())
-const canViewDebugInfo = computed(() => authStore.hasAnyRole(['SYS_ADMIN']))
+const canViewDebugInfo = computed(() => authStore.hasPermission('system.read'))
 
 const availableActions = computed(() => getAvailableAlertActions(detail.value?.status))
 const realtimeEventTypeText = computed(() => {

@@ -1,46 +1,12 @@
 import type {
   BusinessRole,
   DefaultScope,
-  LegacyUserRole,
   PermissionCode,
   PlatformRole,
   ScopeMembership,
   ScopeType,
   UserRole,
 } from '../types/api'
-
-const LEGACY_TO_PLATFORM_ROLE_MAP: Partial<Record<LegacyUserRole, PlatformRole>> = {
-  SUPER_ADMIN: 'PLATFORM_SUPER_ADMIN',
-  SYS_ADMIN: 'PLATFORM_SYS_ADMIN',
-  RISK_ADMIN: 'PLATFORM_RISK_ADMIN',
-}
-
-const LEGACY_TO_BUSINESS_ROLE_MAP: Partial<Record<LegacyUserRole, BusinessRole>> = {
-  ENTERPRISE_ADMIN: 'ORG_ADMIN',
-  OPERATOR: 'ORG_OPERATOR',
-  ANALYST: 'ORG_ANALYST',
-  VIEWER: 'ORG_VIEWER',
-}
-
-const STRUCTURED_TO_LEGACY_ROLE_MAP: Record<PlatformRole | BusinessRole, LegacyUserRole> = {
-  PLATFORM_SUPER_ADMIN: 'SUPER_ADMIN',
-  PLATFORM_SYS_ADMIN: 'SYS_ADMIN',
-  PLATFORM_RISK_ADMIN: 'RISK_ADMIN',
-  ORG_ADMIN: 'ENTERPRISE_ADMIN',
-  ORG_OPERATOR: 'OPERATOR',
-  ORG_ANALYST: 'ANALYST',
-  ORG_VIEWER: 'VIEWER',
-}
-
-export const LEGACY_USER_ROLES: LegacyUserRole[] = [
-  'SUPER_ADMIN',
-  'ENTERPRISE_ADMIN',
-  'SYS_ADMIN',
-  'RISK_ADMIN',
-  'OPERATOR',
-  'ANALYST',
-  'VIEWER',
-]
 
 export const PLATFORM_ROLES: PlatformRole[] = [
   'PLATFORM_SUPER_ADMIN',
@@ -58,24 +24,16 @@ export const BUSINESS_ROLES: BusinessRole[] = [
 export const ALL_USER_ROLES: UserRole[] = [
   ...PLATFORM_ROLES,
   ...BUSINESS_ROLES,
-  ...LEGACY_USER_ROLES,
 ]
 
 export const ROLE_PRIORITY: UserRole[] = [
   'PLATFORM_SUPER_ADMIN',
-  'SUPER_ADMIN',
   'ORG_ADMIN',
-  'ENTERPRISE_ADMIN',
   'PLATFORM_SYS_ADMIN',
-  'SYS_ADMIN',
   'PLATFORM_RISK_ADMIN',
-  'RISK_ADMIN',
   'ORG_OPERATOR',
-  'OPERATOR',
   'ORG_ANALYST',
-  'ANALYST',
   'ORG_VIEWER',
-  'VIEWER',
 ]
 
 export const ALL_PERMISSIONS: PermissionCode[] = [
@@ -114,13 +72,6 @@ export const roleLabelMap: Record<UserRole, string> = {
   ORG_OPERATOR: '运营处理人员',
   ORG_ANALYST: '分析查看人员',
   ORG_VIEWER: '只读观察人员',
-  SUPER_ADMIN: '超级管理员',
-  ENTERPRISE_ADMIN: '企业管理员',
-  SYS_ADMIN: '系统管理员',
-  RISK_ADMIN: '风控管理员',
-  OPERATOR: '运营人员',
-  ANALYST: '分析人员',
-  VIEWER: '访客',
 }
 
 export const roleDescriptionMap: Record<UserRole, string> = {
@@ -131,13 +82,6 @@ export const roleDescriptionMap: Record<UserRole, string> = {
   ORG_OPERATOR: '负责告警处置、实时值守与会话巡检。',
   ORG_ANALYST: '负责趋势、排行与风险复盘分析，默认只读。',
   ORG_VIEWER: '仅可查看总览和基础告警信息。',
-  SUPER_ADMIN: '旧版超级管理员，兼容映射到 PLATFORM_SUPER_ADMIN@PLATFORM。',
-  ENTERPRISE_ADMIN: '旧版企业管理员，兼容映射到 ORG_ADMIN@ENTERPRISE。',
-  SYS_ADMIN: '旧版系统管理员，兼容映射到 PLATFORM_SYS_ADMIN@PLATFORM。',
-  RISK_ADMIN: '旧版风控管理员，兼容映射到 PLATFORM_RISK_ADMIN@PLATFORM。',
-  OPERATOR: '旧版运营人员，兼容映射到 ORG_OPERATOR@ENTERPRISE。',
-  ANALYST: '旧版分析人员，兼容映射到 ORG_ANALYST@ENTERPRISE。',
-  VIEWER: '旧版访客，兼容映射到 ORG_VIEWER@ENTERPRISE。',
 }
 
 export const scopeTypeLabelMap: Record<ScopeType, string> = {
@@ -220,51 +164,6 @@ const ROLE_PERMISSION_MAP: Record<UserRole, PermissionCode[]> = {
     'session.read',
   ],
   ORG_VIEWER: ['overview.read', 'alert.read'],
-  SUPER_ADMIN: [...ALL_PERMISSIONS],
-  ENTERPRISE_ADMIN: [
-    'overview.read',
-    'alert.read',
-    'stats.read',
-    'user.read',
-    'user.manage',
-    'enterprise.read',
-    'activation_code.read',
-    'activation_code.manage',
-    'fleet.read',
-    'fleet.manage',
-    'driver.read',
-    'driver.manage',
-    'vehicle.read',
-    'vehicle.manage',
-    'device.read',
-    'device.manage',
-    'session.read',
-    'session.force_sign_out',
-  ],
-  SYS_ADMIN: ['audit.read', 'audit.export', 'system.read'],
-  RISK_ADMIN: ['rule.read', 'rule.manage', 'overview.read', 'alert.read', 'stats.read'],
-  OPERATOR: [
-    'overview.read',
-    'alert.read',
-    'alert.handle',
-    'stats.read',
-    'fleet.read',
-    'driver.read',
-    'vehicle.read',
-    'device.read',
-    'session.read',
-  ],
-  ANALYST: [
-    'overview.read',
-    'alert.read',
-    'stats.read',
-    'fleet.read',
-    'driver.read',
-    'vehicle.read',
-    'device.read',
-    'session.read',
-  ],
-  VIEWER: ['overview.read', 'alert.read'],
 }
 
 function isPresentId(value: unknown): value is number | string {
@@ -300,8 +199,8 @@ export function isPlatformRole(value: string): value is PlatformRole {
   return PLATFORM_ROLES.includes(value as PlatformRole)
 }
 
-export function isLegacyRole(value: string): value is LegacyUserRole {
-  return LEGACY_USER_ROLES.includes(value as LegacyUserRole)
+export function isBusinessRole(value: string): value is BusinessRole {
+  return BUSINESS_ROLES.includes(value as BusinessRole)
 }
 
 export function isPermissionCode(value: string): value is PermissionCode {
@@ -374,22 +273,7 @@ export function normalizeDefaultScope(value?: Partial<DefaultScope> | null): Def
 }
 
 export function derivePlatformRoles(rawRoles: readonly UserRole[]): PlatformRole[] {
-  const resolved = new Set<PlatformRole>()
-
-  for (const role of rawRoles) {
-    if (isPlatformRole(role)) {
-      resolved.add(role)
-      continue
-    }
-
-    const mappedRole = LEGACY_TO_PLATFORM_ROLE_MAP[role as LegacyUserRole]
-
-    if (mappedRole) {
-      resolved.add(mappedRole)
-    }
-  }
-
-  return [...resolved]
+  return [...new Set(rawRoles.filter((role): role is PlatformRole => isPlatformRole(role)))]
 }
 
 export function deriveMemberships(
@@ -404,15 +288,11 @@ export function deriveMemberships(
   const memberships: ScopeMembership[] = []
 
   for (const role of rawRoles) {
-    const mappedRole = BUSINESS_ROLES.includes(role as BusinessRole)
-      ? (role as BusinessRole)
-      : LEGACY_TO_BUSINESS_ROLE_MAP[role as LegacyUserRole]
-
-    if (!mappedRole) {
+    if (!isBusinessRole(role)) {
       continue
     }
 
-    const key = `${mappedRole}:ENTERPRISE:${String(enterpriseId)}`
+    const key = `${role}:ENTERPRISE:${String(enterpriseId)}`
 
     if (seen.has(key)) {
       continue
@@ -420,7 +300,7 @@ export function deriveMemberships(
 
     seen.add(key)
     memberships.push({
-      role: mappedRole,
+      role,
       scopeType: 'ENTERPRISE',
       enterpriseId,
       fleetId: null,
@@ -428,27 +308,6 @@ export function deriveMemberships(
   }
 
   return memberships
-}
-
-export function deriveLegacyRoles(
-  platformRoles: readonly PlatformRole[],
-  memberships: readonly ScopeMembership[],
-): LegacyUserRole[] {
-  const resolved = new Set<LegacyUserRole>()
-
-  for (const role of platformRoles) {
-    resolved.add(STRUCTURED_TO_LEGACY_ROLE_MAP[role])
-  }
-
-  for (const membership of memberships) {
-    const mappedRole = STRUCTURED_TO_LEGACY_ROLE_MAP[membership.role as PlatformRole | BusinessRole]
-
-    if (mappedRole) {
-      resolved.add(mappedRole)
-    }
-  }
-
-  return [...resolved]
 }
 
 export function buildEffectiveRoles(
@@ -461,10 +320,9 @@ export function buildEffectiveRoles(
   const derivedMemberships = deriveMemberships(rawRoles, enterpriseId)
   const normalizedPlatformRoles = [...new Set([...platformRoles, ...derivedPlatformRoles])]
   const normalizedMemberships = normalizeScopeMembershipList([...memberships, ...derivedMemberships])
-  const derivedLegacyRoles = deriveLegacyRoles(normalizedPlatformRoles, normalizedMemberships)
 
   return sortRoles(
-    [...new Set([...rawRoles, ...normalizedPlatformRoles, ...normalizedMemberships.map((item) => item.role), ...derivedLegacyRoles])],
+    [...new Set([...rawRoles, ...normalizedPlatformRoles, ...normalizedMemberships.map((item) => item.role)])],
   )
 }
 
@@ -483,7 +341,7 @@ export function buildDisplayRoles(
 }
 
 export function resolvePermissionsFromRoles(roles: readonly UserRole[]): PermissionCode[] {
-  if (roles.includes('SUPER_ADMIN') || roles.includes('PLATFORM_SUPER_ADMIN')) {
+  if (roles.includes('PLATFORM_SUPER_ADMIN')) {
     return [...ALL_PERMISSIONS]
   }
 
@@ -562,23 +420,23 @@ export function formatScopeLabel(scope?: Partial<DefaultScope> | null): string {
 }
 
 export function getRoleTagType(role: UserRole): '' | 'success' | 'warning' | 'info' | 'primary' | 'danger' {
-  if (role === 'PLATFORM_SUPER_ADMIN' || role === 'SUPER_ADMIN') {
+  if (role === 'PLATFORM_SUPER_ADMIN') {
     return 'danger'
   }
 
-  if (role === 'PLATFORM_SYS_ADMIN' || role === 'SYS_ADMIN') {
+  if (role === 'PLATFORM_SYS_ADMIN') {
     return 'warning'
   }
 
-  if (role === 'PLATFORM_RISK_ADMIN' || role === 'RISK_ADMIN') {
+  if (role === 'PLATFORM_RISK_ADMIN') {
     return 'success'
   }
 
-  if (role === 'ORG_OPERATOR' || role === 'OPERATOR') {
+  if (role === 'ORG_OPERATOR') {
     return 'primary'
   }
 
-  if (role === 'ORG_ADMIN' || role === 'ENTERPRISE_ADMIN') {
+  if (role === 'ORG_ADMIN') {
     return 'warning'
   }
 
@@ -591,11 +449,7 @@ export function requiresEnterpriseForRoles(roles: readonly UserRole[]): boolean 
       role === 'ORG_ADMIN' ||
       role === 'ORG_OPERATOR' ||
       role === 'ORG_ANALYST' ||
-      role === 'ORG_VIEWER' ||
-      role === 'ENTERPRISE_ADMIN' ||
-      role === 'OPERATOR' ||
-      role === 'ANALYST' ||
-      role === 'VIEWER',
+      role === 'ORG_VIEWER',
   )
 }
 
@@ -610,10 +464,6 @@ export function getRoleScopeHint(role: UserRole): string {
 export function getRoleTypeLabel(role: UserRole): string {
   if (isPlatformRole(role)) {
     return '平台角色'
-  }
-
-  if (isLegacyRole(role)) {
-    return '兼容角色'
   }
 
   return '业务角色'

@@ -1,11 +1,3 @@
-export type LegacyUserRole =
-  | 'SUPER_ADMIN'
-  | 'ENTERPRISE_ADMIN'
-  | 'SYS_ADMIN'
-  | 'RISK_ADMIN'
-  | 'OPERATOR'
-  | 'ANALYST'
-  | 'VIEWER'
 export type PlatformRole =
   | 'PLATFORM_SUPER_ADMIN'
   | 'PLATFORM_SYS_ADMIN'
@@ -15,7 +7,7 @@ export type BusinessRole =
   | 'ORG_OPERATOR'
   | 'ORG_ANALYST'
   | 'ORG_VIEWER'
-export type UserRole = LegacyUserRole | PlatformRole | BusinessRole
+export type UserRole = PlatformRole | BusinessRole
 export type ScopeType = 'PLATFORM' | 'ENTERPRISE' | 'FLEET'
 export type PermissionCode =
   | 'overview.read'
