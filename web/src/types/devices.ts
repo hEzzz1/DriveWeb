@@ -19,6 +19,8 @@ export interface DeviceSummary {
   activationCode?: string
   enabled: boolean
   status: 0 | 1
+  activationStatus?: 'ACTIVATED' | 'PENDING'
+  onlineStatus?: 'ONLINE' | 'OFFLINE' | 'UNKNOWN'
   lastActivatedAt?: string
   lastOnlineAt?: string
   tokenRotatedAt?: string
@@ -54,6 +56,7 @@ export interface UpdateDeviceStatusPayload {
 }
 
 export interface ReassignDeviceVehiclePayload {
+  fleetId?: number
   vehicleId: number
 }
 
@@ -73,6 +76,8 @@ export interface DeviceApiItem {
   deviceName: string
   activationCode?: string | null
   status?: number | null
+  activationStatus?: 'ACTIVATED' | 'PENDING' | null
+  onlineStatus?: 'ONLINE' | 'OFFLINE' | 'UNKNOWN' | null
   lastActivatedAt?: string | null
   lastOnlineAt?: string | null
   tokenRotatedAt?: string | null

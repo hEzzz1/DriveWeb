@@ -17,6 +17,9 @@ import FleetManagementView from '../views/FleetManagementView.vue'
 import DriverManagementView from '../views/DriverManagementView.vue'
 import VehicleManagementView from '../views/VehicleManagementView.vue'
 import DeviceManagementView from '../views/DeviceManagementView.vue'
+import DeviceDetailView from '../views/DeviceDetailView.vue'
+import DeviceApprovalListView from '../views/DeviceApprovalListView.vue'
+import DeviceApprovalDetailView from '../views/DeviceApprovalDetailView.vue'
 import DrivingSessionManagementView from '../views/DrivingSessionManagementView.vue'
 
 const OPS_ROLES: UserRole[] = ['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']
@@ -135,10 +138,28 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
     },
     {
+      path: '/device-approvals',
+      name: 'device-approval-list',
+      component: DeviceApprovalListView,
+      meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+    },
+    {
+      path: '/device-approvals/:id',
+      name: 'device-approval-detail',
+      component: DeviceApprovalDetailView,
+      meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+    },
+    {
       path: '/devices',
       name: 'device-management',
       component: DeviceManagementView,
-      meta: { requiresAuth: true, roles: BUSINESS_READ_ROLES },
+      meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
+    },
+    {
+      path: '/devices/:id',
+      name: 'device-detail',
+      component: DeviceDetailView,
+      meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
     },
     {
       path: '/sessions',

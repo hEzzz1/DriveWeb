@@ -15,6 +15,8 @@ import type {
 
 function normalizeDevice(item: DeviceApiItem): DeviceDetail {
   const status = item.status === 0 ? 0 : 1
+  const activationStatus = item.activationStatus || (item.lastActivatedAt ? 'ACTIVATED' : 'PENDING')
+  const onlineStatus = item.onlineStatus || (item.lastOnlineAt ? 'ONLINE' : 'UNKNOWN')
 
   return {
     id: item.id,
@@ -26,6 +28,8 @@ function normalizeDevice(item: DeviceApiItem): DeviceDetail {
     activationCode: item.activationCode || undefined,
     enabled: status === 1,
     status,
+    activationStatus,
+    onlineStatus,
     lastActivatedAt: item.lastActivatedAt || undefined,
     lastOnlineAt: item.lastOnlineAt || undefined,
     tokenRotatedAt: item.tokenRotatedAt || undefined,

@@ -20,6 +20,8 @@ export interface CapabilityMap {
   canManageVehicles: boolean
   canViewDevices: boolean
   canManageDevices: boolean
+  canViewDeviceApprovals: boolean
+  canManageDeviceApprovals: boolean
   canViewSessions: boolean
   canManageSessions: boolean
   canViewEnterprises: boolean
@@ -57,8 +59,10 @@ export function resolveCapabilities(context: AccessContext): CapabilityMap {
     canManageDrivers: isSuperAdmin || isEnterpriseAdmin,
     canViewVehicles: canReadBusinessDomain,
     canManageVehicles: isSuperAdmin || isEnterpriseAdmin,
-    canViewDevices: canReadBusinessDomain,
+    canViewDevices: isSuperAdmin || isEnterpriseAdmin,
     canManageDevices: isSuperAdmin || isEnterpriseAdmin,
+    canViewDeviceApprovals: isSuperAdmin || isEnterpriseAdmin,
+    canManageDeviceApprovals: isSuperAdmin || isEnterpriseAdmin,
     canViewSessions: canReadBusinessDomain,
     canManageSessions: isSuperAdmin || isEnterpriseAdmin,
     canViewEnterprises: canReadBusinessDomain,
