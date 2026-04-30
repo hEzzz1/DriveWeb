@@ -9,6 +9,7 @@ import type { DeviceApprovalDetail } from '../types/device-approvals'
 import {
   approvalStatusTagType,
   approvalStatusText,
+  bindSourceText,
   effectiveStageTagType,
   effectiveStageText,
   lifecycleStatusTagType,
@@ -123,7 +124,9 @@ async function handleReject(): Promise<void> {
             <el-descriptions-item label="设备码">{{ detail.deviceCode }}</el-descriptions-item>
             <el-descriptions-item label="设备名">{{ detail.deviceName }}</el-descriptions-item>
             <el-descriptions-item label="申请企业">{{ detail.enterpriseName || detail.enterpriseId }}</el-descriptions-item>
+            <el-descriptions-item label="企业绑定码">{{ detail.bindCodeMasked || '-' }}</el-descriptions-item>
             <el-descriptions-item label="申请时间">{{ formatDateTime(detail.submittedAt) }}</el-descriptions-item>
+            <el-descriptions-item label="绑定来源">{{ bindSourceText(detail.bindSource) }}</el-descriptions-item>
             <el-descriptions-item label="审批时间">{{ formatDateTime(detail.reviewedAt) }}</el-descriptions-item>
             <el-descriptions-item label="过期时间">{{ formatDateTime(detail.expiresAt) }}</el-descriptions-item>
             <el-descriptions-item label="最近在线">{{ formatDateTime(detail.lastSeenAt) }}</el-descriptions-item>
@@ -175,7 +178,7 @@ async function handleReject(): Promise<void> {
           </div>
         </PageSectionCard>
 
-        <PageSectionCard title="激活与认领" description="审批页直接展示原始 activationCode、认领码和二维码，便于审核时同步核验。">
+        <PageSectionCard title="设备激活码" description="这里展示设备级 activationCode、认领码和二维码；企业绑定码在上方申请单信息中单独展示。">
           <DeviceActivationPanel
             :device-code="detail?.deviceCode"
             :device-name="detail?.deviceName"

@@ -27,6 +27,8 @@ export interface CapabilityMap {
   canViewEnterprises: boolean
   canManageEnterprises: boolean
   canEditEnterprise: boolean
+  canViewEnterpriseBindCodes: boolean
+  canManageEnterpriseBindCodes: boolean
   canViewSystemAudit: boolean
   canExportSystemAudit: boolean
   canViewSystemHealth: boolean
@@ -68,6 +70,8 @@ export function resolveCapabilities(context: AccessContext): CapabilityMap {
     canViewEnterprises: canReadBusinessDomain,
     canManageEnterprises: isSuperAdmin,
     canEditEnterprise: isSuperAdmin,
+    canViewEnterpriseBindCodes: isSuperAdmin || isEnterpriseAdmin,
+    canManageEnterpriseBindCodes: isSuperAdmin || isEnterpriseAdmin,
     canViewSystemAudit: isSuperAdmin || isSystemAdmin,
     canExportSystemAudit: isSuperAdmin || isSystemAdmin,
     canViewSystemHealth: hasRole(roles, ['SUPER_ADMIN', 'SYS_ADMIN']),

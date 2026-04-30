@@ -33,6 +33,8 @@ export interface DeviceApprovalSummary {
   activationCode?: string
   enterpriseId: number
   enterpriseName?: string
+  bindCodeMasked?: string
+  bindSource?: string
   status: DeviceApprovalStatus
   applyRemark?: string
   approveRemark?: string
@@ -77,6 +79,8 @@ export interface DeviceApprovalApiItem {
   activationCode?: string | null
   enterpriseId: number
   enterpriseName?: string | null
+  bindCodeMasked?: string | null
+  bindSource?: string | null
   status: DeviceApprovalStatus
   applyRemark?: string | null
   approveRemark?: string | null

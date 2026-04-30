@@ -156,3 +156,37 @@ export function effectiveStageTagType(stage: EffectiveStage): TagType {
       return 'info'
   }
 }
+
+export function bindSourceText(source?: string): string {
+  if (source === 'ENTERPRISE_BIND_CODE') {
+    return '企业绑定码'
+  }
+
+  return source || '-'
+}
+
+export function enterpriseBindCodeStatusText(status: string): string {
+  switch (status) {
+    case 'ACTIVE':
+      return '生效中'
+    case 'DISABLED':
+      return '已停用'
+    case 'EXPIRED':
+      return '已过期'
+    default:
+      return status || '-'
+  }
+}
+
+export function enterpriseBindCodeStatusTagType(status: string): TagType {
+  switch (status) {
+    case 'ACTIVE':
+      return 'success'
+    case 'DISABLED':
+      return 'info'
+    case 'EXPIRED':
+      return 'warning'
+    default:
+      return 'info'
+  }
+}

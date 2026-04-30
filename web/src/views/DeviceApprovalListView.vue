@@ -12,6 +12,7 @@ import { formatClaimCode } from '../utils/device-claim'
 import {
   approvalStatusTagType,
   approvalStatusText,
+  bindSourceText,
   effectiveStageTagType,
   effectiveStageText,
 } from '../utils/device-status'
@@ -152,6 +153,14 @@ function resetFilters(): void {
           <el-table-column label="申请企业" min-width="180">
             <template #default="{ row }">{{ row.enterpriseName || row.enterpriseId }}</template>
           </el-table-column>
+          <el-table-column label="绑定来源" min-width="220">
+            <template #default="{ row }">
+              <div class="bind-code-cell">
+                <span>{{ bindSourceText(row.bindSource) }}</span>
+                <span class="bind-code-mask">{{ row.bindCodeMasked || '-' }}</span>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column label="申请时间" min-width="180">
             <template #default="{ row }">{{ formatDateTime(row.submittedAt) }}</template>
           </el-table-column>
@@ -240,6 +249,18 @@ function resetFilters(): void {
   font-weight: 600;
   letter-spacing: 0.04em;
   word-break: break-all;
+}
+
+.bind-code-cell {
+  display: grid;
+  gap: 6px;
+}
+
+.bind-code-mask {
+  color: #64748b;
+  font-family:
+    'SFMono-Regular', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 12px;
 }
 
 @media (max-width: 720px) {

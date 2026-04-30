@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { AuditSummary } from '../../types/audit'
+import type { EnterpriseBindCodeSummary } from '../../types/enterprise-bind-codes'
 import type { EnterpriseDetail } from '../../types/enterprises'
 import type { UserSummary } from '../../types/users'
 import AuditListTable from '../audit/AuditListTable.vue'
+import EnterpriseBindCodePanel from './EnterpriseBindCodePanel.vue'
 
 defineProps<{
   visible: boolean
@@ -17,12 +19,18 @@ defineProps<{
   canEdit?: boolean
   canToggleStatus?: boolean
   canViewUsers?: boolean
+  bindCode?: EnterpriseBindCodeSummary | null
+  bindCodeLoading?: boolean
+  canViewBindCode?: boolean
+  canManageBindCode?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   edit: []
   toggleStatus: []
+  'bind-code-rotate': []
+  'bind-code-disable': []
   'audit-detail': [row: AuditSummary]
   'audit-page-change': [page: number]
   'audit-size-change': [size: number]
@@ -70,6 +78,20 @@ function formatDateTime(value?: string): string {
             >
               {{ detail.enabled ? '禁用企业' : '启用企业' }}
             </el-button>
+          </div>
+
+          <div v-if="canViewBindCode" class="summary-block">
+            <div class="summary-head">
+              <h3>企业绑定码</h3>
+              <span>用于 Edge 端发起企业绑定申请，和设备激活码分离管理</span>
+            </div>
+            <EnterpriseBindCodePanel
+              :loading="bindCodeLoading"
+              :data="bindCode"
+              :can-manage="canManageBindCode"
+              @rotate="emit('bind-code-rotate')"
+              @disable="emit('bind-code-disable')"
+            />
           </div>
 
           <div class="summary-block">

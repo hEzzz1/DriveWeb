@@ -33,6 +33,8 @@ function normalizeApproval(item: DeviceApprovalApiItem): DeviceApprovalSummary {
     activationCode: item.activationCode || item.device?.activationCode || undefined,
     enterpriseId: item.enterpriseId,
     enterpriseName: item.enterpriseName || undefined,
+    bindCodeMasked: item.bindCodeMasked || undefined,
+    bindSource: item.bindSource || undefined,
     status: item.status,
     applyRemark: item.applyRemark || undefined,
     approveRemark: item.approveRemark || undefined,

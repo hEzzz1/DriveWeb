@@ -24,7 +24,7 @@ const realtimeStore = useRealtimeStore()
 authStore.hydrate()
 
 const navItems = computed<NavItem[]>(() => [
-  { key: 'enterprises', section: 'business', label: '企业管理', subtitle: '企业列表、详情、启停与资料维护', visible: access.value.canViewEnterprises, path: '/enterprises' },
+  { key: 'enterprises', section: 'business', label: '企业管理', subtitle: '企业资料、绑定码与启停管理', visible: access.value.canViewEnterprises, path: '/enterprises' },
   { key: 'fleets', section: 'business', label: '车队管理', subtitle: '企业归属、车队状态与资源规模', visible: access.value.canViewFleets, path: '/fleets' },
   { key: 'drivers', section: 'business', label: '驾驶员管理', subtitle: '驾驶员编号、车队归属与 PIN 管理', visible: access.value.canViewDrivers, path: '/drivers' },
   { key: 'vehicles', section: 'business', label: '车辆管理', subtitle: '车辆主数据与设备绑定状态', visible: access.value.canViewVehicles, path: '/vehicles' },

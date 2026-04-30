@@ -7,6 +7,11 @@ import EnterpriseCreateDialog from '../components/enterprises/EnterpriseCreateDi
 import EnterpriseDetailDrawer from '../components/enterprises/EnterpriseDetailDrawer.vue'
 import EnterpriseEditDialog from '../components/enterprises/EnterpriseEditDialog.vue'
 import EnterpriseListTable from '../components/enterprises/EnterpriseListTable.vue'
+import {
+  disableEnterpriseBindCode,
+  getEnterpriseBindCode,
+  rotateEnterpriseBindCode,
+} from '../api/enterprise-bind-codes'
 import { getAuditDetail, getAuditList } from '../api/audit'
 import {
   createEnterprise,
@@ -18,6 +23,7 @@ import {
 import { getUserList } from '../api/users'
 import { useAccess } from '../composables/useAccess'
 import type { AuditDetail, AuditSummary } from '../types/audit'
+import type { EnterpriseBindCodeSummary } from '../types/enterprise-bind-codes'
 import type { EnterpriseDetail, EnterpriseListQuery, EnterpriseSummary } from '../types/enterprises'
 import type { UserSummary } from '../types/users'
 import { normalizeAuditDetail } from '../utils/audit'
@@ -35,6 +41,7 @@ const editSaving = ref(false)
 const statusSaving = ref(false)
 const detailLoading = ref(false)
 const auditLoading = ref(false)
+const bindCodeLoading = ref(false)
 const errorText = ref('')
 
 const items = ref<EnterpriseSummary[]>([])
@@ -54,6 +61,7 @@ const auditTotal = ref(0)
 const auditPage = ref(1)
 const auditSize = ref(5)
 const activeAuditDetail = ref<AuditDetail | null>(null)
+const activeBindCode = ref<EnterpriseBindCodeSummary | null>(null)
 
 const filters = reactive<FilterModel>({
   keyword: '',
@@ -140,14 +148,36 @@ async function handleOpenDetail(row: EnterpriseSummary): Promise<void> {
   auditSize.value = 5
   activeUsers.value = []
   activeAuditItems.value = []
+  activeBindCode.value = null
 
   try {
     activeDetail.value = await getEnterpriseDetail(row.id)
-    await Promise.all([fetchEnterpriseUsers(), fetchEnterpriseAudits()])
+    await Promise.all([
+      fetchEnterpriseUsers(),
+      fetchEnterpriseAudits(),
+      fetchEnterpriseBindCode(),
+    ])
   } catch {
     detailVisible.value = false
   } finally {
     detailLoading.value = false
+  }
+}
+
+async function fetchEnterpriseBindCode(): Promise<void> {
+  if (!activeDetail.value || !access.value.canViewEnterpriseBindCodes) {
+    activeBindCode.value = null
+    return
+  }
+
+  bindCodeLoading.value = true
+
+  try {
+    activeBindCode.value = await getEnterpriseBindCode(activeDetail.value.id, { silentError: true })
+  } catch {
+    activeBindCode.value = null
+  } finally {
+    bindCodeLoading.value = false
   }
 }
 
@@ -266,6 +296,62 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
   activeAuditDetail.value = normalizeAuditDetail(await getAuditDetail(row.id))
   auditDetailVisible.value = true
 }
+
+async function handleRotateBindCode(): Promise<void> {
+  if (!activeDetail.value || !access.value.canManageEnterpriseBindCodes) {
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确认轮换企业「${activeDetail.value.name}」的绑定码吗？旧码轮换后将失效。`,
+      '轮换企业绑定码',
+      {
+        type: 'warning',
+        confirmButtonText: '确认轮换',
+        cancelButtonText: '取消',
+      },
+    )
+  } catch {
+    return
+  }
+
+  bindCodeLoading.value = true
+  try {
+    activeBindCode.value = await rotateEnterpriseBindCode(activeDetail.value.id)
+    ElMessage.success('企业绑定码已轮换')
+  } finally {
+    bindCodeLoading.value = false
+  }
+}
+
+async function handleDisableBindCode(): Promise<void> {
+  if (!activeDetail.value || !access.value.canManageEnterpriseBindCodes) {
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确认停用企业「${activeDetail.value.name}」的当前绑定码吗？停用后设备端将无法继续使用该码发起绑定。`,
+      '停用企业绑定码',
+      {
+        type: 'warning',
+        confirmButtonText: '确认停用',
+        cancelButtonText: '取消',
+      },
+    )
+  } catch {
+    return
+  }
+
+  bindCodeLoading.value = true
+  try {
+    activeBindCode.value = await disableEnterpriseBindCode(activeDetail.value.id)
+    ElMessage.success('企业绑定码已停用')
+  } finally {
+    bindCodeLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -274,7 +360,7 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
       <div>
         <p class="eyebrow">Enterprises</p>
         <h1>企业管理</h1>
-        <p class="subhead">企业列表、详情、创建、编辑、状态切换和企业域审计已收成独立模块；系统管理员默认只读，超级管理员可执行变更。</p>
+        <p class="subhead">企业页同时承载资料维护、企业绑定码管理和企业域审计；绑定码只对超级管理员和企业管理员开放。</p>
       </div>
     </div>
 
@@ -302,7 +388,7 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
       </div>
     </PageSectionCard>
 
-    <PageSectionCard title="企业列表" description="企业管理从用户页独立出来；列表中补了用户数、联系人和状态切换入口。">
+    <PageSectionCard title="企业列表" description="企业详情抽屉内可查看企业绑定码、二维码、轮换时间和失效时间。">
       <el-alert v-if="errorText" :closable="false" type="error" :title="errorText" show-icon />
       <EnterpriseListTable
         :items="items"
@@ -333,6 +419,8 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
       v-model:visible="detailVisible"
       :detail="activeDetail"
       :loading="detailLoading"
+      :bind-code="activeBindCode"
+      :bind-code-loading="bindCodeLoading"
       :users="activeUsers"
       :audits="activeAuditItems"
       :audit-loading="auditLoading"
@@ -342,8 +430,12 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
       :can-edit="access.canEditEnterprise"
       :can-toggle-status="access.canEditEnterprise"
       :can-view-users="access.canViewUsers"
+      :can-view-bind-code="access.canViewEnterpriseBindCodes"
+      :can-manage-bind-code="access.canManageEnterpriseBindCodes"
       @edit="editVisible = true"
       @toggle-status="handleToggleStatus()"
+      @bind-code-rotate="handleRotateBindCode"
+      @bind-code-disable="handleDisableBindCode"
       @audit-detail="handleOpenAuditDetail"
       @audit-page-change="auditPage = $event; fetchEnterpriseAudits()"
       @audit-size-change="auditSize = $event; auditPage = 1; fetchEnterpriseAudits()"
