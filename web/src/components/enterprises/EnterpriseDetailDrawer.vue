@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { AuditSummary } from '../../types/audit'
-import type { EnterpriseBindCodeSummary } from '../../types/enterprise-bind-codes'
+import type { EnterpriseActivationCodeSummary } from '../../types/enterprise-activation-codes'
 import type { EnterpriseDetail } from '../../types/enterprises'
 import type { UserSummary } from '../../types/users'
 import AuditListTable from '../audit/AuditListTable.vue'
-import EnterpriseBindCodePanel from './EnterpriseBindCodePanel.vue'
+import EnterpriseActivationCodePanel from './EnterpriseActivationCodePanel.vue'
 
 defineProps<{
   visible: boolean
@@ -19,18 +19,18 @@ defineProps<{
   canEdit?: boolean
   canToggleStatus?: boolean
   canViewUsers?: boolean
-  bindCode?: EnterpriseBindCodeSummary | null
-  bindCodeLoading?: boolean
-  canViewBindCode?: boolean
-  canManageBindCode?: boolean
+  activationCode?: EnterpriseActivationCodeSummary | null
+  activationCodeLoading?: boolean
+  canViewActivationCode?: boolean
+  canManageActivationCode?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   edit: []
   toggleStatus: []
-  'bind-code-rotate': []
-  'bind-code-disable': []
+  'activation-code-rotate': []
+  'activation-code-disable': []
   'audit-detail': [row: AuditSummary]
   'audit-page-change': [page: number]
   'audit-size-change': [size: number]
@@ -80,17 +80,17 @@ function formatDateTime(value?: string): string {
             </el-button>
           </div>
 
-          <div v-if="canViewBindCode" class="summary-block">
+          <div v-if="canViewActivationCode" class="summary-block">
             <div class="summary-head">
-              <h3>企业绑定码</h3>
-              <span>用于 Edge 端发起企业绑定申请，和设备激活码分离管理</span>
+              <h3>企业激活码</h3>
+              <span>这是当前企业唯一人工输入码，安装人员在 Edge 端输入后设备会直接绑定到本企业</span>
             </div>
-            <EnterpriseBindCodePanel
-              :loading="bindCodeLoading"
-              :data="bindCode"
-              :can-manage="canManageBindCode"
-              @rotate="emit('bind-code-rotate')"
-              @disable="emit('bind-code-disable')"
+            <EnterpriseActivationCodePanel
+              :loading="activationCodeLoading"
+              :data="activationCode"
+              :can-manage="canManageActivationCode"
+              @rotate="emit('activation-code-rotate')"
+              @disable="emit('activation-code-disable')"
             />
           </div>
 

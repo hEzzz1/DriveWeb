@@ -1,12 +1,10 @@
 import type { PageQuery, PageResult } from './api'
 
-export type DeviceLifecycleStatus = 'NEW' | 'ACTIVATED' | 'DISABLED'
-export type EnterpriseBindStatus = 'UNBOUND' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED'
+export type DeviceLifecycleStatus = 'NEW' | 'BOUND' | 'DISABLED'
 export type VehicleBindStatus = 'UNASSIGNED' | 'ASSIGNED'
 export type SessionStage = 'IDLE' | 'ACTIVE'
 export type EffectiveStage =
-  | 'APPLY_BIND'
-  | 'PENDING_APPROVAL'
+  | 'CLAIM_ENTERPRISE'
   | 'WAITING_VEHICLE'
   | 'READY_SIGN_IN'
   | 'IN_SESSION'
@@ -38,13 +36,10 @@ export interface DeviceSummary {
   vehiclePlateNumber?: string
   deviceCode: string
   deviceName: string
-  activationCode?: string
   lifecycleStatus: DeviceLifecycleStatus
-  enterpriseBindStatus: EnterpriseBindStatus
   vehicleBindStatus: VehicleBindStatus
   sessionStage: SessionStage
   effectiveStage: EffectiveStage
-  lastActivatedAt?: string
   lastSeenAt?: string
   currentDriver?: DeviceCurrentDriver
   activeSession?: DeviceActiveSession
@@ -61,13 +56,11 @@ export interface CreateDevicePayload {
   vehicleId?: number
   deviceCode: string
   deviceName: string
-  activationCode?: string
   remark?: string
 }
 
 export interface UpdateDevicePayload {
   deviceName: string
-  activationCode?: string
   remark?: string
 }
 
@@ -110,7 +103,6 @@ export interface DeviceApiItem {
   id: number
   deviceCode: string
   deviceName: string
-  activationCode?: string | null
   enterpriseId?: number | null
   enterpriseName?: string | null
   fleetId?: number | null
@@ -121,11 +113,9 @@ export interface DeviceApiItem {
   fleet?: DeviceApiPartyRef | null
   vehicle?: DeviceApiVehicleRef | null
   lifecycleStatus: DeviceLifecycleStatus
-  enterpriseBindStatus: EnterpriseBindStatus
   vehicleBindStatus: VehicleBindStatus
   sessionStage: SessionStage
   effectiveStage: EffectiveStage
-  lastActivatedAt?: string | null
   lastSeenAt?: string | null
   currentDriver?: DeviceApiCurrentDriver | null
   activeSession?: DeviceApiActiveSession | null

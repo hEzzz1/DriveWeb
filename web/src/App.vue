@@ -24,11 +24,11 @@ const realtimeStore = useRealtimeStore()
 authStore.hydrate()
 
 const navItems = computed<NavItem[]>(() => [
-  { key: 'enterprises', section: 'business', label: '企业管理', subtitle: '企业资料、绑定码与启停管理', visible: access.value.canViewEnterprises, path: '/enterprises' },
+  { key: 'enterprises', section: 'business', label: '企业管理', subtitle: '企业资料、激活码与启停管理', visible: access.value.canViewEnterprises, path: '/enterprises' },
   { key: 'fleets', section: 'business', label: '车队管理', subtitle: '企业归属、车队状态与资源规模', visible: access.value.canViewFleets, path: '/fleets' },
   { key: 'drivers', section: 'business', label: '驾驶员管理', subtitle: '驾驶员编号、车队归属与 PIN 管理', visible: access.value.canViewDrivers, path: '/drivers' },
   { key: 'vehicles', section: 'business', label: '车辆管理', subtitle: '车辆主数据与设备绑定状态', visible: access.value.canViewVehicles, path: '/vehicles' },
-  { key: 'device-approvals', section: 'business', label: '设备绑定审批', subtitle: '设备申请审核、驳回原因与审批记录', visible: access.value.canViewDeviceApprovals, path: '/device-approvals' },
+  { key: 'device-bind-logs', section: 'business', label: '设备绑定日志', subtitle: '设备认领记录、企业激活码脱敏值与绑定流水', visible: access.value.canViewDeviceApprovals, path: '/device-bind-logs' },
   { key: 'devices', section: 'business', label: '设备管理', subtitle: '设备台账、归属信息与车辆分配', visible: access.value.canViewDevices, path: '/devices' },
   { key: 'sessions', section: 'monitor', label: '驾驶会话', subtitle: '会话列表、最近心跳与强制签退', visible: access.value.canViewSessions, path: '/sessions' },
   { key: 'alerts', section: 'monitor', label: '告警中心', subtitle: '告警筛选、详情查看与处置', visible: authStore.hasAnyRole(['SUPER_ADMIN', 'OPERATOR', 'ANALYST', 'VIEWER']), path: '/alerts' },

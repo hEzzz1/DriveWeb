@@ -11,12 +11,9 @@ import { useAuthStore } from '../stores/auth'
 import type { DeviceSummary } from '../types/devices'
 import type { EnterpriseSummary } from '../types/enterprises'
 import type { FleetSummary } from '../types/fleets'
-import { formatClaimCode } from '../utils/device-claim'
 import {
   effectiveStageTagType,
   effectiveStageText,
-  enterpriseBindStatusTagType,
-  enterpriseBindStatusText,
   lifecycleStatusTagType,
   lifecycleStatusText,
   vehicleBindStatusTagType,
@@ -143,7 +140,7 @@ function openDetail(row: DeviceSummary): void {
       <div>
         <p class="eyebrow">Device Registry</p>
         <h1>设备管理</h1>
-        <p class="subhead">设备台账只展示服务端统一状态模型，审批后的分车动作在设备详情继续处理。</p>
+        <p class="subhead">设备绑定改为直接由企业激活码完成后，企业管理员会在这里直接看到新绑定设备和待分车状态。</p>
       </div>
     </div>
 
@@ -172,34 +169,19 @@ function openDetail(row: DeviceSummary): void {
       <div class="table-wrap">
         <el-table :data="items" :loading="loading" stripe>
           <el-table-column prop="deviceCode" label="设备码" min-width="140" />
-          <el-table-column prop="deviceName" label="设备名" min-width="160" />
-          <el-table-column label="激活码 / 认领码" min-width="220">
-            <template #default="{ row }">
-              <div class="activation-cell">
-                <span class="activation-code">{{ row.activationCode || '-' }}</span>
-                <span v-if="row.activationCode" class="claim-code">{{ formatClaimCode(row.activationCode) }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="生命周期" width="120">
+          <el-table-column prop="deviceName" label="设备名" min-width="180" />
+          <el-table-column label="生命周期" width="130">
             <template #default="{ row }">
               <el-tag effect="plain" :type="lifecycleStatusTagType(row.lifecycleStatus)">
                 {{ lifecycleStatusText(row.lifecycleStatus) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="企业" min-width="170">
+          <el-table-column label="所属企业" min-width="180">
             <template #default="{ row }">{{ row.enterpriseName || row.enterpriseId || '-' }}</template>
           </el-table-column>
           <el-table-column label="车辆 / 车队" min-width="180">
             <template #default="{ row }">{{ vehicleText(row) }}</template>
-          </el-table-column>
-          <el-table-column label="企业绑定" min-width="180">
-            <template #default="{ row }">
-              <el-tag effect="plain" :type="enterpriseBindStatusTagType(row.enterpriseBindStatus)">
-                {{ enterpriseBindStatusText(row.enterpriseBindStatus) }}
-              </el-tag>
-            </template>
           </el-table-column>
           <el-table-column label="车辆绑定" min-width="130">
             <template #default="{ row }">
@@ -217,9 +199,6 @@ function openDetail(row: DeviceSummary): void {
           </el-table-column>
           <el-table-column label="最近在线" min-width="180">
             <template #default="{ row }">{{ formatDateTime(row.lastSeenAt) }}</template>
-          </el-table-column>
-          <el-table-column label="最后激活" min-width="180">
-            <template #default="{ row }">{{ formatDateTime(row.lastActivatedAt) }}</template>
           </el-table-column>
           <el-table-column v-if="access.canManageDevices" label="操作" width="120" fixed="right">
             <template #default="{ row }">
@@ -247,35 +226,6 @@ function openDetail(row: DeviceSummary): void {
 </template>
 
 <style scoped>
-.activation-cell {
-  display: grid;
-  gap: 6px;
-}
-
-.activation-code {
-  font-family:
-    'SFMono-Regular', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
-  font-size: 13px;
-  color: #0f172a;
-  word-break: break-all;
-}
-
-.claim-code {
-  display: inline-flex;
-  width: fit-content;
-  max-width: 100%;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-family:
-    'SFMono-Regular', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  word-break: break-all;
-}
-
 .pager {
   display: flex;
   align-items: center;

@@ -2,24 +2,21 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageSectionCard from '../components/PageSectionCard.vue'
-import { getDeviceApprovalList } from '../api/device-approvals'
+import { getDeviceBindLogList } from '../api/device-approvals'
 import { fetchAllPages } from '../api/pagination'
 import { getEnterpriseList } from '../api/enterprises'
 import { useAuthStore } from '../stores/auth'
-import type { DeviceApprovalStatus, DeviceApprovalSummary } from '../types/device-approvals'
+import type { DeviceBindLogAction, DeviceBindLogSummary } from '../types/device-approvals'
 import type { EnterpriseSummary } from '../types/enterprises'
-import { formatClaimCode } from '../utils/device-claim'
 import {
-  approvalStatusTagType,
-  approvalStatusText,
-  bindSourceText,
-  effectiveStageTagType,
-  effectiveStageText,
+  deviceBindLogActionTagType,
+  deviceBindLogActionText,
+  operatorTypeText,
 } from '../utils/device-status'
 
 interface FilterModel {
   enterpriseId?: number
-  status?: DeviceApprovalStatus
+  action?: DeviceBindLogAction
   deviceCode?: string
 }
 
@@ -28,7 +25,7 @@ const authStore = useAuthStore()
 
 const loading = ref(false)
 const errorText = ref('')
-const items = ref<DeviceApprovalSummary[]>([])
+const items = ref<DeviceBindLogSummary[]>([])
 const enterprises = ref<EnterpriseSummary[]>([])
 const total = ref(0)
 const currentPage = ref(1)
@@ -36,11 +33,14 @@ const pageSize = ref(10)
 
 const filters = reactive<FilterModel>({
   enterpriseId: undefined,
-  status: undefined,
+  action: undefined,
   deviceCode: '',
 })
 
 const enterpriseOptions = computed(() => enterprises.value.map((item) => ({ value: item.id, label: `${item.name} (#${item.id})` })))
+const selectedEnterpriseId = computed(() =>
+  authStore.isSuperAdmin ? filters.enterpriseId : Number(authStore.enterpriseId) || undefined,
+)
 
 onMounted(async () => {
   authStore.hydrate()
@@ -58,13 +58,20 @@ async function fetchReferences(): Promise<void> {
 }
 
 async function fetchList(): Promise<void> {
+  const enterpriseId = selectedEnterpriseId.value
+  if (!enterpriseId) {
+    items.value = []
+    total.value = 0
+    errorText.value = ''
+    return
+  }
+
   loading.value = true
   try {
-    const data = await getDeviceApprovalList({
+    const data = await getDeviceBindLogList(enterpriseId, {
       page: currentPage.value,
       size: pageSize.value,
-      enterpriseId: authStore.isSuperAdmin ? filters.enterpriseId : Number(authStore.enterpriseId) || undefined,
-      status: filters.status,
+      action: filters.action,
       deviceCode: filters.deviceCode?.trim() || undefined,
     })
     items.value = data.items
@@ -73,7 +80,7 @@ async function fetchList(): Promise<void> {
     pageSize.value = data.size || pageSize.value
     errorText.value = ''
   } catch (error) {
-    errorText.value = error instanceof Error ? error.message : '审批列表加载失败'
+    errorText.value = error instanceof Error ? error.message : '绑定日志加载失败'
   } finally {
     loading.value = false
   }
@@ -83,17 +90,26 @@ function formatDateTime(value?: string): string {
   return value ? new Date(value).toLocaleString() : '-'
 }
 
-function reviewFeedback(row: DeviceApprovalSummary): string {
-  return row.rejectReason || row.approveRemark || '-'
+function operatorText(row: DeviceBindLogSummary): string {
+  const actor = row.operatorName || (row.operatorId ? `#${row.operatorId}` : '')
+  if (actor) {
+    return `${operatorTypeText(row.operatorType)} / ${actor}`
+  }
+
+  return operatorTypeText(row.operatorType)
 }
 
-function openDetail(row: DeviceApprovalSummary): void {
-  router.push(`/device-approvals/${row.id}`)
+function openDetail(row: DeviceBindLogSummary): void {
+  sessionStorage.setItem(`device-bind-log:${row.id}`, JSON.stringify(row))
+  router.push({
+    path: `/device-bind-logs/${row.id}`,
+    query: { enterpriseId: String(row.enterpriseId) },
+  })
 }
 
 function resetFilters(): void {
   filters.enterpriseId = undefined
-  filters.status = undefined
+  filters.action = undefined
   filters.deviceCode = ''
   currentPage.value = 1
   void fetchList()
@@ -104,16 +120,16 @@ function resetFilters(): void {
   <div class="page-shell">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Approval Desk</p>
-        <h1>设备绑定审批</h1>
-        <p class="subhead">审批列表只展示服务端返回的申请状态、审批反馈和设备阶段，避免前端自行推断。</p>
+        <p class="eyebrow">Bind Logs</p>
+        <h1>设备绑定日志</h1>
+        <p class="subhead">原审批主流程已下线，当前页面展示设备被企业激活码认领后的绑定记录。</p>
       </div>
     </div>
 
-    <PageSectionCard title="筛选条件" description="支持按企业、设备码和审批状态筛选，`EXPIRED` 申请会单独展示。">
+    <PageSectionCard title="筛选条件" description="企业管理员默认查看本企业绑定日志；超级管理员需要先选择企业。">
       <div class="filter-bar">
         <el-form inline>
-          <el-form-item v-if="authStore.isSuperAdmin" label="申请企业">
+          <el-form-item v-if="authStore.isSuperAdmin" label="所属企业">
             <el-select v-model="filters.enterpriseId" clearable filterable style="width: 220px">
               <el-option v-for="item in enterpriseOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
@@ -121,12 +137,12 @@ function resetFilters(): void {
           <el-form-item label="设备码">
             <el-input v-model="filters.deviceCode" clearable placeholder="请输入设备码" style="width: 220px" />
           </el-form-item>
-          <el-form-item label="状态">
-            <el-select v-model="filters.status" clearable style="width: 180px">
-              <el-option label="待审批" value="PENDING" />
-              <el-option label="已通过" value="APPROVED" />
-              <el-option label="已驳回" value="REJECTED" />
-              <el-option label="已过期" value="EXPIRED" />
+          <el-form-item label="动作">
+            <el-select v-model="filters.action" clearable style="width: 180px">
+              <el-option label="首次认领" value="CLAIMED" />
+              <el-option label="重新绑定" value="REBOUND" />
+              <el-option label="解绑" value="UNBOUND" />
+              <el-option label="自动恢复" value="AUTO_RECOVERED" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -136,58 +152,39 @@ function resetFilters(): void {
         </el-form>
       </div>
 
-      <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" />
+      <el-alert
+        v-if="authStore.isSuperAdmin && !selectedEnterpriseId"
+        title="请选择企业后再查看绑定日志"
+        type="info"
+        :closable="false"
+      />
+      <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
 
       <div class="table-wrap">
         <el-table :data="items" :loading="loading" stripe>
           <el-table-column prop="deviceCode" label="设备码" min-width="140" />
           <el-table-column prop="deviceName" label="设备名" min-width="160" />
-          <el-table-column label="激活码 / 认领码" min-width="220">
-            <template #default="{ row }">
-              <div class="activation-cell">
-                <span class="activation-code">{{ row.activationCode || '-' }}</span>
-                <span v-if="row.activationCode" class="claim-code">{{ formatClaimCode(row.activationCode) }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="申请企业" min-width="180">
+          <el-table-column label="所属企业" min-width="180">
             <template #default="{ row }">{{ row.enterpriseName || row.enterpriseId }}</template>
           </el-table-column>
-          <el-table-column label="绑定来源" min-width="220">
+          <el-table-column label="动作" width="120">
             <template #default="{ row }">
-              <div class="bind-code-cell">
-                <span>{{ bindSourceText(row.bindSource) }}</span>
-                <span class="bind-code-mask">{{ row.bindCodeMasked || '-' }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="申请时间" min-width="180">
-            <template #default="{ row }">{{ formatDateTime(row.submittedAt) }}</template>
-          </el-table-column>
-          <el-table-column label="审批时间" min-width="180">
-            <template #default="{ row }">{{ formatDateTime(row.reviewedAt) }}</template>
-          </el-table-column>
-          <el-table-column label="状态" width="120">
-            <template #default="{ row }">
-              <el-tag effect="plain" :type="approvalStatusTagType(row.status)">{{ approvalStatusText(row.status) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="设备阶段" min-width="170">
-            <template #default="{ row }">
-              <el-tag v-if="row.effectiveStage" effect="plain" :type="effectiveStageTagType(row.effectiveStage)">
-                {{ effectiveStageText(row.effectiveStage) }}
+              <el-tag effect="plain" :type="deviceBindLogActionTagType(row.action)">
+                {{ deviceBindLogActionText(row.action) }}
               </el-tag>
-              <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column label="申请备注" min-width="220">
-            <template #default="{ row }">{{ row.applyRemark || '-' }}</template>
+          <el-table-column label="企业激活码" min-width="180">
+            <template #default="{ row }">{{ row.activationCodeMasked || '-' }}</template>
           </el-table-column>
-          <el-table-column label="审批反馈" min-width="240">
-            <template #default="{ row }">{{ reviewFeedback(row) }}</template>
+          <el-table-column label="操作来源 / 操作人" min-width="220">
+            <template #default="{ row }">{{ operatorText(row) }}</template>
           </el-table-column>
-          <el-table-column label="最近在线时间" min-width="180">
-            <template #default="{ row }">{{ formatDateTime(row.lastSeenAt) }}</template>
+          <el-table-column label="备注" min-width="220">
+            <template #default="{ row }">{{ row.remark || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="记录时间" min-width="180">
+            <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
           </el-table-column>
           <el-table-column label="操作" width="120" fixed="right">
             <template #default="{ row }">
@@ -220,47 +217,6 @@ function resetFilters(): void {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.activation-cell {
-  display: grid;
-  gap: 6px;
-}
-
-.activation-code {
-  font-family:
-    'SFMono-Regular', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
-  font-size: 13px;
-  color: #0f172a;
-  word-break: break-all;
-}
-
-.claim-code {
-  display: inline-flex;
-  width: fit-content;
-  max-width: 100%;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-family:
-    'SFMono-Regular', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  word-break: break-all;
-}
-
-.bind-code-cell {
-  display: grid;
-  gap: 6px;
-}
-
-.bind-code-mask {
-  color: #64748b;
-  font-family:
-    'SFMono-Regular', 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
-  font-size: 12px;
 }
 
 @media (max-width: 720px) {

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute } from 'vue-router'
-import DeviceActivationPanel from '../components/devices/DeviceActivationPanel.vue'
 import PageSectionCard from '../components/PageSectionCard.vue'
-import { getDeviceDetail, reassignDeviceVehicle } from '../api/devices'
+import { getDeviceDetail, reassignDeviceVehicle, unassignDeviceVehicle } from '../api/devices'
 import { getFleetList } from '../api/fleets'
 import { fetchAllPages } from '../api/pagination'
 import { getVehicleList } from '../api/vehicles'
@@ -15,8 +14,6 @@ import type { VehicleSummary } from '../types/vehicles'
 import {
   effectiveStageTagType,
   effectiveStageText,
-  enterpriseBindStatusTagType,
-  enterpriseBindStatusText,
   lifecycleStatusTagType,
   lifecycleStatusText,
   sessionStageTagType,
@@ -30,6 +27,7 @@ const authStore = useAuthStore()
 
 const loading = ref(false)
 const saving = ref(false)
+const unassigning = ref(false)
 const detail = ref<DeviceDetail | null>(null)
 const fleets = ref<FleetSummary[]>([])
 const vehicles = ref<VehicleSummary[]>([])
@@ -46,6 +44,7 @@ const canAssignVehicle = computed(() => {
   const stage = detail.value?.effectiveStage
   return stage === 'WAITING_VEHICLE' || stage === 'READY_SIGN_IN'
 })
+const canUnassignVehicle = computed(() => Boolean(detail.value?.vehicleId) && canAssignVehicle.value)
 const fleetOptions = computed(() => {
   const enterpriseId = detail.value?.enterpriseId
   return fleets.value.filter((item) => !enterpriseId || item.enterpriseId === enterpriseId)
@@ -179,6 +178,35 @@ async function submitAssignment(): Promise<void> {
     saving.value = false
   }
 }
+
+async function handleUnassignVehicle(): Promise<void> {
+  if (!detail.value || !canUnassignVehicle.value) {
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确认取消设备「${detail.value.deviceCode}」的当前分车吗？`,
+      '取消分车',
+      {
+        type: 'warning',
+        confirmButtonText: '确认取消',
+        cancelButtonText: '保留分车',
+      },
+    )
+  } catch {
+    return
+  }
+
+  unassigning.value = true
+  try {
+    detail.value = enrichDevice(await unassignDeviceVehicle(detail.value.id))
+    syncAssignmentForm()
+    ElMessage.success('设备已取消分车')
+  } finally {
+    unassigning.value = false
+  }
+}
 </script>
 
 <template>
@@ -187,13 +215,13 @@ async function submitAssignment(): Promise<void> {
       <div>
         <p class="eyebrow">Device Detail</p>
         <h1>设备详情</h1>
-        <p class="subhead">设备详情页直接消费服务端返回的分层状态，并只在允许分车的阶段展示车辆分配区。</p>
+        <p class="subhead">设备详情页只展示当前企业归属和当前分车状态；企业激活码统一回企业页查看。</p>
       </div>
     </div>
 
     <el-skeleton :loading="loading" animated :rows="10">
       <template #default>
-        <PageSectionCard title="设备信息" description="展示企业归属、车辆归属和服务端统一计算的生命周期、绑定状态、会话状态。">
+        <PageSectionCard title="设备信息" description="展示设备当前企业归属、车辆归属和服务端统一计算的运行状态。">
           <el-descriptions v-if="detail" :column="2" border>
             <el-descriptions-item label="设备码">{{ detail.deviceCode }}</el-descriptions-item>
             <el-descriptions-item label="设备名">{{ detail.deviceName }}</el-descriptions-item>
@@ -203,11 +231,6 @@ async function submitAssignment(): Promise<void> {
             <el-descriptions-item label="生命周期">
               <el-tag effect="plain" :type="lifecycleStatusTagType(detail.lifecycleStatus)">
                 {{ lifecycleStatusText(detail.lifecycleStatus) }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="企业绑定">
-              <el-tag effect="plain" :type="enterpriseBindStatusTagType(detail.enterpriseBindStatus)">
-                {{ enterpriseBindStatusText(detail.enterpriseBindStatus) }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="车辆绑定">
@@ -228,24 +251,14 @@ async function submitAssignment(): Promise<void> {
             <el-descriptions-item label="当前司机">{{ currentDriverText() }}</el-descriptions-item>
             <el-descriptions-item label="活动会话">{{ activeSessionText() }}</el-descriptions-item>
             <el-descriptions-item label="最近在线">{{ formatDateTime(detail.lastSeenAt) }}</el-descriptions-item>
-            <el-descriptions-item label="最后激活">{{ formatDateTime(detail.lastActivatedAt) }}</el-descriptions-item>
             <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
           </el-descriptions>
-        </PageSectionCard>
-
-        <PageSectionCard title="激活与认领" description="同时展示原始 activationCode、便于人工核验的认领码，以及扫码可读的二维码。">
-          <DeviceActivationPanel
-            v-if="detail"
-            :device-code="detail.deviceCode"
-            :device-name="detail.deviceName"
-            :activation-code="detail.activationCode"
-          />
         </PageSectionCard>
 
         <PageSectionCard
           v-if="detail && canAssignVehicle"
           title="车辆分配"
-          description="只允许在企业绑定通过后的待分车和可签到阶段调整车辆；同企业内已被其他设备占用的车辆会展示但禁选。"
+          description="企业绑定完成后，管理端在这里完成分车和取消分车；已被其他设备占用的车辆会展示但禁选。"
         >
           <el-form label-position="top">
             <el-form-item label="按车队筛选">
@@ -265,7 +278,10 @@ async function submitAssignment(): Promise<void> {
               </el-select>
             </el-form-item>
             <p class="hint-text">仅可分配当前企业车辆；已绑定到其他设备的车辆会保留在列表中并置灰显示占用设备码。</p>
-            <el-button type="primary" :loading="saving" @click="submitAssignment">保存车辆分配</el-button>
+            <div class="action-row">
+              <el-button type="primary" :loading="saving" @click="submitAssignment">保存车辆分配</el-button>
+              <el-button v-if="canUnassignVehicle" plain :loading="unassigning" @click="handleUnassignVehicle">取消分车</el-button>
+            </div>
           </el-form>
         </PageSectionCard>
       </template>
@@ -283,5 +299,11 @@ async function submitAssignment(): Promise<void> {
   color: #64748b;
   font-size: 13px;
   line-height: 1.5;
+}
+
+.action-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 </style>

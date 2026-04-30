@@ -1,102 +1,54 @@
 import type { PageQuery, PageResult } from './api'
-import type { DeviceDetail, DeviceApiItem, EffectiveStage } from './devices'
+import type { DeviceApiItem, DeviceDetail } from './devices'
 
-export type DeviceApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED'
-export type DeviceApprovalHistoryAction =
-  | 'SUBMITTED'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'EXPIRED'
-  | 'RESUBMITTED'
-  | 'CANCELED'
+export type DeviceBindLogAction = 'CLAIMED' | 'REBOUND' | 'UNBOUND' | 'AUTO_RECOVERED'
 
-export interface DeviceApprovalListQuery extends PageQuery {
-  enterpriseId?: number
-  status?: DeviceApprovalStatus
+export interface DeviceBindLogListQuery extends PageQuery {
   deviceCode?: string
+  action?: DeviceBindLogAction
 }
 
-export interface DeviceApprovalHistoryRecord {
+export interface DeviceBindLogSummary {
   id: number
-  action: DeviceApprovalHistoryAction
+  deviceId?: number
+  deviceCode: string
+  deviceName?: string
+  enterpriseId: number
+  enterpriseName?: string
+  activationCodeMasked?: string
+  action: DeviceBindLogAction
+  operatorType?: string
   operatorId?: number
   operatorName?: string
   remark?: string
   createdAt?: string
 }
 
-export interface DeviceApprovalSummary {
-  id: number
-  deviceId?: number
-  deviceCode: string
-  deviceName: string
-  activationCode?: string
-  enterpriseId: number
-  enterpriseName?: string
-  bindCodeMasked?: string
-  bindSource?: string
-  status: DeviceApprovalStatus
-  applyRemark?: string
-  approveRemark?: string
-  rejectReason?: string
-  submittedAt?: string
-  reviewedAt?: string
-  reviewedBy?: string
-  expiresAt?: string
-  lastSeenAt?: string
-  effectiveStage?: EffectiveStage
-}
-
-export interface DeviceApprovalDetail extends DeviceApprovalSummary {
+export interface DeviceBindLogDetail extends DeviceBindLogSummary {
   device?: DeviceDetail
-  history: DeviceApprovalHistoryRecord[]
 }
 
-export type DeviceApprovalListData = PageResult<DeviceApprovalSummary>
+export type DeviceBindLogListData = PageResult<DeviceBindLogSummary>
 
-export interface ApproveDeviceApprovalPayload {
-  remark?: string
-}
-
-export interface RejectDeviceApprovalPayload {
-  reason: string
-}
-
-export interface DeviceApprovalApiHistoryItem {
+export interface DeviceBindLogApiItem {
   id: number
-  action: DeviceApprovalHistoryAction
+  deviceId?: number | null
+  deviceCode: string
+  deviceName?: string | null
+  enterpriseId: number
+  enterpriseName?: string | null
+  activationCodeMasked?: string | null
+  action: DeviceBindLogAction
+  operatorType?: string | null
   operatorId?: number | null
   operatorName?: string | null
   remark?: string | null
   createdAt?: string | null
-}
-
-export interface DeviceApprovalApiItem {
-  id: number
-  deviceId?: number | null
-  deviceCode: string
-  deviceName: string
-  activationCode?: string | null
-  enterpriseId: number
-  enterpriseName?: string | null
-  bindCodeMasked?: string | null
-  bindSource?: string | null
-  status: DeviceApprovalStatus
-  applyRemark?: string | null
-  approveRemark?: string | null
-  rejectReason?: string | null
-  submittedAt?: string | null
-  reviewedAt?: string | null
-  reviewedBy?: string | null
-  expiresAt?: string | null
-  lastSeenAt?: string | null
-  effectiveStage?: EffectiveStage | null
   device?: DeviceApiItem | null
-  history?: DeviceApprovalApiHistoryItem[] | null
 }
 
-export interface DeviceApprovalApiPageData {
-  items: DeviceApprovalApiItem[]
+export interface DeviceBindLogApiPageData {
+  items: DeviceBindLogApiItem[]
   total: number
   page: number
   size: number

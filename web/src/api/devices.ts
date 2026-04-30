@@ -49,13 +49,10 @@ export function normalizeDevice(item: DeviceApiItem): DeviceDetail {
     vehiclePlateNumber: item.vehicle?.plateNumber || item.vehiclePlateNumber || undefined,
     deviceCode: item.deviceCode,
     deviceName: item.deviceName,
-    activationCode: item.activationCode || undefined,
     lifecycleStatus: item.lifecycleStatus,
-    enterpriseBindStatus: item.enterpriseBindStatus,
     vehicleBindStatus: item.vehicleBindStatus,
     sessionStage: item.sessionStage,
     effectiveStage: item.effectiveStage,
-    lastActivatedAt: item.lastActivatedAt || undefined,
     lastSeenAt: item.lastSeenAt || undefined,
     currentDriver: normalizeCurrentDriver(item.currentDriver),
     activeSession: normalizeActiveSession(item.activeSession),
@@ -118,6 +115,13 @@ export function reassignDeviceVehicle(
     url: `/devices/${id}/vehicle`,
     method: 'PUT',
     data: payload,
+  }).then(normalizeDevice)
+}
+
+export function unassignDeviceVehicle(id: number | string): Promise<DeviceDetail> {
+  return request<DeviceApiItem>({
+    url: `/devices/${id}/vehicle`,
+    method: 'DELETE',
   }).then(normalizeDevice)
 }
 

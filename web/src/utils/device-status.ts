@@ -1,46 +1,18 @@
-import type { DeviceApprovalStatus } from '../types/device-approvals'
 import type {
   DeviceLifecycleStatus,
   EffectiveStage,
-  EnterpriseBindStatus,
   SessionStage,
   VehicleBindStatus,
 } from '../types/devices'
 
 export type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
 
-export function approvalStatusText(status: DeviceApprovalStatus): string {
-  switch (status) {
-    case 'PENDING':
-      return '待审批'
-    case 'APPROVED':
-      return '已通过'
-    case 'REJECTED':
-      return '已驳回'
-    case 'EXPIRED':
-      return '已过期'
-  }
-}
-
-export function approvalStatusTagType(status: DeviceApprovalStatus): TagType {
-  switch (status) {
-    case 'PENDING':
-      return 'warning'
-    case 'APPROVED':
-      return 'success'
-    case 'REJECTED':
-      return 'danger'
-    case 'EXPIRED':
-      return 'info'
-  }
-}
-
 export function lifecycleStatusText(status: DeviceLifecycleStatus): string {
   switch (status) {
     case 'NEW':
-      return '未激活'
-    case 'ACTIVATED':
-      return '已激活'
+      return '待绑定企业'
+    case 'BOUND':
+      return '已绑定企业'
     case 'DISABLED':
       return '已禁用'
   }
@@ -50,39 +22,9 @@ export function lifecycleStatusTagType(status: DeviceLifecycleStatus): TagType {
   switch (status) {
     case 'NEW':
       return 'warning'
-    case 'ACTIVATED':
+    case 'BOUND':
       return 'success'
     case 'DISABLED':
-      return 'info'
-  }
-}
-
-export function enterpriseBindStatusText(status: EnterpriseBindStatus): string {
-  switch (status) {
-    case 'UNBOUND':
-      return '未绑定企业'
-    case 'PENDING':
-      return '绑定申请审核中'
-    case 'APPROVED':
-      return '企业已绑定'
-    case 'REJECTED':
-      return '申请已驳回'
-    case 'EXPIRED':
-      return '申请已过期，请重新申请'
-  }
-}
-
-export function enterpriseBindStatusTagType(status: EnterpriseBindStatus): TagType {
-  switch (status) {
-    case 'UNBOUND':
-      return 'info'
-    case 'PENDING':
-      return 'warning'
-    case 'APPROVED':
-      return 'success'
-    case 'REJECTED':
-      return 'danger'
-    case 'EXPIRED':
       return 'info'
   }
 }
@@ -125,10 +67,8 @@ export function sessionStageTagType(status: SessionStage): TagType {
 
 export function effectiveStageText(stage: EffectiveStage): string {
   switch (stage) {
-    case 'APPLY_BIND':
-      return '待申请企业绑定'
-    case 'PENDING_APPROVAL':
-      return '待审批'
+    case 'CLAIM_ENTERPRISE':
+      return '待输入企业激活码'
     case 'WAITING_VEHICLE':
       return '待分配车辆'
     case 'READY_SIGN_IN':
@@ -142,9 +82,7 @@ export function effectiveStageText(stage: EffectiveStage): string {
 
 export function effectiveStageTagType(stage: EffectiveStage): TagType {
   switch (stage) {
-    case 'APPLY_BIND':
-      return 'info'
-    case 'PENDING_APPROVAL':
+    case 'CLAIM_ENTERPRISE':
       return 'warning'
     case 'WAITING_VEHICLE':
       return 'warning'
@@ -157,15 +95,58 @@ export function effectiveStageTagType(stage: EffectiveStage): TagType {
   }
 }
 
-export function bindSourceText(source?: string): string {
-  if (source === 'ENTERPRISE_BIND_CODE') {
-    return '企业绑定码'
+export function deviceBindLogActionText(action: string): string {
+  switch (action) {
+    case 'CLAIMED':
+      return '首次认领'
+    case 'REBOUND':
+      return '重新绑定'
+    case 'UNBOUND':
+      return '解绑'
+    case 'AUTO_RECOVERED':
+      return '自动恢复'
+    default:
+      return action || '-'
+  }
+}
+
+export function deviceBindLogActionTagType(action: string): TagType {
+  switch (action) {
+    case 'CLAIMED':
+      return 'success'
+    case 'REBOUND':
+      return 'warning'
+    case 'UNBOUND':
+      return 'info'
+    case 'AUTO_RECOVERED':
+      return 'primary'
+    default:
+      return 'info'
+  }
+}
+
+export function operatorTypeText(operatorType?: string): string {
+  switch (operatorType) {
+    case 'EDGE_DEVICE':
+      return '边缘设备'
+    case 'ADMIN_USER':
+      return '管理端用户'
+    case 'SYSTEM':
+      return '系统'
+    default:
+      return operatorType || '-'
+  }
+}
+
+export function enterpriseActivationCodeSourceText(source?: string): string {
+  if (source === 'ENTERPRISE_ACTIVATION_CODE') {
+    return '企业激活码'
   }
 
   return source || '-'
 }
 
-export function enterpriseBindCodeStatusText(status: string): string {
+export function enterpriseActivationCodeStatusText(status: string): string {
   switch (status) {
     case 'ACTIVE':
       return '生效中'
@@ -178,7 +159,7 @@ export function enterpriseBindCodeStatusText(status: string): string {
   }
 }
 
-export function enterpriseBindCodeStatusTagType(status: string): TagType {
+export function enterpriseActivationCodeStatusTagType(status: string): TagType {
   switch (status) {
     case 'ACTIVE':
       return 'success'

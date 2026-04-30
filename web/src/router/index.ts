@@ -139,13 +139,24 @@ const router = createRouter({
     },
     {
       path: '/device-approvals',
-      name: 'device-approval-list',
+      redirect: '/device-bind-logs',
+    },
+    {
+      path: '/device-bind-logs',
+      name: 'device-bind-log-list',
       component: DeviceApprovalListView,
       meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
     },
     {
       path: '/device-approvals/:id',
-      name: 'device-approval-detail',
+      redirect: (to) => ({
+        path: `/device-bind-logs/${to.params.id}`,
+        query: to.query,
+      }),
+    },
+    {
+      path: '/device-bind-logs/:id',
+      name: 'device-bind-log-detail',
       component: DeviceApprovalDetailView,
       meta: { requiresAuth: true, roles: USER_ADMIN_ROLES },
     },
