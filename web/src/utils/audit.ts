@@ -71,6 +71,14 @@ export function formatAuditModule(module: AuditModule): string {
   return module
 }
 
+export function resolveAuditOperatorLabel(item: AuditSummary | AuditDetail): string {
+  return item.operatorDisplayName || item.operatorName || item.actionByName || String(item.operatorId || item.actionBy || '-')
+}
+
+export function resolveAuditTargetLabel(item: AuditSummary | AuditDetail): string {
+  return item.actionTargetName || item.targetName || item.actionTargetId || item.targetId || '-'
+}
+
 export function summarizeAuditChange(item: AuditSummary | AuditDetail): string {
   return item.actionRemark || item.actionType || '-'
 }

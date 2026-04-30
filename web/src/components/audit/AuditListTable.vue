@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import type { AuditSummary } from '../../types/audit'
-import { formatAuditModule, formatAuditResult, getAuditResultTagType } from '../../utils/audit'
+import {
+  formatAuditModule,
+  formatAuditResult,
+  getAuditResultTagType,
+  resolveAuditOperatorLabel,
+  resolveAuditTargetLabel,
+} from '../../utils/audit'
 
 withDefaults(
   defineProps<{
@@ -44,9 +50,17 @@ function formatDateTime(value?: string): string {
         </template>
       </el-table-column>
       <el-table-column prop="actionType" label="动作" min-width="180" />
-      <el-table-column prop="operatorName" label="操作人" width="140" />
+      <el-table-column label="操作人" min-width="160">
+        <template #default="{ row }">
+          {{ resolveAuditOperatorLabel(row) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="actionTargetType" label="对象类型" width="120" />
-      <el-table-column prop="actionTargetId" label="对象 ID" width="120" />
+      <el-table-column label="对象" min-width="180">
+        <template #default="{ row }">
+          {{ resolveAuditTargetLabel(row) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="actionRemark" label="说明" min-width="180">
         <template #default="{ row }">
           {{ row.actionRemark || '-' }}

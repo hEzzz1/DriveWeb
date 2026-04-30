@@ -18,14 +18,18 @@ export interface AuditSummary {
   id: number
   operatorId: number
   operatorName: string
+  operatorDisplayName?: string
   module: AuditModule
   action: string
   targetId?: string
+  targetName?: string
   actionType: string
   actionBy: number
+  actionByName?: string
   actionTime: string
   actionTargetType: AuditTargetType
   actionTargetId?: string
+  actionTargetName?: string
   actionResult: AuditResult
   actionRemark?: string
   traceId?: string
@@ -39,22 +43,30 @@ export interface AuditJsonSnapshot {
 
 export interface UserChangeAuditItem {
   operatorUserId?: number
+  operatorUserName?: string
   operatorRoles?: string[]
   operatorEnterpriseId?: number | null
+  operatorEnterpriseName?: string | null
   targetType?: 'USER'
   targetId?: number | string
+  targetName?: string
   targetEnterpriseId?: number | null
+  targetEnterpriseName?: string | null
   before?: AuditJsonSnapshot
   after?: AuditJsonSnapshot
 }
 
 export interface EnterpriseChangeAuditItem {
   operatorUserId?: number
+  operatorUserName?: string
   operatorRoles?: string[]
   operatorEnterpriseId?: number | null
+  operatorEnterpriseName?: string | null
   targetType?: 'ENTERPRISE'
   targetId?: number | string
+  targetName?: string
   targetEnterpriseId?: number | null
+  targetEnterpriseName?: string | null
   before?: AuditJsonSnapshot
   after?: AuditJsonSnapshot
 }

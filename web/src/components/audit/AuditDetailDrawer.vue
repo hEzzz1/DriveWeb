@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { AuditDetail } from '../../types/audit'
-import { formatAuditModule, formatAuditResult, parseAuditDetailJson } from '../../utils/audit'
+import type { AuditDetail, EnterpriseChangeAuditItem, UserChangeAuditItem } from '../../types/audit'
+import {
+  formatAuditModule,
+  formatAuditResult,
+  parseAuditDetailJson,
+  resolveAuditOperatorLabel,
+  resolveAuditTargetLabel,
+} from '../../utils/audit'
 
 const props = defineProps<{
   visible: boolean
@@ -39,6 +45,36 @@ function stringify(value: unknown): string {
     return String(value)
   }
 }
+
+function resolveParsedOperatorEnterprise(): string {
+  const value = parsedDetail.value as UserChangeAuditItem | EnterpriseChangeAuditItem | null
+
+  if (!value) {
+    return '-'
+  }
+
+  return value.operatorEnterpriseName || stringify(value.operatorEnterpriseId)
+}
+
+function resolveParsedTargetEnterprise(): string {
+  const value = parsedDetail.value as UserChangeAuditItem | EnterpriseChangeAuditItem | null
+
+  if (!value) {
+    return '-'
+  }
+
+  return value.targetEnterpriseName || stringify(value.targetEnterpriseId)
+}
+
+function resolveParsedTargetName(): string {
+  const value = parsedDetail.value as UserChangeAuditItem | EnterpriseChangeAuditItem | null
+
+  if (!value) {
+    return '-'
+  }
+
+  return value.targetName || stringify(value.targetId)
+}
 </script>
 
 <template>
@@ -54,10 +90,9 @@ function stringify(value: unknown): string {
               <el-descriptions-item label="Trace ID">{{ detail.traceId || '-' }}</el-descriptions-item>
               <el-descriptions-item label="模块">{{ formatAuditModule(detail.module) }}</el-descriptions-item>
               <el-descriptions-item label="动作">{{ detail.actionType }}</el-descriptions-item>
-              <el-descriptions-item label="操作人">{{ detail.operatorName }}</el-descriptions-item>
-              <el-descriptions-item label="操作人 ID">{{ detail.operatorId }}</el-descriptions-item>
+              <el-descriptions-item label="操作人">{{ resolveAuditOperatorLabel(detail) }}</el-descriptions-item>
               <el-descriptions-item label="对象类型">{{ detail.actionTargetType }}</el-descriptions-item>
-              <el-descriptions-item label="对象 ID">{{ detail.actionTargetId || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="对象">{{ resolveAuditTargetLabel(detail) }}</el-descriptions-item>
               <el-descriptions-item label="结果">{{ formatAuditResult(detail.actionResult) }}</el-descriptions-item>
               <el-descriptions-item label="说明">{{ detail.actionRemark || '-' }}</el-descriptions-item>
               <el-descriptions-item label="发生时间">{{ formatDateTime(detail.actionTime) }}</el-descriptions-item>
@@ -73,8 +108,14 @@ function stringify(value: unknown): string {
               <el-descriptions-item label="操作人角色">
                 {{ stringify(parsedDetail && 'operatorRoles' in parsedDetail ? parsedDetail.operatorRoles : undefined) }}
               </el-descriptions-item>
-              <el-descriptions-item label="操作人企业 ID">
-                {{ stringify(parsedDetail && 'operatorEnterpriseId' in parsedDetail ? parsedDetail.operatorEnterpriseId : undefined) }}
+              <el-descriptions-item label="操作人企业">
+                {{ resolveParsedOperatorEnterprise() }}
+              </el-descriptions-item>
+              <el-descriptions-item label="目标对象">
+                {{ resolveParsedTargetName() }}
+              </el-descriptions-item>
+              <el-descriptions-item label="目标企业">
+                {{ resolveParsedTargetEnterprise() }}
               </el-descriptions-item>
               <el-descriptions-item label="变更前">
                 <pre class="json-block">{{ stringify(parsedDetail && 'before' in parsedDetail ? parsedDetail.before : undefined) }}</pre>
