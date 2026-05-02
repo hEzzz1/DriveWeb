@@ -1,22 +1,22 @@
 :root {
-  --page-bg: #f0f2f5;
+  --page-bg: #f5f7fb;
   --panel-bg: #ffffff;
-  --panel-bg-soft: #fafbfd;
-  --surface: #f5f7fa;
-  --line: #ebeef5;
-  --line-strong: #dcdfe6;
-  --text-main: #303133;
-  --text-soft: #606266;
-  --text-faint: #909399;
-  --brand: #409eff;
-  --brand-strong: #337ecc;
+  --panel-bg-soft: #fafcff;
+  --surface: #f7f9fc;
+  --line: #e5e6eb;
+  --line-strong: #d9d9d9;
+  --text-main: #1f1f1f;
+  --text-soft: #595959;
+  --text-faint: #8c8c8c;
+  --brand: #1677ff;
+  --brand-strong: #0958d9;
   --success: #67c23a;
   --warning: #e6a23c;
   --danger: #f56c6c;
-  --sidebar-bg: #304156;
-  --sidebar-hover: #263445;
-  --shadow-panel: 0 1px 4px rgba(0, 21, 41, 0.08);
-  --shadow-soft: 0 1px 2px rgba(0, 21, 41, 0.06);
+  --sidebar-bg: rgba(255, 255, 255, 0.92);
+  --sidebar-hover: #f5f8ff;
+  --shadow-panel: 0 6px 18px rgba(31, 35, 41, 0.06);
+  --shadow-soft: 0 2px 8px rgba(31, 35, 41, 0.05);
   --el-color-primary: var(--brand);
   font-family:
     'Avenir Next', 'SF Pro Display', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
@@ -60,7 +60,7 @@ a {
 
 .page-shell {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .page-head {
@@ -68,10 +68,12 @@ a {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 22px;
+  padding: 24px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-bg);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(22, 119, 255, 0.06), transparent 40%),
+    var(--panel-bg);
   box-shadow: var(--shadow-panel);
 }
 
@@ -86,7 +88,7 @@ a {
 
 .page-head h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1.2;
   font-weight: 600;
 }
@@ -108,8 +110,8 @@ a {
 .stats-grid,
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
 }
 
 .metric-card,
@@ -117,7 +119,7 @@ a {
 .panel-card,
 .page-section-card {
   border: 1px solid var(--line) !important;
-  border-radius: 8px !important;
+  border-radius: 16px !important;
   background: var(--panel-bg) !important;
   box-shadow: var(--shadow-soft) !important;
 }
@@ -178,7 +180,7 @@ a {
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-  gap: 18px;
+  gap: 20px;
 }
 
 .card-title {
@@ -190,8 +192,8 @@ a {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
   background: var(--panel-bg);
   border: 1px solid var(--line);
   color: var(--text-soft);
@@ -200,7 +202,7 @@ a {
 
 .panel-card .el-card__header,
 .page-section-card .el-card__header {
-  padding: 14px 18px 12px;
+  padding: 16px 20px 14px;
   border-bottom: 1px solid var(--line);
   background: var(--panel-bg);
 }
@@ -209,7 +211,7 @@ a {
 .page-section-card .el-card__body,
 .metric-card .el-card__body,
 .status-card .el-card__body {
-  padding: 16px 18px;
+  padding: 18px 20px;
 }
 
 .page-section-card .el-card__body {
@@ -218,8 +220,8 @@ a {
 }
 
 .filter-bar {
-  padding: 14px;
-  border-radius: 6px;
+  padding: 16px;
+  border-radius: 12px;
   background: var(--surface);
   border: 1px solid var(--line);
 }
@@ -230,10 +232,10 @@ a {
 
 .table-wrap .el-table {
   --el-table-border-color: var(--line);
-  --el-table-header-bg-color: #f5f7fa;
-  --el-table-row-hover-bg-color: #f7faff;
+  --el-table-header-bg-color: #fafafa;
+  --el-table-row-hover-bg-color: #f5f8ff;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -256,7 +258,7 @@ a {
 .el-input__wrapper,
 .el-select__wrapper,
 .el-date-editor.el-input__wrapper {
-  border-radius: 6px !important;
+  border-radius: 8px !important;
 }
 
 .el-alert {

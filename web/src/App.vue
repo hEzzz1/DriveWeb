@@ -426,13 +426,15 @@ function handleReconnect(): void {
         <div class="brand-badge">DW</div>
         <div v-if="!sidebarCollapsed" class="brand-copy">
           <strong>DriveWeb</strong>
-          <span>{{ access.isPlatformDomain ? '平台治理控制台' : '企业业务控制台' }}</span>
+          <span>{{ access.isPlatformDomain ? 'Platform Console' : 'Business Workspace' }}</span>
         </div>
       </div>
 
       <div class="sidebar-scroll">
         <div v-for="section in navSections" :key="section.key" class="sidebar-group">
-          <p v-if="!sidebarCollapsed" class="sidebar-section">{{ section.label }}</p>
+          <div v-if="!sidebarCollapsed" class="sidebar-section">
+            <span>{{ section.label }}</span>
+          </div>
 
           <button
             v-for="item in section.items"
@@ -481,6 +483,11 @@ function handleReconnect(): void {
             <span>{{ currentSectionLabel }}</span>
             <span class="breadcrumb-separator">/</span>
             <strong>{{ currentNavItem?.label || '工作区' }}</strong>
+          </div>
+
+          <div class="workspace-chip">
+            <span class="workspace-chip-label">{{ access.isPlatformDomain ? 'Platform' : 'Enterprise' }}</span>
+            <strong>{{ authStore.scopeText }}</strong>
           </div>
         </div>
 
@@ -539,12 +546,14 @@ function handleReconnect(): void {
 
 <style scoped>
 .admin-shell {
-  --sidebar-width: 248px;
-  --sidebar-collapsed-width: 84px;
+  --sidebar-width: 256px;
+  --sidebar-collapsed-width: 80px;
   min-height: 100vh;
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-  background: var(--page-bg);
+  background:
+    radial-gradient(circle at top left, rgba(22, 119, 255, 0.08), transparent 320px),
+    linear-gradient(180deg, #f5f8ff 0%, var(--page-bg) 220px);
 }
 
 .admin-shell.is-collapsed {
@@ -562,66 +571,78 @@ function handleReconnect(): void {
   min-height: 100vh;
   flex-direction: column;
   background: var(--sidebar-bg);
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.06);
-  transition: transform 0.2s ease;
+  border-right: 1px solid rgba(5, 5, 5, 0.06);
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+  transition:
+    transform 0.2s ease,
+    width 0.2s ease;
 }
 
 .sidebar-brand {
   display: flex;
-  min-height: 68px;
+  min-height: 64px;
   align-items: center;
-  gap: 12px;
-  padding: 18px 18px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.06);
 }
 
 .brand-badge {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   place-items: center;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #3b9bff, #1966d2);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1677ff, #0958d9);
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
+  box-shadow: 0 8px 18px rgba(22, 119, 255, 0.22);
 }
 
 .brand-copy strong {
   display: block;
-  color: #ffffff;
-  font-size: 17px;
+  color: var(--text-main);
+  font-size: 16px;
   font-weight: 600;
 }
 
 .brand-copy span {
   display: block;
   margin-top: 4px;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--text-faint);
   font-size: 12px;
 }
 
 .sidebar-scroll {
   flex: 1;
   overflow: auto;
-  padding: 14px 12px 18px;
+  padding: 12px 12px 18px;
 }
 
 .sidebar-group {
   display: grid;
-  gap: 6px;
-  margin-bottom: 18px;
+  gap: 4px;
+  margin-bottom: 16px;
 }
 
 .sidebar-section {
-  margin: 0 10px 6px;
-  color: rgba(255, 255, 255, 0.4);
+  margin: 0 8px 6px;
+}
+
+.sidebar-section span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f0f5ff;
+  color: #597ef7;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .sidebar-item {
@@ -629,14 +650,15 @@ function handleReconnect(): void {
   width: 100%;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px;
+  padding: 10px 12px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
   cursor: pointer;
   transition:
     background-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    color 0.2s ease;
 }
 
 .sidebar-item:hover {
@@ -644,7 +666,7 @@ function handleReconnect(): void {
 }
 
 .sidebar-item.active {
-  background: linear-gradient(90deg, rgba(64, 158, 255, 0.22), rgba(64, 158, 255, 0.08));
+  background: #e6f4ff;
   box-shadow: inset 3px 0 0 var(--brand);
 }
 
@@ -655,15 +677,15 @@ function handleReconnect(): void {
   flex-shrink: 0;
   place-items: center;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: #f0f5ff;
+  color: #1677ff;
   font-size: 13px;
   font-weight: 700;
 }
 
 .sidebar-item.active .sidebar-item-badge {
-  background: rgba(64, 158, 255, 0.2);
-  color: #dbeafe;
+  background: #1677ff;
+  color: #ffffff;
 }
 
 .sidebar-item-copy {
@@ -674,14 +696,14 @@ function handleReconnect(): void {
 }
 
 .sidebar-item-label {
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text-main);
   font-size: 14px;
   font-weight: 500;
   line-height: 1.25;
 }
 
 .sidebar-item-sub {
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--text-faint);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -708,32 +730,33 @@ function handleReconnect(): void {
 }
 
 .sidebar-footer {
-  padding: 14px 18px 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 16px 18px;
+  border-top: 1px solid rgba(5, 5, 5, 0.06);
 }
 
 .footer-card {
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, #fafcff 0%, #f5f9ff 100%);
   padding: 12px 14px;
 }
 
 .footer-label {
   margin: 0;
-  color: rgba(255, 255, 255, 0.46);
+  color: var(--text-faint);
   font-size: 12px;
 }
 
 .footer-value {
   margin: 6px 0 0;
-  color: #ffffff;
+  color: var(--text-main);
   font-size: 14px;
   font-weight: 600;
 }
 
 .footer-note {
   margin: 6px 0 0;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--text-soft);
   font-size: 12px;
 }
 
@@ -743,9 +766,10 @@ function handleReconnect(): void {
   height: 36px;
   margin: 0 auto;
   place-items: center;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  background: #f7faff;
+  color: var(--text-main);
   font-size: 13px;
   font-weight: 700;
 }
@@ -760,13 +784,14 @@ function handleReconnect(): void {
 
 .topbar {
   display: flex;
-  height: 56px;
+  height: 64px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 0 24px;
-  border-bottom: 1px solid var(--line);
-  background: #ffffff;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
 }
 
 .topbar-left,
@@ -784,14 +809,17 @@ function handleReconnect(): void {
   align-content: center;
   gap: 5px;
   padding: 0 8px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .menu-toggle:hover {
+  border-color: var(--line);
   background: var(--surface);
 }
 
@@ -825,13 +853,35 @@ function handleReconnect(): void {
   color: #c0c4cc;
 }
 
+.workspace-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.workspace-chip-label {
+  color: #1677ff;
+  font-weight: 600;
+}
+
+.workspace-chip strong {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
 .realtime-card {
   display: flex;
   align-items: center;
   gap: 10px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel-bg);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
   padding: 8px 12px;
 }
 
@@ -857,7 +907,7 @@ function handleReconnect(): void {
   gap: 10px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--panel-bg);
+  background: rgba(255, 255, 255, 0.92);
   padding: 6px 12px 6px 8px;
 }
 
@@ -868,7 +918,7 @@ function handleReconnect(): void {
   flex-shrink: 0;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, #409eff, #1d6ce0);
+  background: linear-gradient(135deg, #69b1ff, #1677ff);
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
@@ -896,8 +946,8 @@ function handleReconnect(): void {
   align-items: center;
   gap: 8px;
   overflow-x: auto;
-  border-bottom: 1px solid var(--line);
-  background: #ffffff;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+  background: rgba(255, 255, 255, 0.7);
   padding: 10px 20px;
 }
 
@@ -907,11 +957,11 @@ function handleReconnect(): void {
   align-items: center;
   gap: 10px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 999px;
   background: #ffffff;
   color: var(--text-soft);
   cursor: pointer;
-  padding: 8px 12px;
+  padding: 7px 12px;
   transition:
     border-color 0.2s ease,
     background-color 0.2s ease,
@@ -926,9 +976,9 @@ function handleReconnect(): void {
 
 .tag-chip.active {
   border-color: var(--brand);
-  background: var(--brand);
-  box-shadow: 0 4px 10px rgba(64, 158, 255, 0.18);
-  color: #ffffff;
+  background: #e6f4ff;
+  box-shadow: none;
+  color: var(--brand-strong);
 }
 
 .tag-close {
@@ -938,7 +988,7 @@ function handleReconnect(): void {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(22, 119, 255, 0.1);
   font-size: 12px;
   line-height: 1;
 }
@@ -952,8 +1002,8 @@ function handleReconnect(): void {
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  background: var(--page-bg);
-  padding: 20px;
+  background: transparent;
+  padding: 24px;
 }
 
 @media (max-width: 1080px) {
@@ -1017,6 +1067,10 @@ function handleReconnect(): void {
   .topbar-right,
   .realtime-card {
     width: 100%;
+  }
+
+  .workspace-chip {
+    display: none;
   }
 
   .topbar-right {

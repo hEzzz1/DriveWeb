@@ -36,13 +36,14 @@ defineProps<{
   font-size: 16px;
   color: var(--text-main);
   font-weight: 600;
+  line-height: 1.3;
 }
 
 .section-head p {
   margin: 6px 0 0;
-  color: var(--text-soft);
+  color: var(--text-faint);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .section-actions {
