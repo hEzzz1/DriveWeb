@@ -1,26 +1,43 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
+import WorkspaceCommandDialog from './components/shell/WorkspaceCommandDialog.vue'
+import WorkspaceWorkbenchDrawer from './components/shell/WorkspaceWorkbenchDrawer.vue'
 import { useAccess } from './composables/useAccess'
 import { useAuthStore } from './stores/auth'
 import { useRealtimeStore } from './stores/realtime'
+import type { NormalizedAlertRealtimeEvent } from './types/alerts'
+import type {
+  WorkspaceAlertFeedItem,
+  WorkspaceCommandItem,
+  WorkspaceNavEntry,
+  WorkspaceVisitedEntry,
+} from './types/workspace'
 import { formatDateTime } from './utils/alerts'
+import {
+  appendWorkspaceAlertFeed,
+  buildWorkspaceAlertFeedItem,
+  loadWorkspaceShellPreferences,
+  saveWorkspaceShellPreferences,
+} from './utils/workspace-shell'
 
-interface NavItem {
-  key: string
-  badge: string
-  section: 'platform-core' | 'platform-system' | 'org-monitor' | 'org-admin' | 'org-business'
-  label: string
-  subtitle: string
+type NavSectionKey =
+  | 'platform-core'
+  | 'platform-system'
+  | 'org-monitor'
+  | 'org-admin'
+  | 'org-business'
+
+interface NavItem extends WorkspaceNavEntry {
+  section: NavSectionKey
   visible: boolean
-  path?: string
 }
 
-interface VisitedTag {
-  key: string
+interface NavSection {
+  key: NavSectionKey
   label: string
-  path: string
+  items: NavItem[]
 }
 
 const router = useRouter()
@@ -28,9 +45,21 @@ const route = useRoute()
 const authStore = useAuthStore()
 const access = useAccess()
 const realtimeStore = useRealtimeStore()
-const sidebarCollapsed = ref(false)
+const shellPreferences = loadWorkspaceShellPreferences()
+
+const sidebarCollapsed = ref(shellPreferences.sidebarCollapsed)
 const mobileSidebarOpen = ref(false)
-const visitedTags = ref<VisitedTag[]>([])
+const workbenchOpen = ref(false)
+const commandDialogOpen = ref(false)
+const commandQuery = ref('')
+const commandActiveIndex = ref(0)
+const navSearch = ref('')
+const pinnedPaths = ref<string[]>(shellPreferences.pinnedPaths)
+const visitedTags = ref<WorkspaceVisitedEntry[]>(shellPreferences.visitedTags)
+const recentRealtimeAlerts = ref<WorkspaceAlertFeedItem[]>([])
+const shellStateReady = ref(false)
+
+let unsubscribeRealtime: (() => void) | null = null
 
 authStore.hydrate()
 
@@ -226,39 +255,115 @@ const navItems = computed<NavItem[]>(() => {
 
 const isPublicPage = computed(() => Boolean(route.meta.public))
 const visibleNavItems = computed(() => navItems.value.filter((item) => item.visible))
-const activeNavKey = computed(
-  () =>
-    visibleNavItems.value.find((item) => {
-      if (!item.path) {
-        return false
-      }
-
-      return route.path === item.path || route.path.startsWith(`${item.path}/`)
-    })?.key || '',
-)
-const currentNavItem = computed(
-  () => visibleNavItems.value.find((item) => item.key === activeNavKey.value) || visibleNavItems.value[0],
-)
-const navSections = computed(() => {
-  if (access.value.isPlatformDomain) {
-    return [
-      { key: 'platform-core', label: '平台治理', items: visibleNavItems.value.filter((item) => item.section === 'platform-core') },
-      { key: 'platform-system', label: '平台系统', items: visibleNavItems.value.filter((item) => item.section === 'platform-system') },
-    ].filter((section) => section.items.length)
+const utilityNavItems = computed<WorkspaceNavEntry[]>(() => {
+  if (!authStore.isAuthenticated || isPublicPage.value) {
+    return []
   }
 
   return [
-    { key: 'org-monitor', label: '企业总览', items: visibleNavItems.value.filter((item) => item.section === 'org-monitor') },
-    { key: 'org-admin', label: '组织与资料', items: visibleNavItems.value.filter((item) => item.section === 'org-admin') },
-    { key: 'org-business', label: '业务模块', items: visibleNavItems.value.filter((item) => item.section === 'org-business') },
-  ].filter((section) => section.items.length)
+    {
+      key: 'auth-session',
+      badge: '鉴',
+      section: 'workspace',
+      label: '会话状态',
+      subtitle: '登录状态、访问范围与能力概览',
+      path: '/account/session',
+    },
+  ]
+})
+const workspaceEntryMap = computed(() => {
+  const map = new Map<string, WorkspaceNavEntry>()
+
+  for (const item of [...visibleNavItems.value, ...utilityNavItems.value]) {
+    map.set(item.path, item)
+  }
+
+  return map
+})
+const activeNavKey = computed(
+  () =>
+    visibleNavItems.value.find(
+      (item) => route.path === item.path || route.path.startsWith(`${item.path}/`),
+    )?.key || '',
+)
+const currentNavItem = computed<WorkspaceNavEntry | undefined>(() => {
+  const utilityItem = utilityNavItems.value.find((item) => route.path === item.path)
+
+  if (utilityItem) {
+    return utilityItem
+  }
+
+  return visibleNavItems.value.find((item) => item.key === activeNavKey.value) || visibleNavItems.value[0]
+})
+const navSections = computed<NavSection[]>(() => {
+  if (access.value.isPlatformDomain) {
+    const platformSections: NavSection[] = [
+      {
+        key: 'platform-core',
+        label: '平台治理',
+        items: visibleNavItems.value.filter((item) => item.section === 'platform-core'),
+      },
+      {
+        key: 'platform-system',
+        label: '平台系统',
+        items: visibleNavItems.value.filter((item) => item.section === 'platform-system'),
+      },
+    ]
+
+    return platformSections.filter((section) => section.items.length)
+  }
+
+  const orgSections: NavSection[] = [
+    {
+      key: 'org-monitor',
+      label: '企业总览',
+      items: visibleNavItems.value.filter((item) => item.section === 'org-monitor'),
+    },
+    {
+      key: 'org-admin',
+      label: '组织与资料',
+      items: visibleNavItems.value.filter((item) => item.section === 'org-admin'),
+    },
+    {
+      key: 'org-business',
+      label: '业务模块',
+      items: visibleNavItems.value.filter((item) => item.section === 'org-business'),
+    },
+  ]
+
+  return orgSections.filter((section) => section.items.length)
+})
+const filteredNavSections = computed<NavSection[]>(() => {
+  const keyword = normalizeSearchText(navSearch.value)
+
+  if (!keyword) {
+    return navSections.value
+  }
+
+  return navSections.value
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => matchesNavItem(item, keyword)),
+    }))
+    .filter((section) => section.items.length)
 })
 const currentSectionLabel = computed(
-  () =>
-    navSections.value.find((section) => section.items.some((item) => item.key === activeNavKey.value))?.label || '工作区',
+  () => {
+    if (route.path === '/account/session') {
+      return '账户与安全'
+    }
+
+    return (
+      navSections.value.find((section) => section.items.some((item) => item.key === activeNavKey.value))
+        ?.label || '工作区'
+    )
+  },
 )
 const showRealtimeStatus = computed(
   () => authStore.isAuthenticated && !isPublicPage.value && access.value.isOrgDomain,
+)
+const showRealtimeAlertFeed = computed(
+  () => showRealtimeStatus.value && access.value.canViewAlerts,
 )
 const realtimeHint = computed(() => {
   if (realtimeStore.status === 'connected' && realtimeStore.lastMessageAt) {
@@ -276,6 +381,139 @@ const realtimeHint = computed(() => {
   return '等待实时消息'
 })
 const userInitial = computed(() => (authStore.username || 'D').slice(0, 1).toUpperCase())
+const favoriteNavItems = computed<WorkspaceNavEntry[]>(() =>
+  pinnedPaths.value
+    .map((path) => workspaceEntryMap.value.get(path))
+    .filter((item): item is WorkspaceNavEntry => Boolean(item)),
+)
+const sessionSummary = computed(() => ({
+  username: authStore.username || '未登录用户',
+  roleText: authStore.roleText,
+  scopeText: authStore.scopeText,
+  expireAtText: authStore.expireAtText,
+  minutesLeft: authStore.minutesLeft,
+  willExpireSoon: authStore.willExpireSoon,
+}))
+const realtimeSummary = computed(() => ({
+  status: realtimeStore.status,
+  statusText: realtimeStore.statusText,
+  hint: realtimeHint.value,
+  canReconnect: realtimeStore.status !== 'connected',
+}))
+const navSectionLabelMap: Record<string, string> = {
+  'platform-core': '平台治理',
+  'platform-system': '平台系统',
+  'org-monitor': '企业总览',
+  'org-admin': '组织与资料',
+  'org-business': '业务模块',
+  workspace: '账户与安全',
+}
+const commandItems = computed<WorkspaceCommandItem[]>(() => {
+  const items: WorkspaceCommandItem[] = []
+  const pinnedPathSet = new Set(pinnedPaths.value)
+
+  for (const item of favoriteNavItems.value) {
+    items.push({
+      id: `favorite:${item.path}`,
+      group: 'favorites',
+      groupLabel: '收藏入口',
+      label: item.label,
+      description: item.subtitle,
+      action: 'navigate',
+      path: item.path,
+      hint: getNavSectionLabel(item.section),
+      badge: item.badge,
+      pinned: true,
+      keywords: [item.section],
+    })
+  }
+
+  for (const item of visibleNavItems.value) {
+    if (pinnedPathSet.has(item.path)) {
+      continue
+    }
+
+    items.push({
+      id: `page:${item.path}`,
+      group: 'pages',
+      groupLabel: '页面',
+      label: item.label,
+      description: item.subtitle,
+      action: 'navigate',
+      path: item.path,
+      hint: getNavSectionLabel(item.section),
+      badge: item.badge,
+      keywords: [item.section],
+    })
+  }
+
+  if (showRealtimeAlertFeed.value) {
+    for (const item of recentRealtimeAlerts.value) {
+      items.push({
+        id: `alert:${item.id}`,
+        group: 'alerts',
+        groupLabel: '最近告警',
+        label: item.alertNo,
+        description: getAlertCommandDescription(item.eventType),
+        action: 'open-alert',
+        alertId: item.id,
+        hint: formatDateTime(item.eventAt),
+        badge: '警',
+      })
+    }
+  }
+
+  items.push({
+    id: 'action:session',
+    group: 'actions',
+    groupLabel: '快捷动作',
+    label: '打开会话状态',
+    description: '查看当前登录状态、访问范围和能力概览。',
+    action: 'open-session',
+    hint: '账户与安全',
+    badge: '鉴',
+    keywords: ['权限', '会话', '安全'],
+  })
+
+  if (showRealtimeStatus.value && realtimeStore.status !== 'connected') {
+    items.push({
+      id: 'action:reconnect',
+      group: 'actions',
+      groupLabel: '快捷动作',
+      label: '重连实时通道',
+      description: '立即重建告警实时连接。',
+      action: 'reconnect',
+      hint: realtimeStore.statusText,
+      badge: '连',
+      keywords: ['ws', 'websocket', '重连'],
+    })
+  }
+
+  items.push({
+    id: 'action:logout',
+    group: 'actions',
+    groupLabel: '快捷动作',
+    label: '退出登录',
+    description: '清除本地 token 并返回登录页。',
+    action: 'logout',
+    hint: '安全退出',
+    badge: '退',
+    keywords: ['logout', '退出', '登录'],
+  })
+
+  return items
+})
+const filteredCommandItems = computed(() => {
+  const keyword = normalizeSearchText(commandQuery.value)
+
+  if (!keyword) {
+    return commandItems.value.slice(0, 24)
+  }
+
+  return commandItems.value
+    .filter((item) => matchesCommandItem(item, keyword))
+    .slice(0, 24)
+})
 
 watch(
   [() => authStore.isAuthenticated, () => authStore.workspaceDomain],
@@ -285,6 +523,7 @@ watch(
       return
     }
 
+    recentRealtimeAlerts.value = []
     realtimeStore.disconnect()
   },
   { immediate: true },
@@ -293,13 +532,79 @@ watch(
 watch(
   [visibleNavItems, () => route.path],
   () => {
+    syncPinnedPaths()
     syncVisitedTags()
     mobileSidebarOpen.value = false
+
+    if (!shellStateReady.value) {
+      shellStateReady.value = true
+    }
   },
   { immediate: true },
 )
 
+watch(
+  [sidebarCollapsed, pinnedPaths, visitedTags],
+  () => {
+    if (!shellStateReady.value) {
+      return
+    }
+
+    saveWorkspaceShellPreferences({
+      sidebarCollapsed: sidebarCollapsed.value,
+      pinnedPaths: pinnedPaths.value,
+      visitedTags: visitedTags.value,
+    })
+  },
+  { deep: true },
+)
+
+watch(
+  () => commandDialogOpen.value,
+  (isOpen) => {
+    if (!isOpen) {
+      commandQuery.value = ''
+      commandActiveIndex.value = 0
+      return
+    }
+
+    commandActiveIndex.value = 0
+  },
+)
+
+watch(filteredCommandItems, (items) => {
+  if (!commandDialogOpen.value) {
+    return
+  }
+
+  if (!items.length) {
+    commandActiveIndex.value = -1
+    return
+  }
+
+  if (commandActiveIndex.value < 0 || commandActiveIndex.value >= items.length) {
+    commandActiveIndex.value = 0
+  }
+})
+
+onMounted(() => {
+  unsubscribeRealtime = realtimeStore.subscribe((event) => {
+    handleRealtimeEvent(event)
+  })
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', handleGlobalKeydown)
+  }
+})
+
 onBeforeUnmount(() => {
+  unsubscribeRealtime?.()
+  unsubscribeRealtime = null
+
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('keydown', handleGlobalKeydown)
+  }
+
   realtimeStore.disconnect()
 })
 
@@ -318,28 +623,34 @@ async function handleLogout(): Promise<void> {
   await router.replace('/login')
 }
 
-function syncVisitedTags(): void {
-  const availableMap = new Map<string, NavItem>()
+function syncPinnedPaths(): void {
+  const nextPaths = pinnedPaths.value.filter((path) => workspaceEntryMap.value.has(path))
 
-  for (const item of visibleNavItems.value) {
-    if (item.path) {
-      availableMap.set(item.path, item)
-    }
+  if (nextPaths.length !== pinnedPaths.value.length) {
+    pinnedPaths.value = nextPaths
   }
+}
 
+function syncVisitedTags(): void {
+  const currentItem = currentNavItem.value
   const nextTags = visitedTags.value
-    .filter((tag) => availableMap.has(tag.path))
+    .filter((tag) => workspaceEntryMap.value.has(tag.path))
     .map((tag) => {
-      const item = availableMap.get(tag.path)
+      const item = workspaceEntryMap.value.get(tag.path)
 
-      return item ? { key: item.key, label: item.label, path: tag.path } : tag
+      return item ? { key: item.key, label: item.label, path: tag.path, subtitle: item.subtitle } : tag
     })
 
-  if (currentNavItem.value?.path && availableMap.has(currentNavItem.value.path) && !nextTags.some((tag) => tag.path === currentNavItem.value?.path)) {
+  if (
+    currentItem?.path &&
+    workspaceEntryMap.value.has(currentItem.path) &&
+    !nextTags.some((tag) => tag.path === currentItem.path)
+  ) {
     nextTags.push({
-      key: currentNavItem.value.key,
-      label: currentNavItem.value.label,
-      path: currentNavItem.value.path,
+      key: currentItem.key,
+      label: currentItem.label,
+      path: currentItem.path,
+      subtitle: currentItem.subtitle,
     })
   }
 
@@ -348,19 +659,24 @@ function syncVisitedTags(): void {
     return
   }
 
-  const fallbackItem = visibleNavItems.value.find((item) => item.path)
+  const fallbackItem = visibleNavItems.value[0] || utilityNavItems.value[0]
 
-  visitedTags.value = fallbackItem?.path
-    ? [{ key: fallbackItem.key, label: fallbackItem.label, path: fallbackItem.path }]
+  visitedTags.value = fallbackItem
+    ? [{ key: fallbackItem.key, label: fallbackItem.label, path: fallbackItem.path, subtitle: fallbackItem.subtitle }]
     : []
 }
 
-function handleNavigate(item: Pick<NavItem, 'path'>): void {
+function handleNavigate(item: { path?: string }): void {
   if (!item.path || item.path === route.path) {
+    mobileSidebarOpen.value = false
+    workbenchOpen.value = false
+    commandDialogOpen.value = false
     return
   }
 
   mobileSidebarOpen.value = false
+  workbenchOpen.value = false
+  commandDialogOpen.value = false
   router.push(item.path)
 }
 
@@ -373,11 +689,11 @@ function handleToggleSidebar(): void {
   sidebarCollapsed.value = !sidebarCollapsed.value
 }
 
-function isTagActive(tag: VisitedTag): boolean {
+function isTagActive(tag: WorkspaceVisitedEntry): boolean {
   return route.path === tag.path || route.path.startsWith(`${tag.path}/`)
 }
 
-function handleCloseTag(tag: VisitedTag): void {
+function handleCloseTag(tag: WorkspaceVisitedEntry): void {
   if (visitedTags.value.length <= 1) {
     return
   }
@@ -406,6 +722,174 @@ function handleCloseTag(tag: VisitedTag): void {
 function handleReconnect(): void {
   realtimeStore.reconnect()
 }
+
+function handleRealtimeEvent(event: NormalizedAlertRealtimeEvent): void {
+  if (!showRealtimeAlertFeed.value) {
+    return
+  }
+
+  recentRealtimeAlerts.value = appendWorkspaceAlertFeed(
+    recentRealtimeAlerts.value,
+    buildWorkspaceAlertFeedItem(event),
+  )
+}
+
+function handleTogglePinnedPath(path: string): void {
+  if (!workspaceEntryMap.value.has(path)) {
+    return
+  }
+
+  if (pinnedPaths.value.includes(path)) {
+    pinnedPaths.value = pinnedPaths.value.filter((item) => item !== path)
+    return
+  }
+
+  pinnedPaths.value = [path, ...pinnedPaths.value]
+}
+
+function handleOpenWorkbench(): void {
+  mobileSidebarOpen.value = false
+  commandDialogOpen.value = false
+  workbenchOpen.value = true
+}
+
+function handleOpenCommandDialog(initialQuery = ''): void {
+  mobileSidebarOpen.value = false
+  workbenchOpen.value = false
+  commandQuery.value = initialQuery
+  commandDialogOpen.value = true
+}
+
+function handleOpenSession(): void {
+  handleNavigate({ path: '/account/session' })
+}
+
+function handleOpenAlert(alertId: number): void {
+  if (!showRealtimeAlertFeed.value) {
+    return
+  }
+
+  router.push({
+    name: 'alert-detail',
+    params: { id: String(alertId) },
+  })
+  workbenchOpen.value = false
+  commandDialogOpen.value = false
+}
+
+async function handleSelectCommand(item: WorkspaceCommandItem): Promise<void> {
+  if (item.action === 'navigate') {
+    handleNavigate({ path: item.path })
+    return
+  }
+
+  if (item.action === 'open-alert' && item.alertId) {
+    handleOpenAlert(item.alertId)
+    return
+  }
+
+  if (item.action === 'open-session') {
+    handleOpenSession()
+    return
+  }
+
+  if (item.action === 'reconnect') {
+    handleReconnect()
+    commandDialogOpen.value = false
+    return
+  }
+
+  await handleLogout()
+}
+
+function handleGlobalKeydown(event: KeyboardEvent): void {
+  const key = event.key.toLowerCase()
+
+  if ((event.metaKey || event.ctrlKey) && key === 'k') {
+    event.preventDefault()
+    handleOpenCommandDialog(commandQuery.value)
+    return
+  }
+
+  if (!commandDialogOpen.value) {
+    return
+  }
+
+  if (event.key === 'Escape') {
+    commandDialogOpen.value = false
+    return
+  }
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    moveCommandSelection(1)
+    return
+  }
+
+  if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    moveCommandSelection(-1)
+    return
+  }
+
+  if (event.key === 'Enter') {
+    const activeItem = filteredCommandItems.value[commandActiveIndex.value]
+
+    if (!activeItem) {
+      return
+    }
+
+    event.preventDefault()
+    void handleSelectCommand(activeItem)
+  }
+}
+
+function moveCommandSelection(step: 1 | -1): void {
+  const items = filteredCommandItems.value
+
+  if (!items.length) {
+    commandActiveIndex.value = -1
+    return
+  }
+
+  if (commandActiveIndex.value < 0) {
+    commandActiveIndex.value = 0
+    return
+  }
+
+  commandActiveIndex.value =
+    (commandActiveIndex.value + step + items.length) % items.length
+}
+
+function matchesNavItem(item: WorkspaceNavEntry, keyword: string): boolean {
+  return normalizeSearchText([item.label, item.subtitle].join(' ')).includes(keyword)
+}
+
+function matchesCommandItem(item: WorkspaceCommandItem, keyword: string): boolean {
+  return normalizeSearchText(
+    [
+      item.label,
+      item.description,
+      item.hint,
+      item.badge,
+      ...(item.keywords || []),
+    ]
+      .filter(Boolean)
+      .join(' '),
+  ).includes(keyword)
+}
+
+function normalizeSearchText(value: string): string {
+  return value.trim().toLowerCase()
+}
+
+function getNavSectionLabel(section: string): string {
+  return navSectionLabelMap[section] || '工作区'
+}
+
+function getAlertCommandDescription(eventType: WorkspaceAlertFeedItem['eventType']): string {
+  return eventType === 'ALERT_CREATED' ? '收到新的实时告警，点击查看详情。' : '告警状态已更新，点击查看详情。'
+}
 </script>
 
 <template>
@@ -431,26 +915,98 @@ function handleReconnect(): void {
       </div>
 
       <div class="sidebar-scroll">
-        <div v-for="section in navSections" :key="section.key" class="sidebar-group">
+        <div v-if="!sidebarCollapsed" class="sidebar-tools">
+          <el-input
+            v-model="navSearch"
+            class="sidebar-search"
+            clearable
+            placeholder="筛选菜单，回车打开全局检索"
+            @keyup.enter="handleOpenCommandDialog(navSearch)"
+          />
+
+          <button class="sidebar-command-trigger" type="button" @click="handleOpenCommandDialog(navSearch)">
+            <span>全局检索</span>
+            <span class="shortcut-hint">⌘K</span>
+          </button>
+        </div>
+
+        <div v-if="favoriteNavItems.length" class="sidebar-group is-favorites">
+          <div v-if="!sidebarCollapsed" class="sidebar-section">
+            <span>收藏入口</span>
+          </div>
+
+          <div
+            v-for="item in favoriteNavItems"
+            :key="item.path"
+            class="sidebar-item"
+            :class="{ active: item.key === activeNavKey }"
+          >
+            <button
+              class="sidebar-item-main"
+              type="button"
+              :title="sidebarCollapsed ? item.label : ''"
+              @click="handleNavigate(item)"
+            >
+              <span class="sidebar-item-badge">{{ item.badge }}</span>
+
+              <span v-if="!sidebarCollapsed" class="sidebar-item-copy">
+                <span class="sidebar-item-label">{{ item.label }}</span>
+              </span>
+            </button>
+
+            <button
+              v-if="!sidebarCollapsed"
+              class="sidebar-item-pin is-active"
+              type="button"
+              title="取消收藏"
+              @click.stop="handleTogglePinnedPath(item.path)"
+            >
+              ★
+            </button>
+          </div>
+        </div>
+
+        <div v-for="section in filteredNavSections" :key="section.key" class="sidebar-group">
           <div v-if="!sidebarCollapsed" class="sidebar-section">
             <span>{{ section.label }}</span>
           </div>
 
-          <button
+          <div
             v-for="item in section.items"
             :key="item.key"
             class="sidebar-item"
             :class="{ active: item.key === activeNavKey }"
-            :title="sidebarCollapsed ? item.label : ''"
-            @click="handleNavigate(item)"
           >
-            <span class="sidebar-item-badge">{{ item.badge }}</span>
+            <button
+              class="sidebar-item-main"
+              type="button"
+              :title="sidebarCollapsed ? item.label : ''"
+              @click="handleNavigate(item)"
+            >
+              <span class="sidebar-item-badge">{{ item.badge }}</span>
 
-            <span v-if="!sidebarCollapsed" class="sidebar-item-copy">
-              <span class="sidebar-item-label">{{ item.label }}</span>
-            </span>
-          </button>
+              <span v-if="!sidebarCollapsed" class="sidebar-item-copy">
+                <span class="sidebar-item-label">{{ item.label }}</span>
+              </span>
+            </button>
+
+            <button
+              v-if="!sidebarCollapsed"
+              class="sidebar-item-pin"
+              type="button"
+              :class="{ 'is-active': pinnedPaths.includes(item.path) }"
+              :title="pinnedPaths.includes(item.path) ? '取消收藏' : '加入收藏'"
+              @click.stop="handleTogglePinnedPath(item.path)"
+            >
+              {{ pinnedPaths.includes(item.path) ? '★' : '☆' }}
+            </button>
+          </div>
         </div>
+
+        <el-empty
+          v-if="!filteredNavSections.length && !favoriteNavItems.length"
+          description="没有匹配的菜单项"
+        />
       </div>
 
       <div class="sidebar-footer">
@@ -491,6 +1047,15 @@ function handleReconnect(): void {
         </div>
 
         <div class="topbar-right">
+          <button class="workbench-trigger" type="button" @click="handleOpenCommandDialog()">
+            <span>搜索</span>
+            <span class="shortcut-hint">⌘K</span>
+          </button>
+
+          <button class="workbench-trigger secondary" type="button" @click="handleOpenWorkbench">
+            <span>工作台</span>
+          </button>
+
           <div v-if="showRealtimeStatus" class="realtime-card">
             <el-tag size="small" effect="plain" :type="realtimeStore.statusTagType">{{ realtimeStore.statusText }}</el-tag>
 
@@ -522,6 +1087,15 @@ function handleReconnect(): void {
         </div>
       </header>
 
+      <div v-if="authStore.willExpireSoon" class="session-banner">
+        <div class="session-banner-copy">
+          <strong>登录会话即将过期</strong>
+          <span>剩余 {{ authStore.minutesLeft ?? 0 }} 分钟，建议尽快续登，避免管理操作中断。</span>
+        </div>
+
+        <el-button type="warning" plain @click="handleOpenSession">查看会话状态</el-button>
+      </div>
+
       <div v-if="visitedTags.length" class="tags-bar">
         <button
           v-for="tag in visitedTags"
@@ -540,6 +1114,31 @@ function handleReconnect(): void {
         <RouterView />
       </main>
     </section>
+
+    <WorkspaceWorkbenchDrawer
+      v-model="workbenchOpen"
+      :favorites="favoriteNavItems"
+      :recent-visits="visitedTags"
+      :pinned-paths="pinnedPaths"
+      :recent-alerts="recentRealtimeAlerts"
+      :session-summary="sessionSummary"
+      :realtime-summary="realtimeSummary"
+      :show-realtime="showRealtimeStatus"
+      :show-alerts="showRealtimeAlertFeed"
+      @navigate="handleNavigate({ path: $event })"
+      @toggle-pin="handleTogglePinnedPath"
+      @open-session="handleOpenSession"
+      @reconnect="handleReconnect"
+      @open-alert="handleOpenAlert"
+    />
+
+    <WorkspaceCommandDialog
+      v-model="commandDialogOpen"
+      v-model:query="commandQuery"
+      :items="filteredCommandItems"
+      :active-index="commandActiveIndex"
+      @select="handleSelectCommand"
+    />
   </div>
 </template>
 
@@ -621,6 +1220,51 @@ function handleReconnect(): void {
   padding: 12px 12px 18px;
 }
 
+.sidebar-tools {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.sidebar-command-trigger,
+.workbench-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 10px 12px;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sidebar-command-trigger:hover,
+.workbench-trigger:hover {
+  border-color: #b7cdf9;
+  background: #f7fbff;
+}
+
+.workbench-trigger.secondary {
+  background: #f7faff;
+}
+
+.shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f0f5ff;
+  color: #4c6fcf;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .sidebar-group {
   display: grid;
   gap: 4px;
@@ -648,13 +1292,12 @@ function handleReconnect(): void {
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-height: 44px;
-  padding: 8px 12px;
+  padding: 6px;
   border: 0;
   border-radius: 8px;
   background: transparent;
-  cursor: pointer;
   transition:
     background-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -668,6 +1311,20 @@ function handleReconnect(): void {
 .sidebar-item.active {
   background: #e6f4ff;
   box-shadow: inset 3px 0 0 var(--brand);
+}
+
+.sidebar-item-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px 6px;
+  text-align: left;
 }
 
 .sidebar-item-badge {
@@ -702,6 +1359,31 @@ function handleReconnect(): void {
   line-height: 1.25;
 }
 
+.sidebar-item-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 14px;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.sidebar-item-pin:hover,
+.sidebar-item-pin.is-active {
+  background: rgba(22, 119, 255, 0.12);
+  color: #1677ff;
+}
+
 .admin-shell.is-collapsed .sidebar-brand {
   justify-content: center;
   padding-right: 12px;
@@ -714,13 +1396,17 @@ function handleReconnect(): void {
 
 .admin-shell.is-collapsed .sidebar-item {
   justify-content: center;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 .admin-shell.is-collapsed .sidebar-item-badge {
   width: 32px;
   height: 32px;
   font-size: 14px;
+}
+
+.admin-shell.is-collapsed .sidebar-item-main {
+  justify-content: center;
 }
 
 .sidebar-footer {
@@ -935,6 +1621,32 @@ function handleReconnect(): void {
   font-size: 12px;
 }
 
+.session-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+  background: linear-gradient(90deg, rgba(255, 247, 237, 0.98) 0%, rgba(255, 251, 235, 0.94) 100%);
+  padding: 12px 20px;
+}
+
+.session-banner-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.session-banner-copy strong {
+  color: #9a3412;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.session-banner-copy span {
+  color: #9a3412;
+  font-size: 12px;
+}
+
 .tags-bar {
   display: flex;
   align-items: center;
@@ -1051,6 +1763,11 @@ function handleReconnect(): void {
     padding-left: 16px;
   }
 
+  .session-banner {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
   .global-main {
     padding: 16px;
   }
@@ -1081,6 +1798,11 @@ function handleReconnect(): void {
 
   .realtime-card {
     flex-wrap: wrap;
+  }
+
+  .session-banner {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

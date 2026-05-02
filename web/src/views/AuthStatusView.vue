@@ -1,30 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { formatRoleLabel, formatScopeLabel, permissionLabelMap, roleDescriptionMap } from '../access/auth-model'
+import { formatRoleLabel, formatScopeLabel, roleDescriptionMap } from '../access/auth-model'
 
 const authStore = useAuthStore()
 authStore.hydrate()
 
-const apiBaseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
-
 const roles = computed(() => authStore.displayRoles)
 const platformRoles = computed(() => authStore.platformRoles)
 const memberships = computed(() => authStore.memberships)
-const permissions = computed(() => [...authStore.permissions].sort((left, right) => left.localeCompare(right)))
-const maskedToken = computed(() => {
-  const source = authStore.token
-
-  if (!source) {
-    return '-'
-  }
-
-  if (source.length <= 24) {
-    return source
-  }
-
-  return `${source.slice(0, 12)}...${source.slice(-12)}`
-})
 
 const expireInfo = computed(() => {
   if (authStore.minutesLeft === null) {
@@ -32,20 +16,112 @@ const expireInfo = computed(() => {
   }
 
   if ((authStore.minutesLeft ?? -1) < 0) {
-    return 'Token 已过期，请重新登录'
+    return '登录会话已过期，请重新登录'
   }
 
   return `剩余 ${(authStore.minutesLeft ?? 0).toString()} 分钟`
 })
+
+const workspaceLabel = computed(() => {
+  if (authStore.workspaceDomain === 'platform') {
+    return '平台域'
+  }
+
+  if (authStore.workspaceDomain === 'org') {
+    return '企业域'
+  }
+
+  return '未识别'
+})
+
+const sessionStatusText = computed(() => {
+  if (!authStore.isAuthenticated) {
+    return '未登录'
+  }
+
+  if (authStore.willExpireSoon) {
+    return '待续期'
+  }
+
+  return '正常'
+})
+
+const capabilityTags = computed(() => {
+  const permissions = new Set(authStore.permissions)
+  const tags: string[] = []
+
+  if (permissions.has('overview.read') || permissions.has('alert.read')) {
+    tags.push('总览与告警查看')
+  }
+
+  if (permissions.has('alert.handle')) {
+    tags.push('告警处置')
+  }
+
+  if (permissions.has('stats.read')) {
+    tags.push('统计分析')
+  }
+
+  if (permissions.has('user.read') || permissions.has('user.manage')) {
+    tags.push('用户与组织管理')
+  }
+
+  if (
+    permissions.has('enterprise.read') ||
+    permissions.has('enterprise.manage') ||
+    permissions.has('activation_code.read') ||
+    permissions.has('activation_code.manage')
+  ) {
+    tags.push('企业资料与激活码')
+  }
+
+  if (
+    permissions.has('fleet.read') ||
+    permissions.has('fleet.manage') ||
+    permissions.has('driver.read') ||
+    permissions.has('driver.manage') ||
+    permissions.has('vehicle.read') ||
+    permissions.has('vehicle.manage') ||
+    permissions.has('device.read') ||
+    permissions.has('device.manage')
+  ) {
+    tags.push('车辆与设备资源')
+  }
+
+  if (permissions.has('session.read') || permissions.has('session.force_sign_out')) {
+    tags.push('会话巡检')
+  }
+
+  if (permissions.has('rule.read') || permissions.has('rule.manage')) {
+    tags.push('规则治理')
+  }
+
+  if (permissions.has('audit.read') || permissions.has('audit.export')) {
+    tags.push('审计与导出')
+  }
+
+  if (permissions.has('system.read')) {
+    tags.push('系统运维')
+  }
+
+  return tags
+})
+
+const overviewItems = computed(() => [
+  { label: '当前工作域', value: workspaceLabel.value },
+  { label: '平台角色数', value: String(platformRoles.value.length) },
+  { label: '业务归属数', value: String(memberships.value.length) },
+  { label: '能力分类数', value: String(capabilityTags.value.length) },
+])
 </script>
 
 <template>
   <div class="status-page">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Authentication</p>
-        <h1>登录会话与鉴权状态</h1>
-        <p class="subhead">展示风控运营管理台当前登录会话、令牌状态与角色权限映射。</p>
+        <p class="eyebrow">Account</p>
+        <h1>账号与安全</h1>
+        <p class="subhead">查看当前登录状态、访问范围和能力概览，不展示令牌、请求头或内部接口信息。</p>
       </div>
     </div>
 
@@ -54,7 +130,7 @@ const expireInfo = computed(() => {
       class="expire-alert"
       type="warning"
       :closable="false"
-      title="Token 即将过期，请尽快重新登录续期"
+      title="登录会话即将过期，请尽快重新登录续期"
       :description="expireInfo"
     />
 
@@ -65,29 +141,36 @@ const expireInfo = computed(() => {
         </template>
         <p><span>当前用户</span>{{ authStore.username || '-' }}</p>
         <p><span>昵称</span>{{ authStore.nickname || '-' }}</p>
-        <p><span>用户 ID</span>{{ authStore.userId ?? '-' }}</p>
         <p><span>角色</span>{{ authStore.roleText }}</p>
-        <p><span>平台角色</span>{{ platformRoles.length ? platformRoles.map((role) => formatRoleLabel(role)).join(' / ') : '-' }}</p>
-        <p><span>所属企业</span>{{ authStore.enterpriseName || authStore.enterpriseId || '-' }}</p>
+        <p><span>所属企业</span>{{ authStore.enterpriseName || '-' }}</p>
         <p><span>默认范围</span>{{ authStore.scopeText }}</p>
-        <p><span>主体类型</span>{{ authStore.subjectType || '-' }}</p>
         <p><span>账号状态</span>{{ authStore.enabled ? '启用中' : '已禁用' }}</p>
+        <p><span>会话状态</span>{{ sessionStatusText }}</p>
         <p><span>过期时间</span>{{ authStore.expireAtText }}</p>
         <p><span>剩余时长</span>{{ expireInfo }}</p>
       </el-card>
 
       <el-card class="info-card" shadow="never">
         <template #header>
-          <div class="card-title">鉴权请求头</div>
+          <div class="card-title">访问概览</div>
         </template>
-        <p class="mono">Base URL: {{ apiBaseURL }}</p>
-        <p class="mono">Authorization: Bearer {{ maskedToken }}</p>
+
+        <div class="overview-grid">
+          <article v-for="item in overviewItems" :key="item.label" class="overview-item">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </article>
+        </div>
+
+        <p class="safety-note">
+          成熟后台默认隐藏 Bearer Token、接口地址、原始权限码和其他仅用于调试的技术细节。
+        </p>
       </el-card>
     </section>
 
     <el-card class="role-card" shadow="never">
       <template #header>
-        <div class="card-title">角色模板</div>
+        <div class="card-title">角色职责</div>
       </template>
 
       <div class="role-list">
@@ -107,7 +190,11 @@ const expireInfo = computed(() => {
         </template>
 
         <div v-if="memberships.length" class="membership-list">
-          <div v-for="item in memberships" :key="`${item.role}-${item.scopeType}-${item.enterpriseId ?? 'na'}-${item.fleetId ?? 'na'}`" class="membership-item">
+          <div
+            v-for="item in memberships"
+            :key="`${item.role}-${item.scopeType}-${item.enterpriseId ?? 'na'}-${item.fleetId ?? 'na'}`"
+            class="membership-item"
+          >
             <el-tag effect="plain">{{ formatRoleLabel(item.role) }}</el-tag>
             <span>{{ formatScopeLabel(item) }}</span>
           </div>
@@ -118,16 +205,16 @@ const expireInfo = computed(() => {
 
       <el-card class="info-card" shadow="never">
         <template #header>
-          <div class="card-title">权限点</div>
+          <div class="card-title">能力概览</div>
         </template>
 
         <div class="permission-list">
-          <el-tag v-for="permission in permissions" :key="permission" effect="plain" type="info">
-            {{ permissionLabelMap[permission] || permission }}
+          <el-tag v-for="tag in capabilityTags" :key="tag" effect="plain" type="info">
+            {{ tag }}
           </el-tag>
         </div>
 
-        <p v-if="!permissions.length" class="empty-text">未获取到权限点列表。</p>
+        <p v-if="!capabilityTags.length" class="empty-text">当前账号未获取到明确的业务能力分类。</p>
       </el-card>
     </section>
   </div>
@@ -211,10 +298,37 @@ h1 {
   font-size: 13px;
 }
 
-.mono {
-  font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
-  font-size: 13px;
-  word-break: break-all;
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview-item {
+  padding: 12px;
+  border: 1px solid #e2ecea;
+  border-radius: 12px;
+  background: #f7fbfa;
+}
+
+.overview-item span {
+  display: block;
+  color: #6a858c;
+  font-size: 12px;
+}
+
+.overview-item strong {
+  display: block;
+  margin-top: 6px;
+  color: #184148;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.safety-note {
+  margin-top: 14px;
+  color: #58737b;
+  line-height: 1.6;
 }
 
 .role-list {
@@ -278,13 +392,14 @@ h1 {
 
   .page-head {
     flex-direction: column;
-  }
-
-  h1 {
-    font-size: 26px;
+    align-items: flex-start;
   }
 
   .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-grid {
     grid-template-columns: 1fr;
   }
 }
