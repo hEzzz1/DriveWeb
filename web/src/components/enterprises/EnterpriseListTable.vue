@@ -9,12 +9,14 @@ defineProps<{
   size: number
   canEdit?: boolean
   canToggleStatus?: boolean
+  selectable?: boolean
 }>()
 
 const emit = defineEmits<{
   detail: [row: EnterpriseSummary]
   edit: [row: EnterpriseSummary]
   toggleStatus: [row: EnterpriseSummary]
+  selectionChange: [rows: EnterpriseSummary[]]
   'page-change': [page: number]
   'size-change': [size: number]
 }>()
@@ -31,7 +33,14 @@ function formatDateTime(value?: string): string {
 
 <template>
   <div class="table-wrap">
-    <el-table :data="items" :loading="loading" stripe>
+    <el-table
+      :data="items"
+      :loading="loading"
+      stripe
+      row-key="id"
+      @selection-change="emit('selectionChange', $event)"
+    >
+      <el-table-column v-if="selectable" type="selection" width="48" reserve-selection />
       <el-table-column prop="id" label="企业 ID" width="100" />
       <el-table-column prop="code" label="企业编码" min-width="140" />
       <el-table-column prop="name" label="企业名称" min-width="180" />

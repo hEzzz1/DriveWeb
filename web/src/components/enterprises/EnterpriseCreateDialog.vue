@@ -10,7 +10,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
-  save: [payload: CreateEnterprisePayload]
+  save: [payload: CreateEnterprisePayload, mode?: 'close' | 'continue']
 }>()
 
 const formRef = ref<FormInstance>()
@@ -34,6 +34,7 @@ watch(
       return
     }
 
+    successTip.value = ''
     form.code = ''
     form.name = ''
     form.contactName = ''
@@ -43,7 +44,18 @@ watch(
   },
 )
 
-async function handleSave(): Promise<void> {
+const successTip = ref('')
+
+watch(
+  () => props.loading,
+  (loading, previous) => {
+    if (previous && !loading && props.visible) {
+      successTip.value = '已创建成功，可继续录入下一家企业。'
+    }
+  },
+)
+
+async function handleSave(mode: 'close' | 'continue' = 'close'): Promise<void> {
   if (!formRef.value) {
     return
   }
@@ -54,19 +66,31 @@ async function handleSave(): Promise<void> {
     return
   }
 
-  emit('save', {
-    code: form.code.trim(),
-    name: form.name.trim(),
-    contactName: form.contactName?.trim() || undefined,
-    contactPhone: form.contactPhone?.trim() || undefined,
-    remark: form.remark?.trim() || undefined,
-  })
+  emit(
+    'save',
+    {
+      code: form.code.trim(),
+      name: form.name.trim(),
+      contactName: form.contactName?.trim() || undefined,
+      contactPhone: form.contactPhone?.trim() || undefined,
+      remark: form.remark?.trim() || undefined,
+    },
+    mode,
+  )
 }
 </script>
 
 <template>
   <el-dialog :model-value="visible" width="560px" title="新建企业" @close="emit('update:visible', false)">
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+      <el-alert
+        :closable="false"
+        class="form-tip"
+        title="优先填写编码与名称，联系人和备注可在创建后继续补充。"
+        type="info"
+        show-icon
+      />
+      <el-alert v-if="successTip" :closable="false" class="form-tip" :title="successTip" type="success" show-icon />
       <el-form-item label="企业编码" prop="code">
         <el-input v-model="form.code" clearable placeholder="请输入企业编码" />
       </el-form-item>
@@ -86,13 +110,18 @@ async function handleSave(): Promise<void> {
     <template #footer>
       <div class="actions">
         <el-button @click="emit('update:visible', false)">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave">创建企业</el-button>
+        <el-button :loading="loading" @click="handleSave('continue')">创建并继续</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSave('close')">创建并关闭</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <style scoped>
+.form-tip {
+  margin-bottom: 16px;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
