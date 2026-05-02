@@ -667,9 +667,9 @@ function getDriverLabel(driverId: string): string {
 
 <style scoped>
 .alerts-page {
-  width: min(1240px, 100%);
+  width: min(1440px, 100%);
   margin: 0 auto;
-  padding: 26px 24px 34px;
+  padding: 0;
   display: grid;
   gap: 16px;
 }
@@ -686,34 +686,21 @@ function getDriverLabel(driverId: string): string {
 .page-head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-}
-
-.eyebrow {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-weight: 700;
-  font-size: 12px;
-  color: #0f755f;
+  align-items: center;
 }
 
 h1 {
-  margin: 8px 0 6px;
-  font-size: 30px;
-  line-height: 1.25;
-  color: #12363f;
+  color: var(--text-main);
 }
 
 .subhead {
-  margin: 0;
-  color: #58737b;
+  color: var(--text-faint);
 }
 
 .panel-card {
-  border-radius: 16px;
-  border: 1px solid #d7e5e2;
-  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel-bg);
 }
 
 .filter-grid {
@@ -742,7 +729,7 @@ h1 {
   justify-content: space-between;
   gap: 12px;
   font-weight: 700;
-  color: #184148;
+  color: var(--text-main);
 }
 
 .table-meta {
@@ -753,14 +740,14 @@ h1 {
 
 .count {
   font-size: 13px;
-  color: #648087;
+  color: var(--text-faint);
   font-weight: 500;
 }
 
 .realtime-tip {
   font-size: 12px;
   font-weight: 600;
-  color: #0f755f;
+  color: var(--brand);
 }
 
 .alert-table {

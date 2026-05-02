@@ -59,51 +59,47 @@ a {
 }
 
 .page-shell {
+  width: min(1440px, 100%);
+  margin: 0 auto;
   display: grid;
-  gap: 20px;
+  gap: 16px;
 }
 
 .page-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px;
+  padding: 18px 20px;
   border: 1px solid var(--line);
-  border-radius: 16px;
-  background:
-    linear-gradient(135deg, rgba(22, 119, 255, 0.06), transparent 40%),
-    var(--panel-bg);
+  border-radius: 12px;
+  background: var(--panel-bg);
   box-shadow: var(--shadow-panel);
 }
 
 .eyebrow {
-  margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--brand);
+  display: none;
 }
 
 .page-head h1 {
   margin: 0;
-  font-size: 30px;
+  font-size: 24px;
   line-height: 1.2;
   font-weight: 600;
 }
 
 .subhead {
-  margin: 6px 0 0;
-  max-width: 720px;
+  margin: 4px 0 0;
+  max-width: 920px;
   color: var(--text-faint);
-  line-height: 1.5;
-  font-size: 14px;
+  line-height: 1.45;
+  font-size: 13px;
 }
 
 .head-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
   flex-wrap: wrap;
 }
 
@@ -111,7 +107,7 @@ a {
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  gap: 16px;
 }
 
 .metric-card,
@@ -180,7 +176,7 @@ a {
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-  gap: 20px;
+  gap: 16px;
 }
 
 .card-title {
@@ -202,7 +198,7 @@ a {
 
 .panel-card .el-card__header,
 .page-section-card .el-card__header {
-  padding: 16px 20px 14px;
+  padding: 14px 18px 12px;
   border-bottom: 1px solid var(--line);
   background: var(--panel-bg);
 }
@@ -211,7 +207,7 @@ a {
 .page-section-card .el-card__body,
 .metric-card .el-card__body,
 .status-card .el-card__body {
-  padding: 18px 20px;
+  padding: 16px 18px;
 }
 
 .page-section-card .el-card__body {
@@ -266,11 +262,13 @@ a {
 }
 
 .el-tag {
-  border-radius: 4px !important;
+  border-radius: 6px !important;
 }
 
 .el-button {
-  border-radius: 6px !important;
+  border-radius: 8px !important;
+  padding-right: 14px !important;
+  padding-left: 14px !important;
   font-weight: 500 !important;
 }
 
@@ -361,7 +359,7 @@ a {
   }
 
   .page-head h1 {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .panel-card .el-card__body,

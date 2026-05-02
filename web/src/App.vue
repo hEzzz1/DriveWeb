@@ -426,7 +426,7 @@ function handleReconnect(): void {
         <div class="brand-badge">DW</div>
         <div v-if="!sidebarCollapsed" class="brand-copy">
           <strong>DriveWeb</strong>
-          <span>{{ access.isPlatformDomain ? 'Platform Console' : 'Business Workspace' }}</span>
+          <span>{{ access.isPlatformDomain ? '平台管理后台' : '企业运营后台' }}</span>
         </div>
       </div>
 
@@ -448,7 +448,6 @@ function handleReconnect(): void {
 
             <span v-if="!sidebarCollapsed" class="sidebar-item-copy">
               <span class="sidebar-item-label">{{ item.label }}</span>
-              <span class="sidebar-item-sub">{{ item.subtitle }}</span>
             </span>
           </button>
         </div>
@@ -486,7 +485,7 @@ function handleReconnect(): void {
           </div>
 
           <div class="workspace-chip">
-            <span class="workspace-chip-label">{{ access.isPlatformDomain ? 'Platform' : 'Enterprise' }}</span>
+            <span class="workspace-chip-label">{{ access.isPlatformDomain ? '平台域' : '企业域' }}</span>
             <strong>{{ authStore.scopeText }}</strong>
           </div>
         </div>
@@ -648,9 +647,10 @@ function handleReconnect(): void {
 .sidebar-item {
   display: flex;
   width: 100%;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  min-height: 44px;
+  padding: 8px 12px;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -691,7 +691,7 @@ function handleReconnect(): void {
 .sidebar-item-copy {
   display: grid;
   min-width: 0;
-  gap: 4px;
+  gap: 0;
   text-align: left;
 }
 
@@ -700,12 +700,6 @@ function handleReconnect(): void {
   font-size: 14px;
   font-weight: 500;
   line-height: 1.25;
-}
-
-.sidebar-item-sub {
-  color: var(--text-faint);
-  font-size: 12px;
-  line-height: 1.45;
 }
 
 .admin-shell.is-collapsed .sidebar-brand {

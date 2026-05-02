@@ -92,14 +92,13 @@ async function handleSubmit(): Promise<void> {
         <p class="eyebrow">DriveWeb</p>
         <h1>风控运营管理台</h1>
         <p class="subtitle">
-          根据 DriveServer 鉴权规范，登录成功后将写入 JWT 与角色信息，并以
-          <code>Bearer Token</code> 自动携带访问受保护接口。
+          登录后将写入令牌与角色信息，并自动携带访问凭证进入平台或企业工作台。
         </p>
 
         <ul class="spec-list">
           <li>登录接口：<code>POST {{ apiBaseURL }}/auth/login</code></li>
-          <li>统一响应：<code>code/message/data/traceId</code></li>
-          <li>角色模型：<code>PLATFORM_SUPER_ADMIN / PLATFORM_SYS_ADMIN / PLATFORM_RISK_ADMIN / ORG_ADMIN / ORG_OPERATOR / ORG_ANALYST / ORG_VIEWER</code></li>
+          <li>统一响应字段：<code>code / message / data / traceId</code></li>
+          <li>支持平台管理员、企业管理员与企业业务角色分域登录</li>
         </ul>
       </aside>
 
@@ -107,8 +106,8 @@ async function handleSubmit(): Promise<void> {
         <el-card class="login-card" shadow="never">
           <template #header>
             <div class="card-head">
-              <h2>登录与鉴权</h2>
-              <span>Session 初始化</span>
+              <h2>账号登录</h2>
+              <span>登录后自动初始化会话</span>
             </div>
           </template>
 
@@ -159,7 +158,7 @@ async function handleSubmit(): Promise<void> {
             </el-button>
           </el-form>
 
-          <p class="hint">示例账户可参考 DriveServer 文档中的请求示例：<code>admin / 123456</code></p>
+          <p class="hint">联调阶段可使用示例账户：<code>admin / 123456</code></p>
         </el-card>
       </main>
     </section>
