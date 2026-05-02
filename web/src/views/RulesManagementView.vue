@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import RuleActionConfirmDialog from '../components/rules/RuleActionConfirmDialog.vue'
 import RuleEditDialog from '../components/rules/RuleEditDialog.vue'
 import RuleFilterBar from '../components/rules/RuleFilterBar.vue'
@@ -262,13 +263,11 @@ async function handleSizeChange(size: number): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Rules</p>
-        <h1>规则管理</h1>
-        <p class="subhead">统一管理规则筛选、参数编辑、启停、发布与版本回滚。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Rules"
+      title="规则管理"
+      subtitle="统一管理规则筛选、参数编辑、启停、发布与版本回滚。"
+    />
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

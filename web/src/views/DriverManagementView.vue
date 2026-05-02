@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { fetchAllPages } from '../api/pagination'
 import DriverCreateDialog from '../components/drivers/DriverCreateDialog.vue'
 import DriverDetailDrawer from '../components/drivers/DriverDetailDrawer.vue'
@@ -328,16 +329,11 @@ function syncTableRow(detail: DriverDetail): void {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Drivers</p>
-        <h1>驾驶员管理</h1>
-        <p class="subhead">{{ pageSubhead }}</p>
-      </div>
-      <div class="head-actions">
+    <WorkspacePageHeader eyebrow="Drivers" title="驾驶员管理" :subtitle="pageSubhead">
+      <template #actions>
         <el-button v-if="access.canManageDrivers" type="primary" @click="createVisible = true">新增驾驶员</el-button>
-      </div>
-    </div>
+      </template>
+    </WorkspacePageHeader>
 
     <div class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

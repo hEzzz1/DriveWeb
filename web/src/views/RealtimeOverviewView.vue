@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { EChartsOption } from 'echarts'
 import EChartPanel from '../components/EChartPanel.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { getRealtimeOverview } from '../api/stats'
 import { useAuthStore } from '../stores/auth'
 import { useRealtimeStore } from '../stores/realtime'
@@ -197,18 +198,18 @@ function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLates
 
 <template>
   <div class="overview-page">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Overview</p>
-        <h1>风险总览</h1>
-        <p class="subhead">聚合最近 5 分钟态势、最新告警流与连接状态。</p>
-      </div>
-
-      <div class="head-meta">
-        <el-tag effect="plain" :type="realtimeStore.statusTagType">{{ realtimeStore.statusText }}</el-tag>
-        <span>最近刷新 {{ formatDateTime(lastRefreshAt) }}</span>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Overview"
+      title="风险总览"
+      subtitle="聚合最近 5 分钟态势、最新告警流与连接状态。"
+    >
+      <template #actions>
+        <div class="head-meta">
+          <el-tag effect="plain" :type="realtimeStore.statusTagType">{{ realtimeStore.statusText }}</el-tag>
+          <span>最近刷新 {{ formatDateTime(lastRefreshAt) }}</span>
+        </div>
+      </template>
+    </WorkspacePageHeader>
 
     <section class="kpi-grid">
       <el-card class="metric-card" shadow="never">

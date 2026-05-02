@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import AuditDetailDrawer from '../components/audit/AuditDetailDrawer.vue'
 import UserCreateDialog from '../components/users/UserCreateDialog.vue'
 import UserDetailDrawer from '../components/users/UserDetailDrawer.vue'
@@ -287,13 +288,11 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Platform</p>
-        <h1>企业管理员</h1>
-        <p class="subhead">平台域仅管理企业管理员账号，不进入企业业务数据。创建、禁用、重置密码和企业归属调整均在本页完成。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Platform"
+      title="企业管理员"
+      subtitle="平台域仅管理企业管理员账号，不进入企业业务数据。创建、禁用、重置密码和企业归属调整均在本页完成。"
+    />
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

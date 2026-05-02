@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import FleetCreateDialog from '../components/fleets/FleetCreateDialog.vue'
 import FleetDetailDrawer from '../components/fleets/FleetDetailDrawer.vue'
 import FleetEditDialog from '../components/fleets/FleetEditDialog.vue'
@@ -247,16 +248,11 @@ function syncTableRow(detail: FleetDetail): void {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Fleets</p>
-        <h1>车队管理</h1>
-        <p class="subhead">{{ pageSubhead }}</p>
-      </div>
-      <div class="head-actions">
+    <WorkspacePageHeader eyebrow="Fleets" title="车队管理" :subtitle="pageSubhead">
+      <template #actions>
         <el-button v-if="access.canManageFleets" type="primary" @click="createVisible = true">新建车队</el-button>
-      </div>
-    </div>
+      </template>
+    </WorkspacePageHeader>
 
     <div class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

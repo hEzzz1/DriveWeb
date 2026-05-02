@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute } from 'vue-router'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { getDeviceDetail, reassignDeviceVehicle, unassignDeviceVehicle } from '../api/devices'
 import { getFleetList } from '../api/fleets'
 import { fetchAllPages } from '../api/pagination'
@@ -211,13 +212,11 @@ async function handleUnassignVehicle(): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Device Detail</p>
-        <h1>设备详情</h1>
-        <p class="subhead">设备详情页只展示当前企业归属和当前分车状态；企业激活码统一回企业页查看。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Device Detail"
+      title="设备详情"
+      subtitle="设备详情页只展示当前企业归属和当前分车状态；企业激活码统一回企业页查看。"
+    />
 
     <el-skeleton :loading="loading" animated :rows="10">
       <template #default>

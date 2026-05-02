@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AlertActionDialog from '../components/AlertActionDialog.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { disposeAlert, getAlertDetail } from '../api/alerts'
 import { getDriverDetail } from '../api/drivers'
 import { getFleetDetail } from '../api/fleets'
@@ -269,18 +270,16 @@ watch(
 
 <template>
   <div class="detail-page">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Alert Detail</p>
-        <h1>告警详情</h1>
-        <p class="subhead">查看单条告警上下文、风险指标与处置轨迹。</p>
-      </div>
-
-      <div class="head-actions">
+    <WorkspacePageHeader
+      eyebrow="Alert Detail"
+      title="告警详情"
+      subtitle="查看单条告警上下文、风险指标与处置轨迹。"
+    >
+      <template #actions>
         <el-button @click="handleBack">返回列表</el-button>
         <el-button :loading="loading" @click="fetchDetail">刷新</el-button>
-      </div>
-    </div>
+      </template>
+    </WorkspacePageHeader>
 
     <el-skeleton v-if="loading && !detail" :rows="8" animated />
 

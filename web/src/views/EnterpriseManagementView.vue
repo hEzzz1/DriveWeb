@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import AuditDetailDrawer from '../components/audit/AuditDetailDrawer.vue'
 import EnterpriseCreateDialog from '../components/enterprises/EnterpriseCreateDialog.vue'
 import EnterpriseDetailDrawer from '../components/enterprises/EnterpriseDetailDrawer.vue'
@@ -324,16 +325,15 @@ function handleSelectionChange(rows: EnterpriseSummary[]): void {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Enterprises</p>
-        <h1>企业管理</h1>
-        <p class="subhead">把待启用处理、企业录入和状态维护收敛到一个连续工作台，减少来回切换和重复筛选。</p>
-      </div>
-      <div class="head-actions">
+    <WorkspacePageHeader
+      eyebrow="Enterprises"
+      title="企业管理"
+      subtitle="把待启用处理、企业录入和状态维护收敛到一个连续工作台，减少来回切换和重复筛选。"
+    >
+      <template #actions>
         <el-button v-if="access.canManageEnterprises" type="primary" @click="createVisible = true">新建企业</el-button>
-      </div>
-    </div>
+      </template>
+    </WorkspacePageHeader>
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

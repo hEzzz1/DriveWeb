@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EChartsOption } from 'echarts'
 import EChartPanel from '../components/EChartPanel.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { getFleetList } from '../api/fleets'
 import { fetchAllPages } from '../api/pagination'
 import { getStatsRanking, getStatsTrend } from '../api/stats'
@@ -256,13 +257,11 @@ function calculateAverage(items: TrendBucket[], getter: (item: TrendBucket) => n
 
 <template>
   <div class="trend-page">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Stats</p>
-        <h1>趋势分析</h1>
-        <p class="subhead">筛选结果会同步到 URL，刷新后可直接回放当前分析视图。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Stats"
+      title="趋势分析"
+      subtitle="筛选结果会同步到 URL，刷新后可直接回放当前分析视图。"
+    />
 
     <el-card class="panel-card" shadow="never">
       <el-form class="filter-grid" label-position="top">

@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { fetchAllPages } from '../api/pagination'
 import { getEnterpriseList } from '../api/enterprises'
 import { getFleetList } from '../api/fleets'
@@ -271,16 +272,15 @@ function boundDeviceText(item: VehicleSummary): string {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Vehicles</p>
-        <h1>车辆管理</h1>
-        <p class="subhead">按企业和车队维护车辆主数据，展示当前绑定设备，企业管理员自动锁定本企业范围。</p>
-      </div>
-      <div class="head-actions">
+    <WorkspacePageHeader
+      eyebrow="Vehicles"
+      title="车辆管理"
+      subtitle="按企业和车队维护车辆主数据，展示当前绑定设备，企业管理员自动锁定本企业范围。"
+    >
+      <template #actions>
         <el-button v-if="access.canManageVehicles" type="primary" @click="openCreate">新增车辆</el-button>
-      </div>
-    </div>
+      </template>
+    </WorkspacePageHeader>
 
     <div class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

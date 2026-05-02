@@ -28,28 +28,28 @@ defineProps<{
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
 }
 
 .section-head h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
   color: var(--text-main);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.3;
 }
 
 .section-head p {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   color: var(--text-faint);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .section-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding-top: 2px;
 }
 </style>

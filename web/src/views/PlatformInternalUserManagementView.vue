@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { buildDisplayRoles } from '../access/auth-model'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import AuditDetailDrawer from '../components/audit/AuditDetailDrawer.vue'
 import UserCreateDialog from '../components/users/UserCreateDialog.vue'
 import UserDetailDrawer from '../components/users/UserDetailDrawer.vue'
@@ -312,13 +313,11 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Platform</p>
-        <h1>平台内部账号</h1>
-        <p class="subhead">平台内部账号与企业管理员彻底分开，只允许分配平台角色，不绑定企业。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Platform"
+      title="平台内部账号"
+      subtitle="平台内部账号与企业管理员彻底分开，只允许分配平台角色，不绑定企业。"
+    />
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

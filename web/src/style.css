@@ -1,25 +1,25 @@
 :root {
-  --page-bg: #f5f7fb;
+  --page-bg: #f5f7fa;
   --panel-bg: #ffffff;
-  --panel-bg-soft: #fafcff;
-  --surface: #f7f9fc;
-  --line: #e5e6eb;
-  --line-strong: #d9d9d9;
-  --text-main: #1f1f1f;
-  --text-soft: #595959;
-  --text-faint: #8c8c8c;
+  --panel-bg-soft: #fbfcfe;
+  --surface: #f8fafc;
+  --line: #e5eaf3;
+  --line-strong: #d0d8e6;
+  --text-main: #0f172a;
+  --text-soft: #475569;
+  --text-faint: #64748b;
   --brand: #1677ff;
   --brand-strong: #0958d9;
   --success: #67c23a;
   --warning: #e6a23c;
   --danger: #f56c6c;
-  --sidebar-bg: rgba(255, 255, 255, 0.92);
-  --sidebar-hover: #f5f8ff;
-  --shadow-panel: 0 6px 18px rgba(31, 35, 41, 0.06);
-  --shadow-soft: 0 2px 8px rgba(31, 35, 41, 0.05);
+  --sidebar-bg: rgba(255, 255, 255, 0.94);
+  --sidebar-hover: #f3f7ff;
+  --shadow-panel: 0 12px 30px rgba(15, 23, 42, 0.06);
+  --shadow-soft: 0 8px 18px rgba(15, 23, 42, 0.05);
   --el-color-primary: var(--brand);
   font-family:
-    'Avenir Next', 'SF Pro Display', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    'Segoe UI', 'Avenir Next', 'SF Pro Display', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -38,7 +38,9 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--page-bg);
+  background:
+    radial-gradient(circle at top, rgba(22, 119, 255, 0.08), transparent 26rem),
+    linear-gradient(180deg, #f7fafe 0%, var(--page-bg) 240px);
   color: var(--text-main);
   font-family: inherit;
 }
@@ -62,7 +64,7 @@ a {
   width: min(1440px, 100%);
   margin: 0 auto;
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 .page-head {
@@ -107,7 +109,7 @@ a {
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  gap: 18px;
 }
 
 .metric-card,
@@ -115,7 +117,7 @@ a {
 .panel-card,
 .page-section-card {
   border: 1px solid var(--line) !important;
-  border-radius: 16px !important;
+  border-radius: 18px !important;
   background: var(--panel-bg) !important;
   box-shadow: var(--shadow-soft) !important;
 }
@@ -138,10 +140,11 @@ a {
 
 .metric-label {
   margin: 0;
-  color: var(--text-faint);
+  color: #6b7280;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .status-card .card-label {
@@ -176,11 +179,11 @@ a {
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-  gap: 16px;
+  gap: 18px;
 }
 
 .card-title {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-main);
 }
 
@@ -188,26 +191,27 @@ a {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 9px 14px;
   border-radius: 999px;
   background: var(--panel-bg);
   border: 1px solid var(--line);
   color: var(--text-soft);
   font-size: 12px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
 }
 
 .panel-card .el-card__header,
 .page-section-card .el-card__header {
-  padding: 14px 18px 12px;
+  padding: 16px 20px 14px;
   border-bottom: 1px solid var(--line);
-  background: var(--panel-bg);
+  background: linear-gradient(180deg, #ffffff, #fbfcff);
 }
 
 .panel-card .el-card__body,
 .page-section-card .el-card__body,
 .metric-card .el-card__body,
 .status-card .el-card__body {
-  padding: 16px 18px;
+  padding: 18px 20px;
 }
 
 .page-section-card .el-card__body {
@@ -216,9 +220,9 @@ a {
 }
 
 .filter-bar {
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--surface);
+  padding: 18px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fbfcfe, #f8fbff);
   border: 1px solid var(--line);
 }
 
@@ -228,10 +232,10 @@ a {
 
 .table-wrap .el-table {
   --el-table-border-color: var(--line);
-  --el-table-header-bg-color: #fafafa;
-  --el-table-row-hover-bg-color: #f5f8ff;
+  --el-table-header-bg-color: #f8fbff;
+  --el-table-row-hover-bg-color: #f3f7ff;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
 }
 
@@ -266,10 +270,10 @@ a {
 }
 
 .el-button {
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   padding-right: 14px !important;
   padding-left: 14px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
 }
 
 .el-dialog,
@@ -320,7 +324,7 @@ a {
 .el-textarea__inner,
 .el-select__wrapper,
 .el-date-editor.el-input__wrapper {
-  border-radius: 6px !important;
+  border-radius: 10px !important;
   box-shadow: 0 0 0 1px var(--line-strong) inset !important;
   background: #ffffff !important;
 }

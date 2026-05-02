@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { useAuthStore } from '../stores/auth'
 import { formatRoleLabel, formatScopeLabel, roleDescriptionMap } from '../access/auth-model'
 
@@ -117,13 +118,11 @@ const overviewItems = computed(() => [
 
 <template>
   <div class="status-page">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Account</p>
-        <h1>账号与安全</h1>
-        <p class="subhead">查看当前登录状态、访问范围和能力概览，不展示令牌、请求头或内部接口信息。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Account"
+      title="账号与安全"
+      subtitle="查看当前登录状态、访问范围和能力概览，不展示令牌、请求头或内部接口信息。"
+    />
 
     <el-alert
       v-if="authStore.willExpireSoon"

@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AlertActionDialog from '../components/AlertActionDialog.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { disposeAlert, getAlertDetail, getAlertList } from '../api/alerts'
 import { getDriverList } from '../api/drivers'
 import { getFleetList } from '../api/fleets'
@@ -475,13 +476,11 @@ function getDriverLabel(driverId: string): string {
 
 <template>
   <div class="alerts-page">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Alerts</p>
-        <h1>告警中心</h1>
-        <p class="subhead">支持按车队、车辆、司机、等级、状态与时间范围进行筛选查询。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Alerts"
+      title="告警中心"
+      subtitle="支持按车队、车辆、司机、等级、状态与时间范围进行筛选查询。"
+    />
 
     <el-card class="panel-card" shadow="never">
       <el-form class="filter-grid" label-position="top">

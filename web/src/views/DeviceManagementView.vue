@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { fetchAllPages } from '../api/pagination'
 import { getDeviceList } from '../api/devices'
 import { getEnterpriseList } from '../api/enterprises'
@@ -136,13 +137,11 @@ function openDetail(row: DeviceSummary): void {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Device Registry</p>
-        <h1>设备管理</h1>
-        <p class="subhead">设备绑定改为直接由企业激活码完成后，企业管理员会在这里直接看到新绑定设备和待分车状态。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Device Registry"
+      title="设备管理"
+      subtitle="设备绑定改为直接由企业激活码完成后，企业管理员会在这里直接看到新绑定设备和待分车状态。"
+    />
 
     <PageSectionCard title="筛选条件" description="企业管理员自动锁定当前企业；设备列表按企业和车队维度查看。">
       <div class="filter-bar">

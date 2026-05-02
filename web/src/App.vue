@@ -4,6 +4,16 @@ import { ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import WorkspaceCommandDialog from './components/shell/WorkspaceCommandDialog.vue'
 import WorkspaceWorkbenchDrawer from './components/shell/WorkspaceWorkbenchDrawer.vue'
+import {
+  canAccessWorkspaceDefinition,
+  toWorkspaceNavEntry,
+  workspaceDefinitionMap,
+  workspaceDefinitions,
+  workspaceRouteNameMap,
+  workspaceSectionLabels,
+  workspaceSectionOrder,
+  type WorkspaceSectionKey,
+} from './config/workspace'
 import { useAccess } from './composables/useAccess'
 import { useAuthStore } from './stores/auth'
 import { useRealtimeStore } from './stores/realtime'
@@ -23,22 +33,10 @@ import {
   saveWorkspaceShellPreferences,
 } from './utils/workspace-shell'
 
-type NavSectionKey =
-  | 'platform-core'
-  | 'platform-system'
-  | 'org-monitor'
-  | 'org-admin'
-  | 'org-business'
-
-interface NavItem extends WorkspaceNavEntry {
-  section: NavSectionKey
-  visible: boolean
-}
-
 interface NavSection {
-  key: NavSectionKey
+  key: WorkspaceSectionKey
   label: string
-  items: NavItem[]
+  items: WorkspaceNavEntry[]
 }
 
 const router = useRouter()
@@ -68,213 +66,26 @@ const shellStorageKey = computed(() =>
 
 let unsubscribeRealtime: (() => void) | null = null
 
-const navItems = computed<NavItem[]>(() => {
-  if (access.value.isPlatformDomain) {
-    return [
-      {
-        key: 'enterprises',
-        badge: '企',
-        section: 'platform-core',
-        label: '企业',
-        subtitle: '平台级企业元数据、状态与资料维护',
-        visible: access.value.canViewEnterprises,
-        path: '/platform/enterprises',
-      },
-      {
-        key: 'enterprise-admins',
-        badge: '管',
-        section: 'platform-core',
-        label: '企业管理员',
-        subtitle: '企业管理员账号、归属企业与启停管理',
-        visible: access.value.canViewEnterpriseAdmins,
-        path: '/platform/enterprise-admins',
-      },
-      {
-        key: 'internal-users',
-        badge: '内',
-        section: 'platform-core',
-        label: '平台内部账号',
-        subtitle: '平台角色账号、密码、启停与角色分配',
-        visible: access.value.canViewPlatformInternalUsers,
-        path: '/platform/internal-users',
-      },
-      {
-        key: 'rules',
-        badge: '规',
-        section: 'platform-core',
-        label: '规则管理',
-        subtitle: '平台规则配置、发布与回滚',
-        visible: access.value.canViewPlatformRules,
-        path: '/platform/rules',
-      },
-      {
-        key: 'audit',
-        badge: '审',
-        section: 'platform-core',
-        label: '审计日志',
-        subtitle: '平台审计列表、详情与导出',
-        visible: access.value.canViewPlatformAudit,
-        path: '/platform/audit',
-      },
-      {
-        key: 'health',
-        badge: '康',
-        section: 'platform-system',
-        label: '系统健康',
-        subtitle: '健康概览与平台运行状态',
-        visible: access.value.canViewPlatformSystem,
-        path: '/platform/system/health',
-      },
-      {
-        key: 'services',
-        badge: '服',
-        section: 'platform-system',
-        label: '服务状态',
-        subtitle: '服务探测状态与最近检查时间',
-        visible: access.value.canViewPlatformSystem,
-        path: '/platform/system/services',
-      },
-      {
-        key: 'version',
-        badge: '版',
-        section: 'platform-system',
-        label: '版本信息',
-        subtitle: '应用版本、构建时间与提交号',
-        visible: access.value.canViewPlatformSystem,
-        path: '/platform/system/version',
-      },
-    ]
-  }
-
-  return [
-    {
-      key: 'overview',
-      badge: '览',
-      section: 'org-monitor',
-      label: '总览',
-      subtitle: '企业风险态势、连接状态与风险概览',
-      visible: access.value.canViewOverview,
-      path: '/org/overview',
-    },
-    {
-      key: 'alerts',
-      badge: '警',
-      section: 'org-monitor',
-      label: '告警',
-      subtitle: '告警筛选、详情查看与处置',
-      visible: access.value.canViewAlerts,
-      path: '/org/alerts',
-    },
-    {
-      key: 'trend',
-      badge: '势',
-      section: 'org-monitor',
-      label: '趋势分析',
-      subtitle: '趋势洞察与波动分析',
-      visible: access.value.canViewStats,
-      path: '/org/stats/trend',
-    },
-    {
-      key: 'ranking',
-      badge: '排',
-      section: 'org-monitor',
-      label: '风险排行',
-      subtitle: '车辆与司机风险排行',
-      visible: access.value.canViewStats,
-      path: '/org/stats/ranking',
-    },
-    {
-      key: 'users',
-      badge: '户',
-      section: 'org-admin',
-      label: '普通用户',
-      subtitle: '本企业普通用户账号、角色与状态管理',
-      visible: access.value.canViewUsers,
-      path: '/org/users',
-    },
-    {
-      key: 'org-audit',
-      badge: '审',
-      section: 'org-admin',
-      label: '企业审计',
-      subtitle: '当前企业范围内的管理与业务操作记录',
-      visible: access.value.canViewOrgAudit,
-      path: '/org/audit',
-    },
-    {
-      key: 'enterprise-profile',
-      badge: '企',
-      section: 'org-admin',
-      label: '我的企业',
-      subtitle: '企业资料与激活码查看',
-      visible: access.value.canViewEnterpriseProfile,
-      path: '/org/enterprise-profile',
-    },
-    {
-      key: 'fleets',
-      badge: '队',
-      section: 'org-business',
-      label: '车队',
-      subtitle: '车队状态、归属与资源规模',
-      visible: access.value.canViewFleets,
-      path: '/org/fleets',
-    },
-    {
-      key: 'drivers',
-      badge: '司',
-      section: 'org-business',
-      label: '驾驶员',
-      subtitle: '驾驶员主数据、归属与 PIN 管理',
-      visible: access.value.canViewDrivers,
-      path: '/org/drivers',
-    },
-    {
-      key: 'vehicles',
-      badge: '车',
-      section: 'org-business',
-      label: '车辆',
-      subtitle: '车辆主数据与设备绑定状态',
-      visible: access.value.canViewVehicles,
-      path: '/org/vehicles',
-    },
-    {
-      key: 'devices',
-      badge: '设',
-      section: 'org-business',
-      label: '设备',
-      subtitle: '设备台账、归属信息与车辆分配',
-      visible: access.value.canViewDevices,
-      path: '/org/devices',
-    },
-    {
-      key: 'sessions',
-      badge: '会',
-      section: 'org-business',
-      label: '会话',
-      subtitle: '驾驶会话、最近心跳与强制签退',
-      visible: access.value.canViewSessions,
-      path: '/org/sessions',
-    },
-  ]
-})
-
 const isPublicPage = computed(() => Boolean(route.meta.public))
-const visibleNavItems = computed(() => navItems.value.filter((item) => item.visible))
+const workspaceAccessContext = computed(() => ({
+  workspaceDomain: authStore.workspaceDomain,
+  permissions: authStore.permissions,
+}))
+const visibleNavItems = computed<WorkspaceNavEntry[]>(() =>
+  workspaceDefinitions
+    .filter((item) => item.menu)
+    .filter((item) => canAccessWorkspaceDefinition(item, workspaceAccessContext.value))
+    .map((item) => toWorkspaceNavEntry(item)),
+)
 const utilityNavItems = computed<WorkspaceNavEntry[]>(() => {
   if (!authStore.isAuthenticated || isPublicPage.value) {
     return []
   }
 
-  return [
-    {
-      key: 'auth-session',
-      badge: '鉴',
-      section: 'workspace',
-      label: '会话状态',
-      subtitle: '登录状态、访问范围与能力概览',
-      path: '/account/session',
-    },
-  ]
+  return workspaceDefinitions
+    .filter((item) => !item.menu && item.section === 'workspace')
+    .filter((item) => canAccessWorkspaceDefinition(item, workspaceAccessContext.value))
+    .map((item) => toWorkspaceNavEntry(item))
 })
 const workspaceEntryMap = computed(() => {
   const map = new Map<string, WorkspaceNavEntry>()
@@ -285,58 +96,57 @@ const workspaceEntryMap = computed(() => {
 
   return map
 })
-const activeNavKey = computed(
-  () =>
+const activeWorkspaceDefinition = computed(() => {
+  if (typeof route.meta.workspaceKey === 'string') {
+    return workspaceDefinitionMap.get(route.meta.workspaceKey)
+  }
+
+  if (typeof route.name === 'string') {
+    return workspaceRouteNameMap.get(route.name)
+  }
+
+  return undefined
+})
+const activeNavKey = computed(() => {
+  const currentItem = activeWorkspaceDefinition.value
+
+  if (currentItem?.menu) {
+    return currentItem.key
+  }
+
+  if (currentItem?.parentKey) {
+    return currentItem.parentKey
+  }
+
+  return (
     visibleNavItems.value.find(
       (item) => route.path === item.path || route.path.startsWith(`${item.path}/`),
-    )?.key || '',
-)
+    )?.key || ''
+  )
+})
 const currentNavItem = computed<WorkspaceNavEntry | undefined>(() => {
-  const utilityItem = utilityNavItems.value.find((item) => route.path === item.path)
+  const utilityItem = utilityNavItems.value.find((item) => item.key === activeWorkspaceDefinition.value?.key)
 
   if (utilityItem) {
     return utilityItem
   }
 
-  return visibleNavItems.value.find((item) => item.key === activeNavKey.value) || visibleNavItems.value[0]
+  return (
+    visibleNavItems.value.find((item) => item.key === activeNavKey.value) ||
+    visibleNavItems.value[0] ||
+    utilityNavItems.value[0]
+  )
 })
 const navSections = computed<NavSection[]>(() => {
-  if (access.value.isPlatformDomain) {
-    const platformSections: NavSection[] = [
-      {
-        key: 'platform-core',
-        label: '平台治理',
-        items: visibleNavItems.value.filter((item) => item.section === 'platform-core'),
-      },
-      {
-        key: 'platform-system',
-        label: '平台系统',
-        items: visibleNavItems.value.filter((item) => item.section === 'platform-system'),
-      },
-    ]
+  const sectionOrder = workspaceSectionOrder[access.value.isPlatformDomain ? 'platform' : 'org']
 
-    return platformSections.filter((section) => section.items.length)
-  }
-
-  const orgSections: NavSection[] = [
-    {
-      key: 'org-monitor',
-      label: '企业总览',
-      items: visibleNavItems.value.filter((item) => item.section === 'org-monitor'),
-    },
-    {
-      key: 'org-admin',
-      label: '组织与资料',
-      items: visibleNavItems.value.filter((item) => item.section === 'org-admin'),
-    },
-    {
-      key: 'org-business',
-      label: '业务模块',
-      items: visibleNavItems.value.filter((item) => item.section === 'org-business'),
-    },
-  ]
-
-  return orgSections.filter((section) => section.items.length)
+  return sectionOrder
+    .map((section) => ({
+      key: section,
+      label: workspaceSectionLabels[section],
+      items: visibleNavItems.value.filter((item) => item.section === section),
+    }))
+    .filter((section) => section.items.length)
 })
 const filteredNavSections = computed<NavSection[]>(() => {
   const keyword = normalizeSearchText(navSearch.value)
@@ -353,16 +163,16 @@ const filteredNavSections = computed<NavSection[]>(() => {
     .filter((section) => section.items.length)
 })
 const currentSectionLabel = computed(
-  () => {
-    if (route.path === '/account/session') {
-      return '账户与安全'
-    }
-
-    return (
-      navSections.value.find((section) => section.items.some((item) => item.key === activeNavKey.value))
-        ?.label || '工作区'
-    )
-  },
+  () =>
+    route.meta.workspaceSectionLabel ||
+    (currentNavItem.value ? getNavSectionLabel(currentNavItem.value.section) : '工作区'),
+)
+const currentPageTitle = computed(() => route.meta.pageTitle || currentNavItem.value?.label || '工作区')
+const currentPageSubtitle = computed(
+  () =>
+    route.meta.pageSubtitle ||
+    currentNavItem.value?.subtitle ||
+    '统一管理当前工作空间中的页面、快捷动作和实时状态。',
 )
 const showRealtimeStatus = computed(
   () => authStore.isAuthenticated && !isPublicPage.value && access.value.isOrgDomain,
@@ -405,14 +215,6 @@ const realtimeSummary = computed(() => ({
   hint: realtimeHint.value,
   canReconnect: realtimeStore.status !== 'connected',
 }))
-const navSectionLabelMap: Record<string, string> = {
-  'platform-core': '平台治理',
-  'platform-system': '平台系统',
-  'org-monitor': '企业总览',
-  'org-admin': '组织与资料',
-  'org-business': '业务模块',
-  workspace: '账户与安全',
-}
 const commandItems = computed<WorkspaceCommandItem[]>(() => {
   const items: WorkspaceCommandItem[] = []
   const pinnedPathSet = new Set(pinnedPaths.value)
@@ -928,7 +730,7 @@ function normalizeSearchText(value: string): string {
 }
 
 function getNavSectionLabel(section: string): string {
-  return navSectionLabelMap[section] || '工作区'
+  return workspaceSectionLabels[section as WorkspaceSectionKey] || '工作区'
 }
 
 function getAlertCommandDescription(eventType: WorkspaceAlertFeedItem['eventType']): string {
@@ -1076,12 +878,19 @@ function getAlertCommandDescription(eventType: WorkspaceAlertFeedItem['eventType
             <span></span>
           </button>
 
-          <div class="breadcrumb">
-            <span>DriveWeb</span>
-            <span class="breadcrumb-separator">/</span>
-            <span>{{ currentSectionLabel }}</span>
-            <span class="breadcrumb-separator">/</span>
-            <strong>{{ currentNavItem?.label || '工作区' }}</strong>
+          <div class="topbar-page">
+            <div class="breadcrumb">
+              <span>DriveWeb</span>
+              <span class="breadcrumb-separator">/</span>
+              <span>{{ currentSectionLabel }}</span>
+              <span class="breadcrumb-separator">/</span>
+              <strong>{{ currentPageTitle }}</strong>
+            </div>
+
+            <div class="topbar-page-copy">
+              <strong>{{ currentPageTitle }}</strong>
+              <span>{{ currentPageSubtitle }}</span>
+            </div>
           </div>
 
           <div class="workspace-chip">
@@ -1508,13 +1317,12 @@ function getAlertCommandDescription(eventType: WorkspaceAlertFeedItem['eventType
 
 .topbar {
   display: flex;
-  height: 64px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 24px;
+  padding: 14px 24px;
   border-bottom: 1px solid rgba(5, 5, 5, 0.06);
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(14px);
 }
 
@@ -1524,6 +1332,37 @@ function getAlertCommandDescription(eventType: WorkspaceAlertFeedItem['eventType
   min-width: 0;
   align-items: center;
   gap: 14px;
+}
+
+.topbar-page {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.topbar-page-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.topbar-page-copy strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-page-copy span {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .menu-toggle {
@@ -1793,7 +1632,6 @@ function getAlertCommandDescription(eventType: WorkspaceAlertFeedItem['eventType
 
 @media (max-width: 900px) {
   .topbar {
-    height: auto;
     padding: 12px 16px;
   }
 
@@ -1812,6 +1650,10 @@ function getAlertCommandDescription(eventType: WorkspaceAlertFeedItem['eventType
     padding-left: 16px;
   }
 
+  .topbar-page-copy strong {
+    font-size: 18px;
+  }
+
   .global-main {
     padding: 16px;
   }
@@ -1820,7 +1662,8 @@ function getAlertCommandDescription(eventType: WorkspaceAlertFeedItem['eventType
 @media (max-width: 720px) {
   .topbar-left,
   .topbar-right,
-  .realtime-card {
+  .realtime-card,
+  .topbar-page {
     width: 100%;
   }
 
@@ -1838,6 +1681,10 @@ function getAlertCommandDescription(eventType: WorkspaceAlertFeedItem['eventType
 
   .breadcrumb {
     font-size: 12px;
+  }
+
+  .topbar-page-copy span {
+    white-space: normal;
   }
 
   .realtime-card {

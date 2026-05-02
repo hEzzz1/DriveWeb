@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import AuditDetailDrawer from '../components/audit/AuditDetailDrawer.vue'
 import AuditFilterBar from '../components/audit/AuditFilterBar.vue'
 import AuditListTable from '../components/audit/AuditListTable.vue'
@@ -124,13 +125,11 @@ async function handleSizeChange(size: number): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Organization</p>
-        <h1>企业审计</h1>
-        <p class="subhead">企业域审计只展示当前企业范围内的管理与业务操作记录，不进入平台治理日志。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Organization"
+      title="企业审计"
+      subtitle="企业域审计只展示当前企业范围内的管理与业务操作记录，不进入平台治理日志。"
+    />
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

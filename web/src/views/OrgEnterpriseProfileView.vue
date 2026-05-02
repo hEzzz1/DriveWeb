@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import EnterpriseActivationCodePanel from '../components/enterprises/EnterpriseActivationCodePanel.vue'
 import {
   disableOrgEnterpriseActivationCode,
@@ -125,16 +126,15 @@ function formatDateTime(value?: string): string {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Organization</p>
-        <h1>我的企业</h1>
-        <p class="subhead">企业域仅查看本企业资料，激活码也收口到本页，不再复用平台企业列表入口。</p>
-      </div>
-      <div class="head-actions">
+    <WorkspacePageHeader
+      eyebrow="Organization"
+      title="我的企业"
+      subtitle="企业域仅查看本企业资料，激活码也收口到本页，不再复用平台企业列表入口。"
+    >
+      <template #actions>
         <el-button :loading="loading" @click="fetchProfile">刷新资料</el-button>
-      </div>
-    </div>
+      </template>
+    </WorkspacePageHeader>
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

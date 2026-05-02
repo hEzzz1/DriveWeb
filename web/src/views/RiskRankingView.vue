@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { EChartsOption } from 'echarts'
 import EChartPanel from '../components/EChartPanel.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { getFleetList } from '../api/fleets'
 import { fetchAllPages } from '../api/pagination'
 import { getStatsRanking } from '../api/stats'
@@ -224,13 +225,11 @@ function syncRouteQuery(query: RankingQuery): void {
 
 <template>
   <div class="ranking-page">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Stats</p>
-        <h1>风险排行</h1>
-        <p class="subhead">支持车辆、司机两个维度排行，并可跳回告警列表形成闭环。</p>
-      </div>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Stats"
+      title="风险排行"
+      subtitle="支持车辆、司机两个维度排行，并可跳回告警列表形成闭环。"
+    />
 
     <el-card class="panel-card" shadow="never">
       <el-form class="filter-grid" label-position="top">

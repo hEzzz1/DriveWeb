@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import PageSectionCard from '../components/PageSectionCard.vue'
+import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import IncidentSummaryCard from '../components/system/IncidentSummaryCard.vue'
 import MessageLinkCard from '../components/system/MessageLinkCard.vue'
 import ServiceStatusCard from '../components/system/ServiceStatusCard.vue'
@@ -115,16 +116,11 @@ async function fetchData(): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">System</p>
-        <h1>系统运维</h1>
-        <p class="subhead">{{ currentSection.description }}</p>
-      </div>
-      <div class="head-actions">
+    <WorkspacePageHeader eyebrow="System" title="系统运维" :subtitle="currentSection.description">
+      <template #actions>
         <el-button :loading="loading" type="primary" @click="fetchData">刷新状态</el-button>
-      </div>
-    </div>
+      </template>
+    </WorkspacePageHeader>
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">
