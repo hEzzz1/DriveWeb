@@ -1,4 +1,5 @@
 import type { DefaultScope, PermissionCode, PlatformRole, ScopeMembership } from '../types/api'
+import { formatDateTime, parseTimestamp } from './time'
 
 export const AUTH_STORAGE_KEY = 'driveweb.auth'
 
@@ -20,9 +21,9 @@ export interface PersistedAuth {
 }
 
 export function isTokenExpired(expireAt: string): boolean {
-  const expireMs = Date.parse(expireAt)
+  const expireMs = parseTimestamp(expireAt)
 
-  if (Number.isNaN(expireMs)) {
+  if (expireMs === null) {
     return true
   }
 
@@ -30,9 +31,9 @@ export function isTokenExpired(expireAt: string): boolean {
 }
 
 export function minutesUntilExpiry(expireAt: string): number | null {
-  const expireMs = Date.parse(expireAt)
+  const expireMs = parseTimestamp(expireAt)
 
-  if (Number.isNaN(expireMs)) {
+  if (expireMs === null) {
     return null
   }
 
@@ -40,11 +41,5 @@ export function minutesUntilExpiry(expireAt: string): number | null {
 }
 
 export function formatExpiryLocal(expireAt: string): string {
-  const expireMs = Date.parse(expireAt)
-
-  if (Number.isNaN(expireMs)) {
-    return '-'
-  }
-
-  return new Date(expireMs).toLocaleString()
+  return formatDateTime(expireAt)
 }

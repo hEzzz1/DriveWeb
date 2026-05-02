@@ -6,6 +6,7 @@ import {
   enterpriseActivationCodeStatusTagType,
   enterpriseActivationCodeStatusText,
 } from '../../utils/device-status'
+import { formatDateTime } from '../../utils/time'
 
 const props = defineProps<{
   loading?: boolean
@@ -51,15 +52,6 @@ watch(
   },
   { immediate: true },
 )
-
-function formatDateTime(value?: string): string {
-  if (!value) {
-    return '-'
-  }
-
-  const time = Date.parse(value)
-  return Number.isNaN(time) ? value : new Date(time).toLocaleString()
-}
 
 async function copyText(value: string, successMessage: string): Promise<void> {
   try {

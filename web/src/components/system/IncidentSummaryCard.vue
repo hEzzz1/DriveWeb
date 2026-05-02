@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SystemSummarySnapshot } from '../../types/system'
+import { formatDateTime } from '../../utils/time'
 
 defineProps<{
   summary?: SystemSummarySnapshot | null
@@ -13,7 +14,7 @@ defineProps<{
     <div v-else class="summary-list">
       <div class="summary-item">
         <strong>汇总时间</strong>
-        <p>{{ summary.generatedAt || '-' }}</p>
+        <p>{{ formatDateTime(summary.generatedAt) }}</p>
       </div>
       <div class="summary-item">
         <strong>健康状态</strong>

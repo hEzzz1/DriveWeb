@@ -22,6 +22,7 @@ import {
   vehicleBindStatusTagType,
   vehicleBindStatusText,
 } from '../utils/device-status'
+import { formatDateTime } from '../utils/time'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -126,10 +127,6 @@ function enrichDevice(item: DeviceDetail): DeviceDetail {
     fleetName: item.fleetName || (item.fleetId ? fleetMap.value.get(item.fleetId)?.name : undefined),
     vehiclePlateNumber: item.vehiclePlateNumber || (item.vehicleId ? vehicleMap.value.get(item.vehicleId)?.plateNumber : undefined),
   }
-}
-
-function formatDateTime(value?: string): string {
-  return value ? new Date(value).toLocaleString() : '-'
 }
 
 function currentDriverText(): string {

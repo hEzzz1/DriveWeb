@@ -7,6 +7,7 @@ import {
   resolveAuditOperatorLabel,
   resolveAuditTargetLabel,
 } from '../../utils/audit'
+import { formatDateTime } from '../../utils/time'
 
 withDefaults(
   defineProps<{
@@ -31,14 +32,6 @@ const emit = defineEmits<{
   'size-change': [size: number]
 }>()
 
-function formatDateTime(value?: string): string {
-  if (!value) {
-    return '-'
-  }
-
-  const time = Date.parse(value)
-  return Number.isNaN(time) ? value : new Date(time).toLocaleString()
-}
 </script>
 
 <template>

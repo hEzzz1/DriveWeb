@@ -13,6 +13,7 @@ import { getOrgEnterpriseProfile } from '../api/enterprises'
 import { useAccess } from '../composables/useAccess'
 import type { EnterpriseActivationCodeSummary } from '../types/enterprise-activation-codes'
 import type { EnterpriseDetail } from '../types/enterprises'
+import { formatDateTime } from '../utils/time'
 
 const access = useAccess()
 
@@ -114,14 +115,6 @@ async function handleDisableActivationCode(): Promise<void> {
   }
 }
 
-function formatDateTime(value?: string): string {
-  if (!value) {
-    return '-'
-  }
-
-  const time = Date.parse(value)
-  return Number.isNaN(time) ? value : new Date(time).toLocaleString()
-}
 </script>
 
 <template>

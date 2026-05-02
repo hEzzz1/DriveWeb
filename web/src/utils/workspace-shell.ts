@@ -3,6 +3,7 @@ import type {
   WorkspaceAlertFeedItem,
   WorkspaceVisitedEntry,
 } from '../types/workspace'
+import { parseTimestamp } from './time'
 
 const STORAGE_KEY_PREFIX = 'driveweb:workspace-shell'
 const DEFAULT_MAX_ALERTS = 6
@@ -97,7 +98,7 @@ export function appendWorkspaceAlertFeed(
   }
 
   return [...merged.values()]
-    .sort((left, right) => Date.parse(right.eventAt) - Date.parse(left.eventAt))
+    .sort((left, right) => (parseTimestamp(right.eventAt) || 0) - (parseTimestamp(left.eventAt) || 0))
     .slice(0, max)
 }
 

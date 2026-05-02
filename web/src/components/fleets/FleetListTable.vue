@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FleetSummary } from '../../types/fleets'
+import { formatDateTime } from '../../utils/time'
 
 defineProps<{
   items: FleetSummary[]
@@ -18,14 +19,6 @@ const emit = defineEmits<{
   'size-change': [size: number]
 }>()
 
-function formatDateTime(value?: string): string {
-  if (!value) {
-    return '-'
-  }
-
-  const time = Date.parse(value)
-  return Number.isNaN(time) ? value : new Date(time).toLocaleString()
-}
 </script>
 
 <template>

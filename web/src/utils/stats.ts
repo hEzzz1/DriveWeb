@@ -8,6 +8,10 @@ import type {
   TrendBucket,
 } from '../types/stats'
 import type { AlertRiskLevel } from '../types/alerts'
+import {
+  formatCompactDateTime as formatCompactDateTimeInBeijing,
+  parseTimestamp,
+} from './time'
 
 export function getDefaultStatsRange(groupBy: StatsGroupBy): [Date, Date] {
   const end = new Date()
@@ -96,22 +100,7 @@ export function toIsoRange(timeRange: [Date, Date] | []): Pick<StatsFilterParams
 }
 
 export function formatCompactDateTime(value?: string): string {
-  if (!value) {
-    return '-'
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  return formatCompactDateTimeInBeijing(value)
 }
 
 export function formatMetric(value?: number | null, digits = 0): string {
@@ -155,10 +144,6 @@ export function buildRankingSortValue(item: RankingItem, sortBy: RankingSortBy):
 }
 
 function toValidDate(value: string): Date | null {
-  if (!value) {
-    return null
-  }
-
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
+  const timestamp = parseTimestamp(value)
+  return timestamp === null ? null : new Date(timestamp)
 }

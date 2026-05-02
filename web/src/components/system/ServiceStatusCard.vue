@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { serviceStatusLabelMap, type ServiceStatusItem } from '../../types/system'
+import { formatDateTime } from '../../utils/time'
 
 defineProps<{
   items: ServiceStatusItem[]
@@ -20,7 +21,7 @@ defineProps<{
           <el-tag effect="plain" :type="item.status === 'UP' ? 'success' : item.status === 'UNKNOWN' ? 'warning' : 'danger'">
             {{ serviceStatusLabelMap[item.status] || item.status }}
           </el-tag>
-          <span>{{ item.lastCheckedAt || '-' }}</span>
+          <span>{{ formatDateTime(item.lastCheckedAt) }}</span>
         </div>
       </div>
     </div>

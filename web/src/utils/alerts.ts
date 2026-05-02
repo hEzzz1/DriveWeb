@@ -9,6 +9,10 @@ import type {
   AlertSummary,
   NormalizedAlertRealtimeEvent,
 } from '../types/alerts'
+import {
+  formatDateTime as formatDateTimeInBeijing,
+  parseTimestamp,
+} from './time'
 
 export type UiTagType = '' | 'success' | 'warning' | 'danger' | 'info' | 'primary'
 
@@ -41,17 +45,7 @@ export function getStatusTagType(status: AlertStatus | number | null | undefined
 }
 
 export function formatDateTime(value: string | null | undefined): string {
-  if (!value) {
-    return '-'
-  }
-
-  const ms = Date.parse(value)
-
-  if (Number.isNaN(ms)) {
-    return '-'
-  }
-
-  return new Date(ms).toLocaleString()
+  return formatDateTimeInBeijing(value)
 }
 
 export function formatScore(value: number | null | undefined): string {
@@ -72,17 +66,7 @@ export function formatNumber(value: number | null | undefined, digits = 2): stri
 }
 
 export function formatTimestampMs(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === '') {
-    return '-'
-  }
-
-  const ms = typeof value === 'number' ? value : Number(value)
-
-  if (Number.isNaN(ms) || ms <= 0) {
-    return '-'
-  }
-
-  return new Date(ms).toLocaleString()
+  return formatDateTimeInBeijing(value)
 }
 
 export function extractAlertTimeline(detail: AlertDetail): AlertActionRecord[] {
@@ -103,7 +87,7 @@ export function extractAlertTimeline(detail: AlertDetail): AlertActionRecord[] {
     const normalized = candidate
       .map((item) => normalizeTimelineItem(item))
       .filter((item): item is AlertActionRecord => item !== null)
-      .sort((a, b) => Date.parse(b.actionTime) - Date.parse(a.actionTime))
+      .sort((a, b) => (parseTimestamp(b.actionTime) || 0) - (parseTimestamp(a.actionTime) || 0))
 
     if (normalized.length) {
       return normalized
@@ -255,20 +239,20 @@ export function matchesAlertFilters(
     return false
   }
 
-  const triggerTime = Date.parse(alert.triggerTime)
+  const triggerTime = parseTimestamp(alert.triggerTime)
 
   if (filters.startTime) {
-    const start = Date.parse(filters.startTime)
+    const start = parseTimestamp(filters.startTime)
 
-    if (!Number.isNaN(start) && !Number.isNaN(triggerTime) && triggerTime < start) {
+    if (start !== null && triggerTime !== null && triggerTime < start) {
       return false
     }
   }
 
   if (filters.endTime) {
-    const end = Date.parse(filters.endTime)
+    const end = parseTimestamp(filters.endTime)
 
-    if (!Number.isNaN(end) && !Number.isNaN(triggerTime) && triggerTime > end) {
+    if (end !== null && triggerTime !== null && triggerTime > end) {
       return false
     }
   }

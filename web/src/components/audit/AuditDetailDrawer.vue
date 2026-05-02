@@ -8,6 +8,7 @@ import {
   resolveAuditOperatorLabel,
   resolveAuditTargetLabel,
 } from '../../utils/audit'
+import { formatDateTime } from '../../utils/time'
 
 const props = defineProps<{
   visible: boolean
@@ -20,15 +21,6 @@ const emit = defineEmits<{
 }>()
 
 const parsedDetail = computed(() => props.detail?.parsedDetail || parseAuditDetailJson(props.detail?.detailJson))
-
-function formatDateTime(value?: string): string {
-  if (!value) {
-    return '-'
-  }
-
-  const time = Date.parse(value)
-  return Number.isNaN(time) ? value : new Date(time).toLocaleString()
-}
 
 function stringify(value: unknown): string {
   if (value === undefined || value === null || value === '') {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SystemMonitoringSnapshot } from '../../types/system'
+import { formatDateTime } from '../../utils/time'
 
 defineProps<{
   data?: SystemMonitoringSnapshot | null
@@ -15,6 +16,6 @@ defineProps<{
     <span>24 小时审计：{{ data?.auditCount24h ?? 0 }}</span>
     <span>启用规则：{{ data?.enabledRuleCount ?? 0 }}</span>
     <span>平均风险分：{{ data?.averageRiskScore24h ?? '-' }}</span>
-    <span>统计时间：{{ data?.snapshotAt || '-' }}</span>
+    <span>统计时间：{{ formatDateTime(data?.snapshotAt) }}</span>
   </el-card>
 </template>

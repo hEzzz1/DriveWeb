@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/auth'
 import type { EnterpriseSummary } from '../types/enterprises'
 import type { FleetSummary } from '../types/fleets'
 import type { UpdateVehiclePayload, VehicleDetail, VehicleSummary } from '../types/vehicles'
+import { formatDateTime } from '../utils/time'
 
 interface FilterModel {
   enterpriseId?: number
@@ -375,7 +376,7 @@ function boundDeviceText(item: VehicleSummary): string {
             <el-descriptions-item label="状态">
               <el-tag effect="plain" :type="activeDetail.enabled ? 'success' : 'info'">{{ activeDetail.enabled ? '启用中' : '已停用' }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="更新时间">{{ activeDetail.updatedAt ? new Date(activeDetail.updatedAt).toLocaleString() : '-' }}</el-descriptions-item>
+            <el-descriptions-item label="更新时间">{{ formatDateTime(activeDetail.updatedAt) }}</el-descriptions-item>
             <el-descriptions-item label="备注" :span="2">{{ activeDetail.remark || '-' }}</el-descriptions-item>
           </el-descriptions>
           <div v-if="activeDetail && access.canManageVehicles" class="action-row">

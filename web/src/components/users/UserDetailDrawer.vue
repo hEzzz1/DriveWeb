@@ -3,6 +3,7 @@ import type { AuditSummary } from '../../types/audit'
 import type { UserRole } from '../../types/api'
 import { buildDisplayRoles, formatRoleLabel, formatScopeLabel, getRoleTagType } from '../../access/auth-model'
 import type { UserDetail } from '../../types/users'
+import { formatDateTime } from '../../utils/time'
 import AuditListTable from '../audit/AuditListTable.vue'
 
 defineProps<{
@@ -30,15 +31,6 @@ const emit = defineEmits<{
   'audit-page-change': [page: number]
   'audit-size-change': [size: number]
 }>()
-
-function formatDateTime(value?: string): string {
-  if (!value) {
-    return '-'
-  }
-
-  const time = Date.parse(value)
-  return Number.isNaN(time) ? value : new Date(time).toLocaleString()
-}
 
 function resolveRoles(detail: UserDetail): UserRole[] {
   return buildDisplayRoles(detail.roles || [], detail.platformRoles || [], detail.memberships || [])

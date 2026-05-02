@@ -11,6 +11,7 @@ import { riskLevelLabelMap, statusLabelMap, type NormalizedAlertRealtimeEvent } 
 import type { OverviewLatestAlertItem, RealtimeOverviewData } from '../types/stats'
 import { formatDateTime, getRiskTagType, getStatusTagType } from '../utils/alerts'
 import { formatCompactDateTime } from '../utils/stats'
+import { parseTimestamp } from '../utils/time'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -171,7 +172,7 @@ function mergeLatestAlerts(
   }
 
   return [...merged.values()]
-    .sort((left, right) => Date.parse(right.triggerTime) - Date.parse(left.triggerTime))
+    .sort((left, right) => (parseTimestamp(right.triggerTime) || 0) - (parseTimestamp(left.triggerTime) || 0))
     .slice(0, 8)
 }
 

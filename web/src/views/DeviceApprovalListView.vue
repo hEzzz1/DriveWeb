@@ -13,6 +13,7 @@ import {
   deviceBindLogActionText,
   operatorTypeText,
 } from '../utils/device-status'
+import { formatDateTime } from '../utils/time'
 
 interface FilterModel {
   enterpriseId?: number
@@ -84,10 +85,6 @@ async function fetchList(): Promise<void> {
   } finally {
     loading.value = false
   }
-}
-
-function formatDateTime(value?: string): string {
-  return value ? new Date(value).toLocaleString() : '-'
 }
 
 function operatorText(row: DeviceBindLogSummary): string {

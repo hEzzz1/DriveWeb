@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { VersionInfoItem } from '../../types/system'
+import { formatDateTime } from '../../utils/time'
 
 defineProps<{
   item?: VersionInfoItem | null
@@ -18,7 +19,7 @@ defineProps<{
         </div>
         <div class="status-meta">
           <span>{{ item.version || '-' }}</span>
-          <p>{{ item.buildTime || '-' }}</p>
+          <p>{{ formatDateTime(item.buildTime) }}</p>
         </div>
       </div>
     </div>

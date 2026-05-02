@@ -20,6 +20,7 @@ import {
   vehicleBindStatusTagType,
   vehicleBindStatusText,
 } from '../utils/device-status'
+import { formatDateTime } from '../utils/time'
 
 interface FilterModel {
   enterpriseId?: number
@@ -116,10 +117,6 @@ function enrichDevice(item: DeviceSummary): DeviceSummary {
     enterpriseName: item.enterpriseName || (item.enterpriseId ? enterpriseMap.value.get(item.enterpriseId)?.name : undefined),
     fleetName: item.fleetName || (item.fleetId ? fleetMap.value.get(item.fleetId)?.name : undefined),
   }
-}
-
-function formatDateTime(value?: string): string {
-  return value ? new Date(value).toLocaleString() : '-'
 }
 
 function vehicleText(row: DeviceSummary): string {

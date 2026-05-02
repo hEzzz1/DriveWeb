@@ -2,6 +2,7 @@
 import type { UserRole } from '../../types/api'
 import { buildDisplayRoles, formatRoleLabel, getRoleTagType } from '../../access/auth-model'
 import type { UserSummary } from '../../types/users'
+import { formatDateTime } from '../../utils/time'
 
 defineProps<{
   items: UserSummary[]
@@ -16,15 +17,6 @@ const emit = defineEmits<{
   'page-change': [page: number]
   'size-change': [size: number]
 }>()
-
-function formatDateTime(value?: string): string {
-  if (!value) {
-    return '-'
-  }
-
-  const time = Date.parse(value)
-  return Number.isNaN(time) ? value : new Date(time).toLocaleString()
-}
 
 function resolveRoles(row: UserSummary): UserRole[] {
   return buildDisplayRoles(row.roles || [], row.platformRoles || [], row.memberships || [])

@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/auth'
 import type { EnterpriseSummary } from '../types/enterprises'
 import type { FleetSummary } from '../types/fleets'
 import type { SessionDetail, SessionSummary } from '../types/sessions'
+import { formatDateTime } from '../utils/time'
 
 interface FilterModel {
   enterpriseId?: number
@@ -210,16 +211,16 @@ async function handleForceSignOut(row?: SessionSummary): Promise<void> {
             <template #default="{ row }">{{ row.fleetName || row.fleetId }}</template>
           </el-table-column>
           <el-table-column label="开始时间" min-width="170">
-            <template #default="{ row }">{{ row.signInTime ? new Date(row.signInTime).toLocaleString() : '-' }}</template>
+            <template #default="{ row }">{{ formatDateTime(row.signInTime) }}</template>
           </el-table-column>
           <el-table-column label="结束时间" min-width="170">
-            <template #default="{ row }">{{ row.signOutTime ? new Date(row.signOutTime).toLocaleString() : '-' }}</template>
+            <template #default="{ row }">{{ formatDateTime(row.signOutTime) }}</template>
           </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }"><el-tag effect="plain" :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '活跃中' : '已结束' }}</el-tag></template>
           </el-table-column>
           <el-table-column label="最近心跳" min-width="170">
-            <template #default="{ row }">{{ row.lastHeartbeatAt ? new Date(row.lastHeartbeatAt).toLocaleString() : '-' }}</template>
+            <template #default="{ row }">{{ formatDateTime(row.lastHeartbeatAt) }}</template>
           </el-table-column>
           <el-table-column label="操作" min-width="160" fixed="right">
             <template #default="{ row }">
@@ -258,9 +259,9 @@ async function handleForceSignOut(row?: SessionSummary): Promise<void> {
             <el-descriptions-item label="司机">{{ activeDetail.driverName || activeDetail.driverCode || activeDetail.driverId }}</el-descriptions-item>
             <el-descriptions-item label="企业">{{ activeDetail.enterpriseName || activeDetail.enterpriseId }}</el-descriptions-item>
             <el-descriptions-item label="车队">{{ activeDetail.fleetName || activeDetail.fleetId }}</el-descriptions-item>
-            <el-descriptions-item label="最近心跳">{{ activeDetail.lastHeartbeatAt ? new Date(activeDetail.lastHeartbeatAt).toLocaleString() : '-' }}</el-descriptions-item>
-            <el-descriptions-item label="开始时间">{{ activeDetail.signInTime ? new Date(activeDetail.signInTime).toLocaleString() : '-' }}</el-descriptions-item>
-            <el-descriptions-item label="结束时间">{{ activeDetail.signOutTime ? new Date(activeDetail.signOutTime).toLocaleString() : '-' }}</el-descriptions-item>
+            <el-descriptions-item label="最近心跳">{{ formatDateTime(activeDetail.lastHeartbeatAt) }}</el-descriptions-item>
+            <el-descriptions-item label="开始时间">{{ formatDateTime(activeDetail.signInTime) }}</el-descriptions-item>
+            <el-descriptions-item label="结束时间">{{ formatDateTime(activeDetail.signOutTime) }}</el-descriptions-item>
             <el-descriptions-item label="关闭原因">{{ activeDetail.closedReason || '-' }}</el-descriptions-item>
             <el-descriptions-item label="备注">{{ activeDetail.remark || '-' }}</el-descriptions-item>
           </el-descriptions>

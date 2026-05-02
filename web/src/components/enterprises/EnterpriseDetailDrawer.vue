@@ -3,6 +3,7 @@ import type { AuditSummary } from '../../types/audit'
 import type { EnterpriseActivationCodeSummary } from '../../types/enterprise-activation-codes'
 import type { EnterpriseDetail } from '../../types/enterprises'
 import type { UserSummary } from '../../types/users'
+import { formatDateTime } from '../../utils/time'
 import AuditListTable from '../audit/AuditListTable.vue'
 import EnterpriseActivationCodePanel from './EnterpriseActivationCodePanel.vue'
 
@@ -37,14 +38,6 @@ const emit = defineEmits<{
   'audit-size-change': [size: number]
 }>()
 
-function formatDateTime(value?: string): string {
-  if (!value) {
-    return '-'
-  }
-
-  const time = Date.parse(value)
-  return Number.isNaN(time) ? value : new Date(time).toLocaleString()
-}
 </script>
 
 <template>

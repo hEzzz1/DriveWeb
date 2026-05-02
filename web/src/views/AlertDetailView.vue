@@ -28,6 +28,7 @@ import {
   getRiskTagType,
   getStatusTagType,
 } from '../utils/alerts'
+import { parseTimestamp } from '../utils/time'
 
 const route = useRoute()
 const router = useRouter()
@@ -253,8 +254,8 @@ function shouldIgnoreRealtimeEvent(event: NormalizedAlertRealtimeEvent): boolean
     return false
   }
 
-  const eventAt = Date.parse(event.eventAt)
-  return !Number.isNaN(eventAt) && eventAt < localMutationAt
+  const eventAt = parseTimestamp(event.eventAt)
+  return eventAt !== null && eventAt < localMutationAt
 }
 
 watch(

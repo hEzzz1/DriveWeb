@@ -18,6 +18,7 @@ import {
   vehicleBindStatusTagType,
   vehicleBindStatusText,
 } from '../utils/device-status'
+import { formatDateTime } from '../utils/time'
 
 const route = useRoute()
 const router = useRouter()
@@ -76,10 +77,6 @@ async function fetchDetail(): Promise<void> {
   } finally {
     loading.value = false
   }
-}
-
-function formatDateTime(value?: string): string {
-  return value ? new Date(value).toLocaleString() : '-'
 }
 
 function operatorText(): string {

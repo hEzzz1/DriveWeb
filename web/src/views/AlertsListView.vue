@@ -32,6 +32,7 @@ import {
   mergeAlertSummaryFromRealtime,
   toAlertSummaryFromRealtime,
 } from '../utils/alerts'
+import { parseTimestamp } from '../utils/time'
 
 interface FilterModel {
   fleetId: string
@@ -399,8 +400,8 @@ function shouldIgnoreRealtimeEvent(event: NormalizedAlertRealtimeEvent): boolean
     return false
   }
 
-  const eventAt = Date.parse(event.eventAt)
-  return !Number.isNaN(eventAt) && eventAt < localMutationAt
+  const eventAt = parseTimestamp(event.eventAt)
+  return eventAt !== null && eventAt < localMutationAt
 }
 
 function matchesCurrentFilters(summary: AlertSummary): boolean {
@@ -449,12 +450,8 @@ function parseEnum<T extends number>(value: unknown, options: T[]): T | undefine
 }
 
 function toValidDate(value: string): Date | null {
-  if (!value) {
-    return null
-  }
-
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
+  const timestamp = parseTimestamp(value)
+  return timestamp === null ? null : new Date(timestamp)
 }
 
 function getRiskLabel(level: number): string {

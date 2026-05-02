@@ -26,6 +26,7 @@ import type {
   RuleVersionSummary,
 } from '../types/rules'
 import { useAccess } from '../composables/useAccess'
+import { formatCurrentDateTime } from '../utils/time'
 
 const access = useAccess()
 const loading = ref(false)
@@ -117,7 +118,7 @@ async function fetchList(): Promise<void> {
     currentPage.value = data.page || currentPage.value
     pageSize.value = data.size || pageSize.value
     errorText.value = ''
-    lastRefreshAt.value = new Date().toLocaleString()
+    lastRefreshAt.value = formatCurrentDateTime()
   } catch (error) {
     errorText.value = error instanceof Error ? error.message : '规则列表加载失败'
   } finally {
