@@ -476,15 +476,7 @@ export function formatScopeLabel(scope?: Partial<DefaultScope> | null): string {
     return '-'
   }
 
-  if (scope.scopeType === 'PLATFORM') {
-    return scopeTypeLabelMap.PLATFORM
-  }
-
-  if (scope.scopeType === 'ENTERPRISE') {
-    return `${scopeTypeLabelMap.ENTERPRISE} · 企业 ${scope.enterpriseId ?? '-'}`
-  }
-
-  return `${scopeTypeLabelMap.FLEET} · 企业 ${scope.enterpriseId ?? '-'} / 车队 ${scope.fleetId ?? '-'}`
+  return scopeTypeLabelMap[scope.scopeType]
 }
 
 export function getRoleTagType(role: UserRole): '' | 'success' | 'warning' | 'info' | 'primary' | 'danger' {

@@ -4,7 +4,7 @@ import type {
   WorkspaceVisitedEntry,
 } from '../types/workspace'
 
-const STORAGE_KEY = 'driveweb:workspace-shell'
+const STORAGE_KEY_PREFIX = 'driveweb:workspace-shell'
 const DEFAULT_MAX_ALERTS = 6
 
 export interface WorkspaceShellPreferences {
@@ -13,12 +13,24 @@ export interface WorkspaceShellPreferences {
   visitedTags: WorkspaceVisitedEntry[]
 }
 
-export function loadWorkspaceShellPreferences(): WorkspaceShellPreferences {
+export function buildWorkspaceShellStorageKey(identity?: {
+  userId?: number | string | null
+  username?: string | null
+}): string {
+  const scope =
+    sanitizeStorageSegment(identity?.userId) ||
+    sanitizeStorageSegment(identity?.username) ||
+    'anonymous'
+
+  return `${STORAGE_KEY_PREFIX}:${scope}`
+}
+
+export function loadWorkspaceShellPreferences(storageKey: string): WorkspaceShellPreferences {
   if (typeof window === 'undefined') {
     return createDefaultPreferences()
   }
 
-  const raw = window.localStorage.getItem(STORAGE_KEY)
+  const raw = window.localStorage.getItem(storageKey)
 
   if (!raw) {
     return createDefaultPreferences()
@@ -37,13 +49,16 @@ export function loadWorkspaceShellPreferences(): WorkspaceShellPreferences {
   }
 }
 
-export function saveWorkspaceShellPreferences(value: WorkspaceShellPreferences): void {
+export function saveWorkspaceShellPreferences(
+  storageKey: string,
+  value: WorkspaceShellPreferences,
+): void {
   if (typeof window === 'undefined') {
     return
   }
 
   window.localStorage.setItem(
-    STORAGE_KEY,
+    storageKey,
     JSON.stringify({
       sidebarCollapsed: Boolean(value.sidebarCollapsed),
       pinnedPaths: sanitizePathList(value.pinnedPaths),
@@ -92,6 +107,18 @@ function createDefaultPreferences(): WorkspaceShellPreferences {
     pinnedPaths: [],
     visitedTags: [],
   }
+}
+
+function sanitizeStorageSegment(value: unknown): string {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  return encodeURIComponent(value.trim())
 }
 
 function sanitizePathList(value: unknown): string[] {

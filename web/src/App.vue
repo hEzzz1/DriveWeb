@@ -17,6 +17,7 @@ import type {
 import { formatDateTime } from './utils/alerts'
 import {
   appendWorkspaceAlertFeed,
+  buildWorkspaceShellStorageKey,
   buildWorkspaceAlertFeedItem,
   loadWorkspaceShellPreferences,
   saveWorkspaceShellPreferences,
@@ -43,25 +44,29 @@ interface NavSection {
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+authStore.hydrate()
 const access = useAccess()
 const realtimeStore = useRealtimeStore()
-const shellPreferences = loadWorkspaceShellPreferences()
 
-const sidebarCollapsed = ref(shellPreferences.sidebarCollapsed)
+const sidebarCollapsed = ref(false)
 const mobileSidebarOpen = ref(false)
 const workbenchOpen = ref(false)
 const commandDialogOpen = ref(false)
 const commandQuery = ref('')
 const commandActiveIndex = ref(0)
 const navSearch = ref('')
-const pinnedPaths = ref<string[]>(shellPreferences.pinnedPaths)
-const visitedTags = ref<WorkspaceVisitedEntry[]>(shellPreferences.visitedTags)
+const pinnedPaths = ref<string[]>([])
+const visitedTags = ref<WorkspaceVisitedEntry[]>([])
 const recentRealtimeAlerts = ref<WorkspaceAlertFeedItem[]>([])
 const shellStateReady = ref(false)
+const shellStorageKey = computed(() =>
+  buildWorkspaceShellStorageKey({
+    userId: authStore.userId,
+    username: authStore.username,
+  }),
+)
 
 let unsubscribeRealtime: (() => void) | null = null
-
-authStore.hydrate()
 
 const navItems = computed<NavItem[]>(() => {
   if (access.value.isPlatformDomain) {
@@ -516,6 +521,14 @@ const filteredCommandItems = computed(() => {
 })
 
 watch(
+  shellStorageKey,
+  (storageKey) => {
+    applyShellPreferences(loadWorkspaceShellPreferences(storageKey))
+  },
+  { immediate: true },
+)
+
+watch(
   [() => authStore.isAuthenticated, () => authStore.workspaceDomain],
   ([isAuthenticated, workspaceDomain]) => {
     if (isAuthenticated && workspaceDomain === 'org') {
@@ -532,13 +545,13 @@ watch(
 watch(
   [visibleNavItems, () => route.path],
   () => {
+    if (!shellStateReady.value) {
+      return
+    }
+
     syncPinnedPaths()
     syncVisitedTags()
     mobileSidebarOpen.value = false
-
-    if (!shellStateReady.value) {
-      shellStateReady.value = true
-    }
   },
   { immediate: true },
 )
@@ -550,7 +563,7 @@ watch(
       return
     }
 
-    saveWorkspaceShellPreferences({
+    saveWorkspaceShellPreferences(shellStorageKey.value, {
       sidebarCollapsed: sidebarCollapsed.value,
       pinnedPaths: pinnedPaths.value,
       visitedTags: visitedTags.value,
@@ -802,10 +815,37 @@ async function handleSelectCommand(item: WorkspaceCommandItem): Promise<void> {
   await handleLogout()
 }
 
+function applyShellPreferences(preferences: ReturnType<typeof loadWorkspaceShellPreferences>): void {
+  shellStateReady.value = false
+  sidebarCollapsed.value = preferences.sidebarCollapsed
+  pinnedPaths.value = preferences.pinnedPaths
+  visitedTags.value = preferences.visitedTags
+  syncPinnedPaths()
+  syncVisitedTags()
+  mobileSidebarOpen.value = false
+  shellStateReady.value = true
+}
+
+function isComposingKeyboardEvent(event: KeyboardEvent): boolean {
+  return event.isComposing || event.keyCode === 229
+}
+
+function isCommandDialogKeyContext(target: EventTarget | null): boolean {
+  const targetElement = target instanceof Element ? target : null
+
+  if (targetElement?.closest('.command-dialog')) {
+    return true
+  }
+
+  return document.activeElement instanceof Element
+    ? Boolean(document.activeElement.closest('.command-dialog'))
+    : false
+}
+
 function handleGlobalKeydown(event: KeyboardEvent): void {
   const key = event.key.toLowerCase()
 
-  if ((event.metaKey || event.ctrlKey) && key === 'k') {
+  if ((event.metaKey || event.ctrlKey) && key === 'k' && !isComposingKeyboardEvent(event)) {
     event.preventDefault()
     handleOpenCommandDialog(commandQuery.value)
     return
@@ -817,6 +857,10 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
 
   if (event.key === 'Escape') {
     commandDialogOpen.value = false
+    return
+  }
+
+  if (isComposingKeyboardEvent(event) || !isCommandDialogKeyContext(event.target)) {
     return
   }
 
