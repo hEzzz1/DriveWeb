@@ -6,8 +6,7 @@ import EChartPanel from '../components/EChartPanel.vue'
 import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { getRealtimeOverview } from '../api/stats'
 import { useAuthStore } from '../stores/auth'
-import { useRealtimeStore } from '../stores/realtime'
-import { riskLevelLabelMap, statusLabelMap, type NormalizedAlertRealtimeEvent } from '../types/alerts'
+import { riskLevelLabelMap, statusLabelMap } from '../types/alerts'
 import type { OverviewLatestAlertItem, RealtimeOverviewData } from '../types/stats'
 import { formatDateTime, getRiskTagType, getStatusTagType } from '../utils/alerts'
 import { formatCompactDateTime } from '../utils/stats'
@@ -15,7 +14,6 @@ import { parseTimestamp } from '../utils/time'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const realtimeStore = useRealtimeStore()
 authStore.hydrate()
 
 const overview = ref<RealtimeOverviewData | null>(null)
@@ -24,7 +22,6 @@ const moduleError = ref('')
 const lastRefreshAt = ref('')
 const streamAlerts = ref<OverviewLatestAlertItem[]>([])
 let pollTimer: number | null = null
-let unsubscribeRealtime: (() => void) | null = null
 
 const distributionChartOption = computed<EChartsOption>(() => ({
   tooltip: {
@@ -87,8 +84,6 @@ const riskSummaryItems = computed(() => {
 })
 const healthRows = computed(() => {
   const rows = [
-    realtimeStore.status === 'disconnected' ? '实时通道已断开，当前依赖手动重连或轮询刷新。' : '',
-    realtimeStore.lastError ? `最近连接异常：${realtimeStore.lastError}` : '',
     (overview.value?.highRiskCountLast5Minutes || 0) > (overview.value?.handledCountLast5Minutes || 0)
       ? `高风险积压 ${Math.max(
           0,
@@ -103,9 +98,6 @@ const healthRows = computed(() => {
 })
 
 onMounted(async () => {
-  unsubscribeRealtime = realtimeStore.subscribe((event) => {
-    handleRealtimeEvent(event)
-  })
   await fetchOverview(true)
   pollTimer = window.setInterval(() => {
     void fetchOverview(false)
@@ -117,9 +109,6 @@ onBeforeUnmount(() => {
     window.clearInterval(pollTimer)
     pollTimer = null
   }
-
-  unsubscribeRealtime?.()
-  unsubscribeRealtime = null
 })
 
 async function fetchOverview(showLoading: boolean): Promise<void> {
@@ -138,16 +127,6 @@ async function fetchOverview(showLoading: boolean): Promise<void> {
   } finally {
     loading.value = false
   }
-}
-
-function handleRealtimeEvent(event: NormalizedAlertRealtimeEvent): void {
-  const nextItem = toOverviewAlertItem(event)
-
-  if (!nextItem) {
-    return
-  }
-
-  streamAlerts.value = mergeLatestAlerts([nextItem], streamAlerts.value)
 }
 
 function handleOpenAlert(item: OverviewLatestAlertItem): void {
@@ -175,26 +154,6 @@ function mergeLatestAlerts(
     .sort((left, right) => (parseTimestamp(right.triggerTime) || 0) - (parseTimestamp(left.triggerTime) || 0))
     .slice(0, 8)
 }
-
-function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLatestAlertItem | null {
-  const payload = event.payload
-
-  if (!payload.alertNo || !payload.triggerTime || payload.riskLevel === undefined || payload.status === undefined) {
-    return null
-  }
-
-  return {
-    id: event.alertId,
-    alertNo: payload.alertNo,
-    fleetId: payload.fleetId,
-    vehicleId: payload.vehicleId,
-    driverId: payload.driverId,
-    riskLevel: payload.riskLevel,
-    status: payload.status,
-    riskScore: payload.riskScore,
-    triggerTime: payload.triggerTime,
-  }
-}
 </script>
 
 <template>
@@ -202,11 +161,10 @@ function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLates
     <WorkspacePageHeader
       eyebrow="Overview"
       title="风险总览"
-      subtitle="聚合最近 5 分钟态势、最新告警流与连接状态。"
+      subtitle="聚合最近 5 分钟态势、最新告警与风险分布。"
     >
       <template #actions>
         <div class="head-meta">
-          <el-tag effect="plain" :type="realtimeStore.statusTagType">{{ realtimeStore.statusText }}</el-tag>
           <span>最近刷新 {{ formatDateTime(lastRefreshAt) }}</span>
         </div>
       </template>
@@ -232,9 +190,9 @@ function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLates
       </el-card>
 
       <el-card class="metric-card" shadow="never">
-        <p class="metric-label">WebSocket 状态</p>
-        <strong>{{ realtimeStore.statusText }}</strong>
-        <span>{{ realtimeStore.lastMessageAt ? `最近消息 ${formatDateTime(realtimeStore.lastMessageAt)}` : '等待实时消息' }}</span>
+        <p class="metric-label">接口刷新</p>
+        <strong>{{ formatCompactDateTime(lastRefreshAt) }}</strong>
+        <span>页面每 30 秒自动轮询</span>
       </el-card>
     </section>
 
@@ -254,7 +212,7 @@ function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLates
 
       <el-card class="panel-card" shadow="never">
         <template #header>
-          <div class="card-title">最新告警流</div>
+          <div class="card-title">最新告警</div>
         </template>
 
         <div v-if="streamAlerts.length" class="stream-list">
@@ -313,7 +271,6 @@ function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLates
         <div class="info-list">
           <p><span>当前用户</span>{{ authStore.username || '-' }}</p>
           <p><span>当前角色</span>{{ authStore.roleText }}</p>
-          <p><span>连接状态</span>{{ realtimeStore.statusText }}</p>
           <p><span>Token 过期</span>{{ authStore.expireAtText }}</p>
         </div>
       </el-card>
@@ -325,8 +282,6 @@ function toOverviewAlertItem(event: NormalizedAlertRealtimeEvent): OverviewLates
 
         <div class="info-list">
           <p><span>接口刷新</span>{{ formatDateTime(lastRefreshAt) }}</p>
-          <p><span>最近消息</span>{{ formatDateTime(realtimeStore.lastMessageAt) }}</p>
-          <p><span>重连次数</span>{{ realtimeStore.reconnectAttempt }}</p>
           <p><span>窗口结束</span>{{ formatDateTime(overview?.windowEndTime) }}</p>
         </div>
       </el-card>

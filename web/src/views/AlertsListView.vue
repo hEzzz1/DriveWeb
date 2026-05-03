@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AlertActionDialog from '../components/AlertActionDialog.vue'
 import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
-import { disposeAlert, getAlertDetail, getAlertList } from '../api/alerts'
+import { disposeAlert, getAlertList } from '../api/alerts'
 import { getDriverList } from '../api/drivers'
 import { getFleetList } from '../api/fleets'
 import { fetchAllPages } from '../api/pagination'
 import { getVehicleList } from '../api/vehicles'
 import { useAuthStore } from '../stores/auth'
-import { useRealtimeStore } from '../stores/realtime'
 import {
   riskLevelLabelMap,
   statusLabelMap,
   type AlertActionType,
   type AlertListQuery,
-  type NormalizedAlertRealtimeEvent,
   type AlertRiskLevel,
   type AlertStatus,
   type AlertSummary,
@@ -28,9 +26,6 @@ import {
   getAvailableAlertActions,
   getRiskTagType,
   getStatusTagType,
-  matchesAlertFilters,
-  mergeAlertSummaryFromRealtime,
-  toAlertSummaryFromRealtime,
 } from '../utils/alerts'
 import { parseTimestamp } from '../utils/time'
 
@@ -46,7 +41,6 @@ interface FilterModel {
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const realtimeStore = useRealtimeStore()
 
 const loading = ref(false)
 const referenceLoading = ref(false)
@@ -58,9 +52,6 @@ const dialogVisible = ref(false)
 const actionSubmitting = ref(false)
 const activeAction = ref<AlertActionType>('CONFIRM')
 const activeRowId = ref<number | null>(null)
-const pendingRealtimeMatches = ref(0)
-const localMutationAtMap = new Map<number, number>()
-let unsubscribeRealtime: (() => void) | null = null
 
 const fleetOptions = ref<Array<{ value: string; label: string }>>([])
 const vehicleOptions = ref<Array<{ value: string; label: string; tableLabel: string; fleetId: string }>>([])
@@ -120,15 +111,7 @@ watch(
 
 onMounted(async () => {
   hydrateFromRoute()
-  unsubscribeRealtime = realtimeStore.subscribe((event) => {
-    void handleRealtimeEvent(event)
-  })
   await Promise.all([fetchReferences(), fetchList(false)])
-})
-
-onBeforeUnmount(() => {
-  unsubscribeRealtime?.()
-  unsubscribeRealtime = null
 })
 
 async function fetchReferences(): Promise<void> {
@@ -177,7 +160,6 @@ async function fetchList(syncRoute = true): Promise<void> {
     total.value = Number(data.total) || 0
     currentPage.value = Number(data.page) || query.page
     pageSize.value = Number(data.size) || query.size
-    pendingRealtimeMatches.value = 0
   } finally {
     loading.value = false
   }
@@ -317,7 +299,6 @@ async function handleSubmitAction(payload: { remark: string }): Promise<void> {
 
   try {
     await disposeAlert(activeRowId.value, activeAction.value, payload.remark || undefined)
-    localMutationAtMap.set(activeRowId.value, Date.now())
     dialogVisible.value = false
     ElMessage.success(`${getAlertActionLabel(activeAction.value)}成功`)
     await fetchList(false)
@@ -331,91 +312,6 @@ async function handleSubmitAction(payload: { remark: string }): Promise<void> {
   } finally {
     actionSubmitting.value = false
   }
-}
-
-async function handleRealtimeEvent(event: NormalizedAlertRealtimeEvent): Promise<void> {
-  if (shouldIgnoreRealtimeEvent(event)) {
-    return
-  }
-
-  if (event.eventType === 'ALERT_CREATED') {
-    await handleAlertCreated(event)
-    return
-  }
-
-  handleAlertUpdated(event)
-}
-
-async function handleAlertCreated(event: NormalizedAlertRealtimeEvent): Promise<void> {
-  const summary = toAlertSummaryFromRealtime(event.payload) || (await loadAlertSummary(event.alertId))
-
-  if (!summary || !matchesCurrentFilters(summary)) {
-    return
-  }
-
-  total.value += 1
-
-  if (currentPage.value !== 1) {
-    pendingRealtimeMatches.value += 1
-    return
-  }
-
-  tableData.value = [summary, ...tableData.value.filter((item) => item.id !== summary.id)].slice(
-    0,
-    pageSize.value,
-  )
-}
-
-function handleAlertUpdated(event: NormalizedAlertRealtimeEvent): void {
-  const rowIndex = tableData.value.findIndex((item) => item.id === event.alertId)
-
-  if (rowIndex === -1) {
-    return
-  }
-
-  const current = tableData.value[rowIndex]
-  const next = mergeAlertSummaryFromRealtime(current, event.payload)
-
-  if (!matchesCurrentFilters(next)) {
-    tableData.value.splice(rowIndex, 1)
-    total.value = Math.max(0, total.value - 1)
-    return
-  }
-
-  tableData.value.splice(rowIndex, 1, next)
-}
-
-async function loadAlertSummary(alertId: number): Promise<AlertSummary | null> {
-  try {
-    return await getAlertDetail(alertId)
-  } catch {
-    return null
-  }
-}
-
-function shouldIgnoreRealtimeEvent(event: NormalizedAlertRealtimeEvent): boolean {
-  const localMutationAt = localMutationAtMap.get(event.alertId)
-
-  if (!localMutationAt || !event.eventAt) {
-    return false
-  }
-
-  const eventAt = parseTimestamp(event.eventAt)
-  return eventAt !== null && eventAt < localMutationAt
-}
-
-function matchesCurrentFilters(summary: AlertSummary): boolean {
-  const query = buildListQuery()
-
-  return matchesAlertFilters(summary, {
-    fleetId: query.fleetId,
-    vehicleId: query.vehicleId,
-    driverId: query.driverId,
-    riskLevel: query.riskLevel,
-    status: query.status,
-    startTime: query.startTime,
-    endTime: query.endTime,
-  })
 }
 
 function getDefaultRange(): [Date, Date] {
@@ -570,9 +466,6 @@ function getDriverLabel(driverId: string): string {
         <div class="table-head">
           <span>告警列表</span>
           <div class="table-meta">
-            <span v-if="pendingRealtimeMatches" class="realtime-tip">
-              有 {{ pendingRealtimeMatches }} 条新告警符合当前筛选
-            </span>
             <span class="count">{{ totalText }}</span>
           </div>
         </div>
@@ -738,12 +631,6 @@ h1 {
   font-size: 13px;
   color: var(--text-faint);
   font-weight: 500;
-}
-
-.realtime-tip {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--brand);
 }
 
 .alert-table {

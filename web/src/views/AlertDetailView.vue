@@ -1,49 +1,42 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AlertActionDialog from '../components/AlertActionDialog.vue'
 import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
-import { disposeAlert, getAlertDetail } from '../api/alerts'
+import { disposeAlert, getAlertActionLogs, getAlertDetail } from '../api/alerts'
 import { getDriverDetail } from '../api/drivers'
 import { getFleetDetail } from '../api/fleets'
 import { getVehicleDetail } from '../api/vehicles'
 import { useAuthStore } from '../stores/auth'
-import { useRealtimeStore } from '../stores/realtime'
 import {
   riskLevelLabelMap,
   statusLabelMap,
   type AlertActionType,
+  type AlertActionLog,
   type AlertDetail,
-  type NormalizedAlertRealtimeEvent,
 } from '../types/alerts'
 import {
-  extractAlertTimeline,
   formatDateTime,
-  formatNumber,
   formatScore,
   formatTimestampMs,
   getAlertActionLabel,
+  getAlertTimelineActionLabel,
   getAvailableAlertActions,
   getRiskTagType,
   getStatusTagType,
 } from '../utils/alerts'
-import { parseTimestamp } from '../utils/time'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const realtimeStore = useRealtimeStore()
 
 const loading = ref(false)
 const detail = ref<AlertDetail | null>(null)
+const actionLogs = ref<AlertActionLog[]>([])
 const dialogVisible = ref(false)
 const activeAction = ref<AlertActionType>('CONFIRM')
 const actionSubmitting = ref(false)
-const pendingRealtimeRefresh = ref(false)
-const latestRealtimeTraceId = ref('')
-const localMutationAtMap = new Map<number, number>()
-let unsubscribeRealtime: (() => void) | null = null
 
 const alertId = computed(() => {
   const value = route.params.id
@@ -59,25 +52,13 @@ const alertId = computed(() => {
   return ''
 })
 
-const timeline = computed(() => {
-  return detail.value ? extractAlertTimeline(detail.value) : []
-})
-
 const canDispose = computed(() => authStore.canDisposeAlerts())
-const canViewDebugInfo = computed(() => authStore.hasPermission('system.read'))
 const fleetLabel = ref('-')
 const vehicleLabel = ref('-')
 const driverLabel = ref('-')
 
 const availableActions = computed(() => getAvailableAlertActions(detail.value?.status))
-const realtimeEventTypeText = computed(() => {
-  if (!latestRealtimeTraceId.value) {
-    return '-'
-  }
-
-  return pendingRealtimeRefresh.value ? '等待同步' : '已同步'
-})
-const observabilityRows = computed(() => {
+const operationRows = computed(() => {
   if (!detail.value) {
     return []
   }
@@ -88,11 +69,6 @@ const observabilityRows = computed(() => {
     { label: '最新操作人', value: showValue(detail.value.latestActionBy) },
     { label: '最新操作时间', value: formatDateTime(detail.value.latestActionTime) },
     { label: '备注', value: showValue(detail.value.remark), span: 2 },
-    { label: '实时消息 traceId', value: showValue(latestRealtimeTraceId.value || detail.value.traceId || detail.value.serverTraceId) },
-    { label: '实时同步状态', value: realtimeEventTypeText.value },
-    { label: '事件ID', value: showValue(detail.value.eventId) },
-    { label: '接入 traceId', value: showValue(detail.value.ingestTraceId) },
-    { label: '设备 Token', value: showValue(detail.value.deviceToken) },
   ]
 
   return rows.filter((item) => item.value !== '-')
@@ -102,35 +78,20 @@ const edgeDebugRows = computed(() => {
     return []
   }
 
-  const reasonText = Array.isArray(detail.value.edgeTriggerReasons) && detail.value.edgeTriggerReasons.length
-    ? detail.value.edgeTriggerReasons.join(' / ')
-    : '-'
-
   const rows = [
     { label: '边缘风险等级', value: showValue(detail.value.edgeRiskLevel) },
     { label: '主导风险类型', value: showValue(detail.value.edgeDominantRiskType) },
-    { label: '触发原因', value: reasonText, span: 2 },
+    { label: '触发原因', value: showValue(detail.value.edgeTriggerReasons), span: 2 },
     { label: '边缘窗口开始', value: formatTimestampMs(detail.value.edgeWindowStartMs) },
     { label: '边缘窗口结束', value: formatTimestampMs(detail.value.edgeWindowEndMs) },
     { label: '边缘创建时间', value: formatTimestampMs(detail.value.edgeCreatedAtMs) },
-    { label: '算法版本', value: showValue(detail.value.algorithmVer) },
-    { label: '头姿态', value: showValue(detail.value.headPose) },
-    { label: '事件时间', value: formatDateTime(detail.value.eventTime) },
   ]
 
   return rows.filter((item) => item.value !== '-')
 })
 
 onMounted(() => {
-  unsubscribeRealtime = realtimeStore.subscribe((event) => {
-    void handleRealtimeEvent(event)
-  })
   void fetchDetail()
-})
-
-onBeforeUnmount(() => {
-  unsubscribeRealtime?.()
-  unsubscribeRealtime = null
 })
 
 watch(
@@ -143,15 +104,19 @@ watch(
 async function fetchDetail(): Promise<void> {
   if (!alertId.value) {
     detail.value = null
+    actionLogs.value = []
     return
   }
 
   loading.value = true
 
   try {
-    const data = await getAlertDetail(alertId.value)
+    const [data, logs] = await Promise.all([
+      getAlertDetail(alertId.value),
+      getAlertActionLogs(alertId.value),
+    ])
     detail.value = data
-    pendingRealtimeRefresh.value = false
+    actionLogs.value = Array.isArray(logs.items) ? logs.items : []
     await fetchContextLabels(data)
   } finally {
     loading.value = false
@@ -172,7 +137,6 @@ async function handleSubmitAction(payload: { remark: string }): Promise<void> {
 
   try {
     await disposeAlert(detail.value.id, activeAction.value, payload.remark || undefined)
-    localMutationAtMap.set(detail.value.id, Date.now())
     dialogVisible.value = false
     ElMessage.success(`${getAlertActionLabel(activeAction.value)}成功`)
     await fetchDetail()
@@ -231,42 +195,6 @@ async function fetchContextLabels(data: AlertDetail): Promise<void> {
     driverLabel.value = driverResult.value.name || showValue(data.driverId)
   }
 }
-
-async function handleRealtimeEvent(event: NormalizedAlertRealtimeEvent): Promise<void> {
-  if (!detail.value || detail.value.id !== event.alertId || shouldIgnoreRealtimeEvent(event)) {
-    return
-  }
-
-  latestRealtimeTraceId.value = event.traceId || latestRealtimeTraceId.value
-
-  if (dialogVisible.value || actionSubmitting.value) {
-    pendingRealtimeRefresh.value = true
-    return
-  }
-
-  await fetchDetail()
-}
-
-function shouldIgnoreRealtimeEvent(event: NormalizedAlertRealtimeEvent): boolean {
-  const localMutationAt = localMutationAtMap.get(event.alertId)
-
-  if (!localMutationAt || !event.eventAt) {
-    return false
-  }
-
-  const eventAt = parseTimestamp(event.eventAt)
-  return eventAt !== null && eventAt < localMutationAt
-}
-
-watch(
-  () => dialogVisible.value,
-  (visible) => {
-    if (!visible && pendingRealtimeRefresh.value) {
-      pendingRealtimeRefresh.value = false
-      void fetchDetail()
-    }
-  },
-)
 </script>
 
 <template>
@@ -285,14 +213,6 @@ watch(
     <el-skeleton v-if="loading && !detail" :rows="8" animated />
 
     <template v-else-if="detail">
-      <el-alert
-        v-if="pendingRealtimeRefresh"
-        title="告警数据已更新，完成当前输入后会自动同步"
-        type="info"
-        :closable="false"
-        show-icon
-      />
-
       <el-card v-if="canDispose" class="panel-card action-card" shadow="never">
         <template #header>
           <div class="card-title">处置操作</div>
@@ -319,7 +239,7 @@ watch(
         </div>
       </el-card>
 
-      <section v-if="canViewDebugInfo" class="card-grid">
+      <section class="card-grid">
         <el-card class="panel-card" shadow="never">
           <template #header>
             <div class="card-title">基本信息</div>
@@ -349,24 +269,16 @@ watch(
 
           <div class="metrics-grid">
             <div class="metric-item">
+              <span>riskScore</span>
+              <strong>{{ formatScore(detail.riskScore) }}</strong>
+            </div>
+            <div class="metric-item">
               <span>fatigueScore</span>
               <strong>{{ formatScore(detail.fatigueScore) }}</strong>
             </div>
             <div class="metric-item">
               <span>distractionScore</span>
               <strong>{{ formatScore(detail.distractionScore) }}</strong>
-            </div>
-            <div class="metric-item">
-              <span>perclos</span>
-              <strong>{{ formatScore(detail.perclos) }}</strong>
-            </div>
-            <div class="metric-item">
-              <span>blinkRate</span>
-              <strong>{{ formatNumber(detail.blinkRate) }}</strong>
-            </div>
-            <div class="metric-item">
-              <span>yawnCount</span>
-              <strong>{{ showValue(detail.yawnCount) }}</strong>
             </div>
           </div>
         </el-card>
@@ -381,23 +293,20 @@ watch(
           <el-descriptions-item label="车队">{{ fleetLabel }}</el-descriptions-item>
           <el-descriptions-item label="车辆">{{ vehicleLabel }}</el-descriptions-item>
           <el-descriptions-item label="司机">{{ driverLabel }}</el-descriptions-item>
-          <el-descriptions-item label="算法版本">{{ showValue(detail.algorithmVer) }}</el-descriptions-item>
-          <el-descriptions-item label="头姿态">{{ showValue(detail.headPose) }}</el-descriptions-item>
-          <el-descriptions-item label="事件时间">{{ formatDateTime(detail.eventTime) }}</el-descriptions-item>
         </el-descriptions>
       </el-card>
 
       <section class="card-grid">
         <el-card class="panel-card" shadow="never">
           <template #header>
-            <div class="card-title">联调与排查</div>
+            <div class="card-title">处置摘要</div>
           </template>
 
-          <el-empty v-if="observabilityRows.length === 0" description="暂无联调态字段" />
+          <el-empty v-if="operationRows.length === 0" description="暂无处置摘要" />
 
           <el-descriptions v-else :column="2" border>
             <el-descriptions-item
-              v-for="item in observabilityRows"
+              v-for="item in operationRows"
               :key="item.label"
               :label="item.label"
               :span="item.span || 1"
@@ -409,10 +318,10 @@ watch(
 
         <el-card class="panel-card" shadow="never">
           <template #header>
-            <div class="card-title">边缘透传字段</div>
+            <div class="card-title">边缘风险摘要</div>
           </template>
 
-          <el-empty v-if="edgeDebugRows.length === 0" description="暂无边缘联调字段" />
+          <el-empty v-if="edgeDebugRows.length === 0" description="暂无边缘风险字段" />
 
           <el-descriptions v-else :column="2" border>
             <el-descriptions-item
@@ -432,17 +341,17 @@ watch(
           <div class="card-title">处置记录时间轴</div>
         </template>
 
-        <el-empty v-if="timeline.length === 0" description="暂无处置记录" />
+        <el-empty v-if="actionLogs.length === 0" description="暂无处置记录" />
 
         <el-timeline v-else>
           <el-timeline-item
-            v-for="(item, index) in timeline"
-            :key="item.actionTime + '-' + index"
+            v-for="item in actionLogs"
+            :key="item.id"
             :timestamp="formatDateTime(item.actionTime)"
           >
-            <p class="timeline-action">{{ item.action }}</p>
-            <p class="timeline-meta">操作人：{{ item.operator || '-' }}</p>
-            <p v-if="item.remark" class="timeline-meta">备注：{{ item.remark }}</p>
+            <p class="timeline-action">{{ getAlertTimelineActionLabel(item.actionType) }}</p>
+            <p class="timeline-meta">操作人：{{ item.actionBy || '-' }}</p>
+            <p v-if="item.actionRemark" class="timeline-meta">备注：{{ item.actionRemark }}</p>
           </el-timeline-item>
         </el-timeline>
       </el-card>

@@ -192,22 +192,6 @@ const router = createRouter({
       redirect: '/platform/system/version',
     },
     {
-      path: '/device-approvals',
-      redirect: '/org/enterprise-profile',
-    },
-    {
-      path: '/device-approvals/:id',
-      redirect: '/org/enterprise-profile',
-    },
-    {
-      path: '/device-bind-logs',
-      redirect: '/org/enterprise-profile',
-    },
-    {
-      path: '/device-bind-logs/:id',
-      redirect: '/org/enterprise-profile',
-    },
-    {
       path: '/:pathMatch(.*)*',
       redirect: () => {
         const authStore = useAuthStore()

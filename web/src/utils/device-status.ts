@@ -95,49 +95,6 @@ export function effectiveStageTagType(stage: EffectiveStage): TagType {
   }
 }
 
-export function deviceBindLogActionText(action: string): string {
-  switch (action) {
-    case 'CLAIMED':
-      return '首次认领'
-    case 'REBOUND':
-      return '重新绑定'
-    case 'UNBOUND':
-      return '解绑'
-    case 'AUTO_RECOVERED':
-      return '自动恢复'
-    default:
-      return action || '-'
-  }
-}
-
-export function deviceBindLogActionTagType(action: string): TagType {
-  switch (action) {
-    case 'CLAIMED':
-      return 'success'
-    case 'REBOUND':
-      return 'warning'
-    case 'UNBOUND':
-      return 'info'
-    case 'AUTO_RECOVERED':
-      return 'primary'
-    default:
-      return 'info'
-  }
-}
-
-export function operatorTypeText(operatorType?: string): string {
-  switch (operatorType) {
-    case 'EDGE_DEVICE':
-      return '边缘设备'
-    case 'ADMIN_USER':
-      return '管理端用户'
-    case 'SYSTEM':
-      return '系统'
-    default:
-      return operatorType || '-'
-  }
-}
-
 export function enterpriseActivationCodeSourceText(source?: string): string {
   if (source === 'ENTERPRISE_ACTIVATION_CODE') {
     return '企业激活码'

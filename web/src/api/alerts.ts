@@ -1,4 +1,5 @@
 import type {
+  AlertActionLogsData,
   AlertActionType,
   AlertDetail,
   AlertListData,
@@ -18,6 +19,13 @@ export function getAlertDetail(id: number | string): Promise<AlertDetail> {
   return request<AlertDetail>({
     method: 'GET',
     url: `/org/alerts/${id}`,
+  })
+}
+
+export function getAlertActionLogs(id: number | string): Promise<AlertActionLogsData> {
+  return request<AlertActionLogsData>({
+    method: 'GET',
+    url: `/org/alerts/${id}/action-logs`,
   })
 }
 

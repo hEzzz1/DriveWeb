@@ -4,14 +4,6 @@ export type AlertStatus = 0 | 1 | 2 | 3
 
 export type AlertActionType = 'CONFIRM' | 'FALSE_POSITIVE' | 'CLOSE'
 
-export type AlertRealtimeEventType = 'ALERT_CREATED' | 'ALERT_UPDATED'
-
-export type RealtimeConnectionStatus =
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'disconnected'
-
 export interface AlertListQuery {
   page: number
   size: number
@@ -44,83 +36,31 @@ export interface AlertListData {
   items: AlertSummary[]
 }
 
-export interface AlertActionRecord {
-  action: string
+export interface AlertActionLog {
+  id: number
+  actionType: string
+  actionBy?: number | string | null
   actionTime: string
-  operator?: string
-  remark?: string
+  actionRemark?: string | null
 }
 
-export interface AlertRealtimePayload {
+export interface AlertActionLogsData {
   alertId: number
-  alertNo?: string
-  status?: AlertStatus
-  riskLevel?: AlertRiskLevel
-  riskScore?: number | null
-  fatigueScore?: number | null
-  distractionScore?: number | null
-  triggerTime?: string | null
-  fleetId?: string | number | null
-  vehicleId?: string | number | null
-  driverId?: string | number | null
-  latestActionBy?: number | string | null
-  latestActionTime?: string | null
-  actionType?: string | null
-  remark?: string | null
-  ruleId?: number | null
-  edgeRiskLevel?: string | null
-  edgeDominantRiskType?: string | null
-  edgeTriggerReasons?: string[] | null
-  edgeWindowStartMs?: number | null
-  edgeWindowEndMs?: number | null
-  edgeCreatedAtMs?: number | null
-}
-
-export interface AlertRealtimeEnvelope {
-  eventType?: string
-  traceId?: string
-  data?: AlertRealtimePayload
-  type?: string
-  timestamp?: string
-  payload?: AlertRealtimePayload
-}
-
-export interface NormalizedAlertRealtimeEvent {
-  eventType: AlertRealtimeEventType
-  traceId?: string
-  alertId: number
-  eventAt?: string
-  dedupeKey: string
-  payload: AlertRealtimePayload
+  items: AlertActionLog[]
 }
 
 export interface AlertDetail extends AlertSummary {
   ruleId?: number | null
   riskScore?: number | null
-  perclos?: number | null
-  blinkRate?: number | null
-  yawnCount?: number | null
-  headPose?: string | null
-  algorithmVer?: string | null
-  eventTime?: string | null
   latestActionBy?: number | string | null
   latestActionTime?: string | null
   remark?: string | null
   edgeRiskLevel?: string | null
   edgeDominantRiskType?: string | null
-  edgeTriggerReasons?: string[] | null
+  edgeTriggerReasons?: string | null
   edgeWindowStartMs?: number | null
   edgeWindowEndMs?: number | null
   edgeCreatedAtMs?: number | null
-  eventId?: string | null
-  traceId?: string | null
-  serverTraceId?: string | null
-  deviceToken?: string | null
-  ingestTraceId?: string | null
-  timeline?: AlertActionRecord[]
-  logs?: AlertActionRecord[]
-  history?: AlertActionRecord[]
-  [key: string]: unknown
 }
 
 export const riskLevelLabelMap: Record<AlertRiskLevel, string> = {
