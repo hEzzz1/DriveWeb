@@ -1,9 +1,9 @@
 import type { PageQuery, PageResult } from './api'
 
-export type RuleType = 'FATIGUE' | 'DISTRACTION' | 'OFF_CAMERA' | 'CUSTOM'
-export type RuleStatus = 'ENABLED' | 'DISABLED'
+export type RuleType = 'LOW' | 'MID' | 'HIGH'
+export type RuleStatus = 'DRAFT' | 'ENABLED' | 'DISABLED'
 export type RuleScopeType = 'GLOBAL' | 'FLEET' | 'VEHICLE'
-export type RuleVersionStatus = 'DRAFT' | 'PUBLISHED' | 'ROLLED_BACK'
+export type RuleVersionStatus = RuleStatus
 export type RuleActionType = 'ENABLE' | 'DISABLE' | 'PUBLISH' | 'ROLLBACK'
 
 export interface RuleScope {
@@ -25,6 +25,9 @@ export interface RuleSummary {
   updatedBy: string
   updatedAt: string
   publishedAt?: string
+  alertCount?: number
+  falsePositiveCount?: number
+  falsePositiveRate?: number
 }
 
 export interface RuleDetail extends RuleSummary {
@@ -34,6 +37,7 @@ export interface RuleDetail extends RuleSummary {
 
 export interface RuleVersionSummary {
   id: number
+  versionNo: number
   version: string
   status: RuleVersionStatus
   changeSummary: string
@@ -55,6 +59,7 @@ export type RuleListData = PageResult<RuleSummary>
 
 export interface RuleFormPayload {
   id?: number
+  ruleCode: string
   name: string
   type: RuleType
   description?: string
@@ -68,16 +73,17 @@ export interface RuleFormPayload {
 export interface RuleActionPayload {
   remark?: string
   targetVersion?: string
+  versionNo?: number
 }
 
 export const ruleTypeOptions: Array<{ label: string; value: RuleType }> = [
-  { label: '疲劳驾驶', value: 'FATIGUE' },
-  { label: '分心驾驶', value: 'DISTRACTION' },
-  { label: '脱离视线', value: 'OFF_CAMERA' },
-  { label: '自定义规则', value: 'CUSTOM' },
+  { label: '低风险规则', value: 'LOW' },
+  { label: '中风险规则', value: 'MID' },
+  { label: '高风险规则', value: 'HIGH' },
 ]
 
 export const ruleStatusOptions: Array<{ label: string; value: RuleStatus }> = [
+  { label: '草稿', value: 'DRAFT' },
   { label: '启用中', value: 'ENABLED' },
   { label: '已停用', value: 'DISABLED' },
 ]
@@ -90,6 +96,12 @@ export const ruleScopeOptions: Array<{ label: string; value: RuleScopeType }> = 
 
 export const ruleVersionStatusLabelMap: Record<RuleVersionStatus, string> = {
   DRAFT: '草稿',
-  PUBLISHED: '已发布',
-  ROLLED_BACK: '已回滚',
+  ENABLED: '启用中',
+  DISABLED: '已停用',
+}
+
+export const ruleStatusLabelMap: Record<RuleStatus, string> = {
+  DRAFT: '草稿',
+  ENABLED: '启用中',
+  DISABLED: '已停用',
 }

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import type { EChartsOption } from 'echarts'
 import EChartPanel from '../components/EChartPanel.vue'
 import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
+import { buildAlertSocketUrl, type RealtimeAlertMessage } from '../api/realtime'
 import { getRealtimeOverview } from '../api/stats'
 import { useAuthStore } from '../stores/auth'
 import { riskLevelLabelMap, statusLabelMap } from '../types/alerts'
@@ -21,7 +22,12 @@ const loading = ref(false)
 const moduleError = ref('')
 const lastRefreshAt = ref('')
 const streamAlerts = ref<OverviewLatestAlertItem[]>([])
+const realtimeStatus = ref<'connecting' | 'connected' | 'fallback' | 'disconnected'>('fallback')
 let pollTimer: number | null = null
+let reconnectTimer: number | null = null
+let alertSocket: WebSocket | null = null
+let socketClosedByComponent = false
+let reconnectAttempts = 0
 
 const distributionChartOption = computed<EChartsOption>(() => ({
   tooltip: {
@@ -96,18 +102,46 @@ const healthRows = computed(() => {
 
   return rows.filter(Boolean)
 })
+const realtimeStatusText = computed(() => {
+  const textMap = {
+    connecting: '推送连接中',
+    connected: '推送已连接',
+    fallback: '轮询模式',
+    disconnected: '推送已断开',
+  }
+  return textMap[realtimeStatus.value]
+})
+const realtimeStatusTagType = computed(() => {
+  if (realtimeStatus.value === 'connected') {
+    return 'success'
+  }
+  if (realtimeStatus.value === 'connecting') {
+    return 'warning'
+  }
+  return 'info'
+})
 
 onMounted(async () => {
   await fetchOverview(true)
+  connectAlertSocket()
   pollTimer = window.setInterval(() => {
     void fetchOverview(false)
   }, 30000)
 })
 
 onBeforeUnmount(() => {
+  socketClosedByComponent = true
   if (pollTimer !== null) {
     window.clearInterval(pollTimer)
     pollTimer = null
+  }
+  if (reconnectTimer !== null) {
+    window.clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
+  if (alertSocket !== null) {
+    alertSocket.close()
+    alertSocket = null
   }
 })
 
@@ -154,6 +188,69 @@ function mergeLatestAlerts(
     .sort((left, right) => (parseTimestamp(right.triggerTime) || 0) - (parseTimestamp(left.triggerTime) || 0))
     .slice(0, 8)
 }
+
+function connectAlertSocket(): void {
+  if (!authStore.token) {
+    realtimeStatus.value = 'fallback'
+    return
+  }
+
+  realtimeStatus.value = 'connecting'
+  const socket = new WebSocket(buildAlertSocketUrl(authStore.token))
+  alertSocket = socket
+  socket.onopen = () => {
+    reconnectAttempts = 0
+    realtimeStatus.value = 'connected'
+  }
+  socket.onmessage = (event) => {
+    handleRealtimeAlert(event)
+  }
+  socket.onerror = () => {
+    realtimeStatus.value = 'fallback'
+  }
+  socket.onclose = () => {
+    if (alertSocket === socket) {
+      alertSocket = null
+    }
+    if (socketClosedByComponent) {
+      return
+    }
+    realtimeStatus.value = 'disconnected'
+    scheduleReconnect()
+  }
+}
+
+function scheduleReconnect(): void {
+  if (reconnectTimer !== null) {
+    return
+  }
+  const delay = Math.min(30000, 3000 * 2 ** Math.min(reconnectAttempts, 3))
+  reconnectAttempts += 1
+  reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = null
+    connectAlertSocket()
+  }, delay)
+}
+
+function handleRealtimeAlert(event: MessageEvent<string>): void {
+  try {
+    const message = JSON.parse(event.data) as RealtimeAlertMessage
+    if (!message.alert?.id) {
+      return
+    }
+    streamAlerts.value = mergeLatestAlerts([message.alert], streamAlerts.value)
+  } catch {
+    // Ignore malformed realtime frames and keep the REST polling path active.
+  }
+}
+
+function subjectText(item: OverviewLatestAlertItem): string {
+  const vehicle = item.vehiclePlateNumber || item.vehicleId || '-'
+  const driver = item.driverName && item.driverCode
+    ? `${item.driverName} / ${item.driverCode}`
+    : item.driverName || item.driverCode || item.driverId || '-'
+  return `${vehicle} / ${driver}`
+}
 </script>
 
 <template>
@@ -165,6 +262,7 @@ function mergeLatestAlerts(
     >
       <template #actions>
         <div class="head-meta">
+          <el-tag effect="plain" :type="realtimeStatusTagType">{{ realtimeStatusText }}</el-tag>
           <span>最近刷新 {{ formatDateTime(lastRefreshAt) }}</span>
         </div>
       </template>
@@ -224,7 +322,7 @@ function mergeLatestAlerts(
           >
             <div>
               <strong>{{ item.alertNo }}</strong>
-              <p>{{ item.vehicleId || '-' }} / {{ item.driverId || '-' }}</p>
+              <p>{{ subjectText(item) }}</p>
             </div>
 
             <div class="stream-meta">
@@ -283,6 +381,7 @@ function mergeLatestAlerts(
         <div class="info-list">
           <p><span>接口刷新</span>{{ formatDateTime(lastRefreshAt) }}</p>
           <p><span>窗口结束</span>{{ formatDateTime(overview?.windowEndTime) }}</p>
+          <p><span>推送状态</span>{{ realtimeStatusText }}</p>
         </div>
       </el-card>
     </section>

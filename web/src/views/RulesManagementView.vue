@@ -68,6 +68,10 @@ const summaryItems = computed(() => [
     label: '最近刷新',
     value: lastRefreshAt.value || '-',
   },
+  {
+    label: '误报总数',
+    value: items.value.reduce((sum, item) => sum + (item.falsePositiveCount || 0), 0),
+  },
 ])
 
 const actionDialogTitle = computed(() => {
@@ -221,7 +225,7 @@ async function handleConfirmAction(): Promise<void> {
       await publishRule(activeRule.value.id)
     } else if (rollbackVersion.value) {
       await rollbackRule(activeRule.value.id, {
-        targetVersion: rollbackVersion.value.version,
+        versionNo: rollbackVersion.value.versionNo,
       })
       versionVisible.value = false
     }
@@ -277,7 +281,7 @@ async function handleSizeChange(size: number): Promise<void> {
       </el-card>
     </section>
 
-    <PageSectionCard title="规则筛选" description="按规则名称、类型、状态、版本和生效范围快速定位。">
+    <PageSectionCard title="规则筛选" description="按规则名称、风险等级和状态快速定位。">
       <RuleFilterBar
         v-model="filters"
         :can-manage="canManageRules"

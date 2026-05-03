@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ruleScopeOptions, ruleTypeOptions, type RuleSummary } from '../../types/rules'
+import { ruleStatusLabelMap, ruleTypeOptions, type RuleSummary } from '../../types/rules'
 
 const props = defineProps<{
   items: RuleSummary[]
@@ -23,9 +23,10 @@ const emit = defineEmits<{
 const typeLabelMap = computed(() =>
   Object.fromEntries(ruleTypeOptions.map((item) => [item.value, item.label])),
 )
-const scopeLabelMap = computed(() =>
-  Object.fromEntries(ruleScopeOptions.map((item) => [item.value, item.label])),
-)
+
+function getRuleStatusLabel(status: RuleSummary['status']): string {
+  return ruleStatusLabelMap[status as keyof typeof ruleStatusLabelMap] || status
+}
 </script>
 
 <template>
@@ -33,15 +34,15 @@ const scopeLabelMap = computed(() =>
     <el-table :data="items" :loading="loading" stripe>
       <el-table-column prop="name" label="规则名称" min-width="180" />
       <el-table-column prop="ruleCode" label="编码" min-width="120" />
-      <el-table-column label="类型" min-width="120">
+      <el-table-column label="风险等级" min-width="120">
         <template #default="{ row }">
           {{ typeLabelMap[row.type] || row.type }}
         </template>
       </el-table-column>
       <el-table-column label="状态" width="110">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" effect="plain">
-            {{ row.status === 'ENABLED' ? '启用中' : '已停用' }}
+          <el-tag :type="row.status === 'ENABLED' ? 'success' : row.status === 'DRAFT' ? 'warning' : 'info'" effect="plain">
+            {{ getRuleStatusLabel(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -51,10 +52,14 @@ const scopeLabelMap = computed(() =>
           阈值 {{ row.threshold }} / 持续 {{ row.durationSeconds }}s / 冷却 {{ row.cooldownSeconds }}s
         </template>
       </el-table-column>
-      <el-table-column label="生效范围" min-width="220">
+      <el-table-column label="触发/误报" min-width="160">
         <template #default="{ row }">
-          {{ scopeLabelMap[row.scope.type] || row.scope.type }}
-          <span v-if="row.scope.targetIds.length"> · {{ row.scope.targetIds.join('、') }}</span>
+          {{ row.alertCount ?? 0 }} / {{ row.falsePositiveCount ?? 0 }}
+        </template>
+      </el-table-column>
+      <el-table-column label="误报率" width="110">
+        <template #default="{ row }">
+          {{ row.falsePositiveRate !== undefined ? `${(row.falsePositiveRate * 100).toFixed(1)}%` : '-' }}
         </template>
       </el-table-column>
       <el-table-column prop="updatedBy" label="更新人" width="120" />

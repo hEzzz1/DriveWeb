@@ -36,11 +36,21 @@ export interface DeviceSummary {
   vehiclePlateNumber?: string
   deviceCode: string
   deviceName: string
+  activationCode?: string
+  status: DeviceLifecycleStatus
   lifecycleStatus: DeviceLifecycleStatus
   vehicleBindStatus: VehicleBindStatus
   sessionStage: SessionStage
   effectiveStage: EffectiveStage
+  lastActivatedAt?: string
   lastSeenAt?: string
+  tokenRotatedAt?: string
+  uploadQueueSize?: number | null
+  uploadLastSuccessAt?: string | null
+  uploadLastFailedAt?: string | null
+  uploadLastFailureClass?: string | null
+  uploadLastErrorMessage?: string | null
+  uploadLastReportAt?: string | null
   currentDriver?: DeviceCurrentDriver
   activeSession?: DeviceActiveSession
   remark?: string
@@ -53,14 +63,18 @@ export interface DeviceDetail extends DeviceSummary {}
 export type DeviceListData = PageResult<DeviceSummary>
 
 export interface CreateDevicePayload {
+  enterpriseId?: number
+  fleetId?: number
   vehicleId?: number
   deviceCode: string
   deviceName: string
+  activationCode?: string
   remark?: string
 }
 
 export interface UpdateDevicePayload {
   deviceName: string
+  activationCode?: string
   remark?: string
 }
 
@@ -112,11 +126,21 @@ export interface DeviceApiItem {
   enterprise?: DeviceApiPartyRef | null
   fleet?: DeviceApiPartyRef | null
   vehicle?: DeviceApiVehicleRef | null
+  activationCode?: string | null
+  status?: DeviceLifecycleStatus | null
   lifecycleStatus: DeviceLifecycleStatus
   vehicleBindStatus: VehicleBindStatus
   sessionStage: SessionStage
   effectiveStage: EffectiveStage
+  lastActivatedAt?: string | null
   lastSeenAt?: string | null
+  tokenRotatedAt?: string | null
+  uploadQueueSize?: number | null
+  uploadLastSuccessAt?: string | null
+  uploadLastFailedAt?: string | null
+  uploadLastFailureClass?: string | null
+  uploadLastErrorMessage?: string | null
+  uploadLastReportAt?: string | null
   currentDriver?: DeviceApiCurrentDriver | null
   activeSession?: DeviceApiActiveSession | null
   remark?: string | null

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 import {
-  ruleScopeOptions,
   ruleStatusOptions,
   ruleTypeOptions,
   type RuleListQuery,
@@ -69,15 +68,11 @@ function handleReset(): void {
       clearable
       @keyup.enter="handleSearch"
     />
-    <el-select v-model="localModel.type" placeholder="规则类型" clearable>
+    <el-select v-model="localModel.type" placeholder="风险等级" clearable>
       <el-option v-for="item in ruleTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
     </el-select>
     <el-select v-model="localModel.status" placeholder="规则状态" clearable>
       <el-option v-for="item in ruleStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
-    </el-select>
-    <el-input v-model="localModel.version" placeholder="版本号" clearable @keyup.enter="handleSearch" />
-    <el-select v-model="localModel.scopeType" placeholder="生效范围" clearable>
-      <el-option v-for="item in ruleScopeOptions" :key="item.value" :label="item.label" :value="item.value" />
     </el-select>
     <div class="actions">
       <el-button :loading="loading" type="primary" @click="handleSearch">查询</el-button>
@@ -90,7 +85,7 @@ function handleReset(): void {
 <style scoped>
 .filter-bar {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   gap: 12px;
   align-items: center;
 }

@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import DeviceCreateDialog from '../components/devices/DeviceCreateDialog.vue'
+import DeviceEditDialog from '../components/devices/DeviceEditDialog.vue'
 import PageSectionCard from '../components/PageSectionCard.vue'
 import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
 import { fetchAllPages } from '../api/pagination'
-import { getDeviceList } from '../api/devices'
+import { createDevice, getDeviceDetail, getDeviceList, updateDevice, updateDeviceStatus } from '../api/devices'
 import { getEnterpriseList } from '../api/enterprises'
 import { getFleetList } from '../api/fleets'
+import { getVehicleList } from '../api/vehicles'
 import { useAccess } from '../composables/useAccess'
 import { useAuthStore } from '../stores/auth'
-import type { DeviceSummary } from '../types/devices'
+import type { CreateDevicePayload, DeviceDetail, DeviceSummary, UpdateDevicePayload } from '../types/devices'
 import type { EnterpriseSummary } from '../types/enterprises'
 import type { FleetSummary } from '../types/fleets'
+import type { VehicleSummary } from '../types/vehicles'
 import {
   effectiveStageTagType,
   effectiveStageText,
@@ -38,10 +43,19 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 
+const createVisible = ref(false)
+const createSaving = ref(false)
+const editVisible = ref(false)
+const editSaving = ref(false)
+const activeEditDevice = ref<DeviceDetail | null>(null)
+const statusChangingId = ref<number | null>(null)
+
 const enterprises = ref<EnterpriseSummary[]>([])
 const fleets = ref<FleetSummary[]>([])
+const vehicles = ref<VehicleSummary[]>([])
 const enterpriseMap = ref(new Map<number, EnterpriseSummary>())
 const fleetMap = ref(new Map<number, FleetSummary>())
+const vehicleMap = ref(new Map<number, VehicleSummary>())
 
 const filters = reactive<FilterModel>({
   enterpriseId: undefined,
@@ -53,6 +67,7 @@ const fleetOptions = computed(() => {
   const enterpriseId = authStore.isSuperAdmin ? filters.enterpriseId : Number(authStore.enterpriseId) || undefined
   return fleets.value.filter((item) => !enterpriseId || item.enterpriseId === enterpriseId)
 })
+const currentEnterpriseId = computed(() => Number(authStore.enterpriseId) || undefined)
 
 watch(
   () => filters.enterpriseId,
@@ -85,9 +100,14 @@ async function fetchReferences(): Promise<void> {
   }
 
   const enterpriseId = authStore.isSuperAdmin ? undefined : Number(authStore.enterpriseId) || undefined
-  const fleetItems = await fetchAllPages(getFleetList, { enterpriseId })
+  const [fleetItems, vehicleItems] = await Promise.all([
+    fetchAllPages(getFleetList, { enterpriseId }),
+    fetchAllPages(getVehicleList, { enterpriseId }),
+  ])
   fleets.value = fleetItems
+  vehicles.value = vehicleItems
   fleetMap.value = new Map(fleetItems.map((item) => [item.id, item]))
+  vehicleMap.value = new Map(vehicleItems.map((item) => [item.id, item]))
 }
 
 async function fetchList(): Promise<void> {
@@ -116,6 +136,7 @@ function enrichDevice(item: DeviceSummary): DeviceSummary {
     ...item,
     enterpriseName: item.enterpriseName || (item.enterpriseId ? enterpriseMap.value.get(item.enterpriseId)?.name : undefined),
     fleetName: item.fleetName || (item.fleetId ? fleetMap.value.get(item.fleetId)?.name : undefined),
+    vehiclePlateNumber: item.vehiclePlateNumber || (item.vehicleId ? vehicleMap.value.get(item.vehicleId)?.plateNumber : undefined),
   }
 }
 
@@ -127,8 +148,74 @@ function vehicleText(row: DeviceSummary): string {
   return row.vehiclePlateNumber || row.fleetName || '-'
 }
 
+function statusActionText(row: DeviceSummary): string {
+  return row.lifecycleStatus === 'DISABLED' ? '启用' : '禁用'
+}
+
 function openDetail(row: DeviceSummary): void {
   router.push(`/devices/${row.id}`)
+}
+
+async function openEditDialog(row: DeviceSummary): Promise<void> {
+  try {
+    activeEditDevice.value = enrichDevice(await getDeviceDetail(row.id)) as DeviceDetail
+    editVisible.value = true
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '设备详情加载失败')
+  }
+}
+
+async function handleCreateDevice(payload: CreateDevicePayload): Promise<void> {
+  createSaving.value = true
+  try {
+    await createDevice(payload)
+    createVisible.value = false
+    ElMessage.success('设备已创建')
+    await fetchList()
+  } finally {
+    createSaving.value = false
+  }
+}
+
+async function handleEditDevice(payload: UpdateDevicePayload): Promise<void> {
+  if (!activeEditDevice.value) {
+    return
+  }
+
+  editSaving.value = true
+  try {
+    await updateDevice(activeEditDevice.value.id, payload)
+    editVisible.value = false
+    activeEditDevice.value = null
+    ElMessage.success('设备已更新')
+    await fetchList()
+  } finally {
+    editSaving.value = false
+  }
+}
+
+async function handleToggleStatus(row: DeviceSummary): Promise<void> {
+  const nextStatus = row.lifecycleStatus === 'DISABLED' ? 1 : 0
+  const actionText = nextStatus === 1 ? '启用' : '禁用'
+
+  try {
+    await ElMessageBox.confirm(`确认${actionText}设备「${row.deviceCode}」吗？`, `${actionText}设备`, {
+      type: nextStatus === 1 ? 'info' : 'warning',
+      confirmButtonText: `确认${actionText}`,
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+
+  statusChangingId.value = row.id
+  try {
+    await updateDeviceStatus(row.id, { status: nextStatus as 0 | 1 })
+    ElMessage.success(`设备已${actionText}`)
+    await fetchList()
+  } finally {
+    statusChangingId.value = null
+  }
 }
 </script>
 
@@ -137,8 +224,13 @@ function openDetail(row: DeviceSummary): void {
     <WorkspacePageHeader
       eyebrow="Device Registry"
       title="设备管理"
-      subtitle="设备绑定改为直接由企业激活码完成后，企业管理员会在这里直接看到新绑定设备和待分车状态。"
-    />
+      subtitle="企业激活码认领仍是主流程；后台设备台账补齐创建设备、编辑资料和启停管理，token 轮换在详情页执行。"
+    >
+      <template #actions>
+        <el-button @click="fetchList">刷新</el-button>
+        <el-button v-if="access.canManageDevices" type="primary" @click="createVisible = true">新建设备</el-button>
+      </template>
+    </WorkspacePageHeader>
 
     <PageSectionCard title="筛选条件" description="企业管理员自动锁定当前企业；设备列表按企业和车队维度查看。">
       <div class="filter-bar">
@@ -196,9 +288,19 @@ function openDetail(row: DeviceSummary): void {
           <el-table-column label="最近在线" min-width="180">
             <template #default="{ row }">{{ formatDateTime(row.lastSeenAt) }}</template>
           </el-table-column>
-          <el-table-column v-if="access.canManageDevices" label="操作" width="120" fixed="right">
+          <el-table-column label="操作" width="210" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+              <el-button v-if="access.canManageDevices" link type="primary" @click="openEditDialog(row)">编辑</el-button>
+              <el-button
+                v-if="access.canManageDevices"
+                link
+                :type="row.lifecycleStatus === 'DISABLED' ? 'success' : 'danger'"
+                :loading="statusChangingId === row.id"
+                @click="handleToggleStatus(row)"
+              >
+                {{ statusActionText(row) }}
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -218,6 +320,24 @@ function openDetail(row: DeviceSummary): void {
         </div>
       </div>
     </PageSectionCard>
+
+    <DeviceCreateDialog
+      v-model:visible="createVisible"
+      :loading="createSaving"
+      :fleets="fleets"
+      :vehicles="vehicles"
+      :enterprise-options="enterpriseOptions"
+      :default-enterprise-id="currentEnterpriseId"
+      :lock-enterprise="!authStore.isSuperAdmin"
+      @save="handleCreateDevice"
+    />
+
+    <DeviceEditDialog
+      v-model:visible="editVisible"
+      :loading="editSaving"
+      :device="activeEditDevice"
+      @save="handleEditDevice"
+    />
   </div>
 </template>
 

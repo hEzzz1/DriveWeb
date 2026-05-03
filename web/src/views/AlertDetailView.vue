@@ -58,13 +58,33 @@ const vehicleLabel = ref('-')
 const driverLabel = ref('-')
 
 const availableActions = computed(() => getAvailableAlertActions(detail.value?.status))
+const hasEvidence = computed(() => Boolean(detail.value?.evidenceUrl))
+const evidenceUrl = computed(() => detail.value?.evidenceUrl || '')
+const evidenceIsImage = computed(() => {
+  const mimeType = detail.value?.evidenceMimeType || ''
+  return evidenceUrl.value.startsWith('data:image/') || mimeType.startsWith('image/')
+})
+const evidenceRows = computed(() => {
+  if (!detail.value) {
+    return []
+  }
+
+  const rows = [
+    { label: '证据类型', value: showValue(detail.value.evidenceType) },
+    { label: 'MIME', value: showValue(detail.value.evidenceMimeType) },
+    { label: '捕获时间', value: formatTimestampMs(detail.value.evidenceCapturedAtMs) },
+    { label: '保留至', value: formatDateTime(detail.value.evidenceRetentionUntil) },
+  ]
+
+  return rows.filter((item) => item.value !== '-')
+})
 const operationRows = computed(() => {
   if (!detail.value) {
     return []
   }
 
   const rows = [
-    { label: '规则ID', value: showValue(detail.value.ruleId) },
+    { label: '规则', value: detail.value.ruleName || showValue(detail.value.ruleId) },
     { label: '综合风险分', value: formatScore(detail.value.riskScore) },
     { label: '最新操作人', value: showValue(detail.value.latestActionBy) },
     { label: '最新操作时间', value: formatDateTime(detail.value.latestActionTime) },
@@ -173,27 +193,34 @@ function showValue(value: unknown): string {
 }
 
 async function fetchContextLabels(data: AlertDetail): Promise<void> {
-  fleetLabel.value = showValue(data.fleetId)
-  vehicleLabel.value = showValue(data.vehicleId)
-  driverLabel.value = showValue(data.driverId)
+  fleetLabel.value = data.fleetName || showValue(data.fleetId)
+  vehicleLabel.value = data.vehiclePlateNumber || showValue(data.vehicleId)
+  driverLabel.value = formatDriverLabel(data) || showValue(data.driverId)
 
   const [fleetResult, vehicleResult, driverResult] = await Promise.allSettled([
-    getFleetDetail(data.fleetId),
-    getVehicleDetail(data.vehicleId),
-    getDriverDetail(data.driverId),
+    data.fleetName || data.fleetId === null || data.fleetId === undefined ? Promise.resolve(null) : getFleetDetail(data.fleetId),
+    data.vehiclePlateNumber || data.vehicleId === null || data.vehicleId === undefined ? Promise.resolve(null) : getVehicleDetail(data.vehicleId),
+    data.driverName || data.driverId === null || data.driverId === undefined ? Promise.resolve(null) : getDriverDetail(data.driverId),
   ])
 
-  if (fleetResult.status === 'fulfilled') {
+  if (fleetResult.status === 'fulfilled' && fleetResult.value) {
     fleetLabel.value = fleetResult.value.name || showValue(data.fleetId)
   }
 
-  if (vehicleResult.status === 'fulfilled') {
+  if (vehicleResult.status === 'fulfilled' && vehicleResult.value) {
     vehicleLabel.value = vehicleResult.value.plateNumber || showValue(data.vehicleId)
   }
 
-  if (driverResult.status === 'fulfilled') {
+  if (driverResult.status === 'fulfilled' && driverResult.value) {
     driverLabel.value = driverResult.value.name || showValue(data.driverId)
   }
+}
+
+function formatDriverLabel(data: AlertDetail): string {
+  if (data.driverName && data.driverCode) {
+    return `${data.driverName} / ${data.driverCode}`
+  }
+  return data.driverName || data.driverCode || ''
 }
 </script>
 
@@ -294,6 +321,29 @@ async function fetchContextLabels(data: AlertDetail): Promise<void> {
           <el-descriptions-item label="车辆">{{ vehicleLabel }}</el-descriptions-item>
           <el-descriptions-item label="司机">{{ driverLabel }}</el-descriptions-item>
         </el-descriptions>
+      </el-card>
+
+      <el-card v-if="hasEvidence" class="panel-card" shadow="never">
+        <template #header>
+          <div class="card-title">告警证据</div>
+        </template>
+
+        <div class="evidence-grid">
+          <div class="evidence-preview">
+            <img v-if="evidenceIsImage" :src="evidenceUrl" alt="evidence" />
+            <a v-else :href="evidenceUrl" target="_blank" rel="noreferrer">打开证据链接</a>
+          </div>
+
+          <el-descriptions :column="2" border>
+            <el-descriptions-item
+              v-for="item in evidenceRows"
+              :key="item.label"
+              :label="item.label"
+            >
+              <span class="mono-text">{{ item.value }}</span>
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
       </el-card>
 
       <section class="card-grid">
@@ -441,6 +491,35 @@ h1 {
   gap: 12px;
 }
 
+.evidence-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.evidence-preview {
+  min-height: 220px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0f172a;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.evidence-preview img {
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  object-fit: contain;
+}
+
+.evidence-preview a {
+  color: #ffffff;
+  font-weight: 700;
+}
+
 .metric-item {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -479,6 +558,10 @@ h1 {
 
 @media (max-width: 1080px) {
   .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .evidence-grid {
     grid-template-columns: 1fr;
   }
 

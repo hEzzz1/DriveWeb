@@ -19,14 +19,27 @@ export interface AlertListQuery {
 export interface AlertSummary {
   id: number
   alertNo: string
-  fleetId: string
-  vehicleId: string
-  driverId: string
+  fleetId: string | number | null
+  fleetName?: string | null
+  vehicleId: string | number | null
+  vehiclePlateNumber?: string | null
+  driverId: string | number | null
+  driverName?: string | null
+  driverCode?: string | null
+  deviceId?: string | number | null
+  deviceCode?: string | null
+  ruleId?: string | number | null
+  ruleName?: string | null
   riskLevel: AlertRiskLevel
   fatigueScore: number
   distractionScore: number
   status: AlertStatus
   triggerTime: string
+  evidenceType?: string | null
+  evidenceUrl?: string | null
+  evidenceMimeType?: string | null
+  evidenceCapturedAtMs?: number | null
+  evidenceRetentionUntil?: string | null
 }
 
 export interface AlertListData {
@@ -50,7 +63,6 @@ export interface AlertActionLogsData {
 }
 
 export interface AlertDetail extends AlertSummary {
-  ruleId?: number | null
   riskScore?: number | null
   latestActionBy?: number | string | null
   latestActionTime?: string | null

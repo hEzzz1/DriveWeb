@@ -358,12 +358,25 @@ function getStatusLabel(status: number): string {
   return statusLabelMap[status as AlertStatus] || '-'
 }
 
-function getVehicleLabel(vehicleId: string): string {
+function getVehicleLabel(row: AlertSummary): string {
+  if (row.vehiclePlateNumber) {
+    return row.vehiclePlateNumber
+  }
+  const vehicleId = row.vehicleId === null || row.vehicleId === undefined ? '' : String(row.vehicleId)
   return vehicleOptions.value.find((item) => item.value === vehicleId)?.tableLabel || vehicleId || '-'
 }
 
-function getDriverLabel(driverId: string): string {
+function getDriverLabel(row: AlertSummary): string {
+  const driverName = row.driverName || row.driverCode
+  if (driverName) {
+    return row.driverName && row.driverCode ? `${row.driverName} / ${row.driverCode}` : driverName
+  }
+  const driverId = row.driverId === null || row.driverId === undefined ? '' : String(row.driverId)
   return driverOptions.value.find((item) => item.value === driverId)?.tableLabel || driverId || '-'
+}
+
+function hasEvidence(row: AlertSummary): boolean {
+  return Boolean(row.evidenceUrl)
 }
 </script>
 
@@ -489,10 +502,16 @@ function getDriverLabel(driverId: string): string {
           </template>
         </el-table-column>
         <el-table-column label="车辆" min-width="140">
-          <template #default="{ row }">{{ getVehicleLabel(row.vehicleId) }}</template>
+          <template #default="{ row }">{{ getVehicleLabel(row) }}</template>
         </el-table-column>
         <el-table-column label="司机" min-width="140">
-          <template #default="{ row }">{{ getDriverLabel(row.driverId) }}</template>
+          <template #default="{ row }">{{ getDriverLabel(row) }}</template>
+        </el-table-column>
+        <el-table-column label="证据" width="90">
+          <template #default="{ row }">
+            <el-tag v-if="hasEvidence(row)" type="success" effect="plain">已留存</el-tag>
+            <span v-else class="row-action-empty">-</span>
+          </template>
         </el-table-column>
         <el-table-column label="风险级别" min-width="110">
           <template #default="{ row }">

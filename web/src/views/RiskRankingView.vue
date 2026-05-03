@@ -93,7 +93,7 @@ const barChartOption = computed<EChartsOption>(() => ({
   },
   yAxis: {
     type: 'category',
-    data: rankingItems.value.map((item) => String(item.dimensionValue)),
+    data: rankingItems.value.map((item) => dimensionDisplay(item)),
   },
   color: ['#19856e'],
   series: [
@@ -110,7 +110,7 @@ const summaryItems = computed(() => {
   return [
     {
       label: 'Top 1 对象',
-      value: first ? String(first.dimensionValue) : '-',
+      value: first ? dimensionDisplay(first) : '-',
     },
     {
       label: 'Top 1 风险分',
@@ -179,8 +179,8 @@ function handleOpenAlerts(item: RankingItem): void {
   router.push({
     name: 'alerts-list',
     query: {
-      fleetId: filterModel.fleetId || undefined,
       riskLevel: filterModel.riskLevel !== undefined ? String(filterModel.riskLevel) : undefined,
+      fleetId: filterModel.dimension === 'FLEET_ID' ? String(item.dimensionValue) : filterModel.fleetId || undefined,
       vehicleId: filterModel.dimension === 'VEHICLE_ID' ? String(item.dimensionValue) : undefined,
       driverId: filterModel.dimension === 'DRIVER_ID' ? String(item.dimensionValue) : undefined,
       startTime: filterModel.timeRange.length === 2 ? filterModel.timeRange[0].toISOString() : undefined,
@@ -194,7 +194,7 @@ function handleOpenAlerts(item: RankingItem): void {
 function hydrateFromRoute(): void {
   filterModel.fleetId = parseStringQuery(route.query.fleetId)
   filterModel.riskLevel = parseOptionalRiskLevel(route.query.riskLevel)
-  filterModel.dimension = parseEnumQuery(route.query.dimension, ['VEHICLE_ID', 'DRIVER_ID'], 'VEHICLE_ID')
+  filterModel.dimension = parseEnumQuery(route.query.dimension, ['FLEET_ID', 'VEHICLE_ID', 'DRIVER_ID', 'RULE_ID'], 'VEHICLE_ID')
   filterModel.sortBy = parseEnumQuery(
     route.query.sortBy,
     ['ALERT_COUNT', 'HIGH_RISK_COUNT', 'AVG_RISK_SCORE'],
@@ -221,6 +221,13 @@ function syncRouteQuery(query: RankingQuery): void {
     query: toFilterQuery(query),
   })
 }
+
+function dimensionDisplay(item: RankingItem): string {
+  if (item.dimensionName) {
+    return `${item.dimensionName} (#${item.dimensionValue})`
+  }
+  return String(item.dimensionValue)
+}
 </script>
 
 <template>
@@ -228,7 +235,7 @@ function syncRouteQuery(query: RankingQuery): void {
     <WorkspacePageHeader
       eyebrow="Stats"
       title="风险排行"
-      subtitle="支持车辆、司机两个维度排行，并可跳回告警列表形成闭环。"
+      subtitle="支持车队、车辆、司机、规则维度排行，并可跳回告警列表形成闭环。"
     />
 
     <el-card class="panel-card" shadow="never">
@@ -258,8 +265,10 @@ function syncRouteQuery(query: RankingQuery): void {
           <el-segmented
             v-model="filterModel.dimension"
             :options="[
+              { label: '车队排行', value: 'FLEET_ID' },
               { label: '车辆排行', value: 'VEHICLE_ID' },
               { label: '司机排行', value: 'DRIVER_ID' },
+              { label: '规则排行', value: 'RULE_ID' },
             ]"
           />
         </el-form-item>
@@ -342,7 +351,9 @@ function syncRouteQuery(query: RankingQuery): void {
         />
         <el-table v-if="!moduleError || !rankingEmpty" :data="rankingItems" empty-text="无符合条件数据">
           <el-table-column prop="rank" label="名次" width="72" />
-          <el-table-column prop="dimensionValue" label="对象" min-width="130" />
+          <el-table-column label="对象" min-width="170">
+            <template #default="{ row }">{{ dimensionDisplay(row) }}</template>
+          </el-table-column>
           <el-table-column prop="alertCount" label="风险总数" width="100" />
           <el-table-column prop="highRiskCount" label="高风险数" width="100" />
           <el-table-column label="平均风险分" width="120">

@@ -23,8 +23,16 @@ export interface OverviewLatestAlertItem {
   id: number
   alertNo: string
   fleetId?: string | number | null
+  fleetName?: string | null
   vehicleId?: string | number | null
+  vehiclePlateNumber?: string | null
   driverId?: string | number | null
+  driverName?: string | null
+  driverCode?: string | null
+  deviceId?: string | number | null
+  deviceCode?: string | null
+  ruleId?: string | number | null
+  ruleName?: string | null
   riskLevel: AlertRiskLevel
   status: AlertStatus
   riskScore?: number | null
@@ -79,6 +87,7 @@ export interface RankingQuery extends StatsFilterParams {
 export interface RankingItem {
   rank: number
   dimensionValue: string | number
+  dimensionName?: string | null
   alertCount: number
   highRiskCount: number
   avgRiskScore: number
