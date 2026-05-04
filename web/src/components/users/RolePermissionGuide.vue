@@ -159,9 +159,9 @@ const selectionHint = computed(() => {
   display: grid;
   gap: 10px;
   padding: 14px;
-  border: 1px solid #d8e6e3;
+  border: 1px solid var(--line);
   border-radius: 14px;
-  background: #f8fbfb;
+  background: var(--panel-bg-soft);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,

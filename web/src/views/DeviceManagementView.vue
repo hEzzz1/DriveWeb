@@ -221,11 +221,7 @@ async function handleToggleStatus(row: DeviceSummary): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Device Registry"
-      title="设备管理"
-      subtitle="企业激活码认领仍是主流程；后台设备台账补齐创建设备、编辑资料和启停管理，token 轮换在详情页执行。"
-    >
+    <WorkspacePageHeader title="设备管理">
       <template #actions>
         <el-button @click="fetchList">刷新</el-button>
         <el-button v-if="access.canManageDevices" type="primary" @click="createVisible = true">新建设备</el-button>

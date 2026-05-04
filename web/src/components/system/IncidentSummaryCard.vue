@@ -43,7 +43,7 @@ defineProps<{
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #f8fbfb;
+  background: var(--panel-bg-soft);
 }
 
 .summary-item p {

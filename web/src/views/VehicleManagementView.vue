@@ -273,11 +273,7 @@ function boundDeviceText(item: VehicleSummary): string {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Vehicles"
-      title="车辆管理"
-      subtitle="按企业和车队维护车辆主数据，展示当前绑定设备，企业管理员自动锁定本企业范围。"
-    >
+    <WorkspacePageHeader title="车辆管理">
       <template #actions>
         <el-button v-if="access.canManageVehicles" type="primary" @click="openCreate">新增车辆</el-button>
       </template>

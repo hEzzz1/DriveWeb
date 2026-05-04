@@ -313,11 +313,7 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Platform"
-      title="平台内部账号"
-      subtitle="平台内部账号与企业管理员彻底分开，只允许分配平台角色，不绑定企业。"
-    />
+    <WorkspacePageHeader title="平台内部账号" />
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

@@ -78,12 +78,6 @@ const summaryItems = computed(() => [
   { label: '车队来源', value: `${fleets.value.length} 个真实车队` },
 ])
 
-const pageSubhead = computed(() =>
-  access.value.canManageDrivers
-    ? '新增和调车队都只使用真实车队下拉，列表同步显示驾驶员编号、活跃会话和重置 PIN 入口。'
-    : '当前角色仅开放列表与详情查看，跨企业和归属一致性约束全部遵循后端权限与服务端校验。',
-)
-
 watch(
   () => filters.enterpriseId,
   () => {
@@ -329,7 +323,7 @@ function syncTableRow(detail: DriverDetail): void {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader eyebrow="Drivers" title="驾驶员管理" :subtitle="pageSubhead">
+    <WorkspacePageHeader title="驾驶员管理">
       <template #actions>
         <el-button v-if="access.canManageDrivers" type="primary" @click="createVisible = true">新增驾驶员</el-button>
       </template>

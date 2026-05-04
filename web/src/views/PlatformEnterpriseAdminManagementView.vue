@@ -288,11 +288,7 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Platform"
-      title="企业管理员"
-      subtitle="平台域仅管理企业管理员账号，不进入企业业务数据。创建、禁用、重置密码和企业归属调整均在本页完成。"
-    />
+    <WorkspacePageHeader title="企业管理员" />
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

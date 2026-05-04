@@ -54,12 +54,6 @@ const summaryItems = computed(() => [
   { label: '操作模式', value: access.value.canManageFleets ? '读写' : '只读' },
 ])
 
-const pageSubhead = computed(() =>
-  authStore.isSuperAdmin
-    ? '支持按企业筛选、创建、编辑和启停车队，驾驶员数量由真实驾驶员接口聚合。'
-    : '当前以企业管理员或业务只读角色视角进入，企业范围已自动锁定到当前企业。',
-)
-
 onMounted(async () => {
   authStore.hydrate()
   await authStore.syncCurrentUser()
@@ -248,7 +242,7 @@ function syncTableRow(detail: FleetDetail): void {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader eyebrow="Fleets" title="车队管理" :subtitle="pageSubhead">
+    <WorkspacePageHeader title="车队管理">
       <template #actions>
         <el-button v-if="access.canManageFleets" type="primary" @click="createVisible = true">新建车队</el-button>
       </template>

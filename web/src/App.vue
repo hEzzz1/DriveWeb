@@ -27,7 +27,6 @@ const authStore = useAuthStore()
 authStore.hydrate()
 const access = useAccess()
 
-const sidebarCollapsed = ref(false)
 const mobileSidebarOpen = ref(false)
 
 const isPublicPage = computed(() => Boolean(route.meta.public))
@@ -89,21 +88,12 @@ const currentSectionLabel = computed(
     (currentNavItem.value ? getNavSectionLabel(currentNavItem.value.section) : '工作区'),
 )
 const currentPageTitle = computed(() => route.meta.pageTitle || currentNavItem.value?.label || '工作区')
-const currentPageSubtitle = computed(
-  () =>
-    route.meta.pageSubtitle ||
-    currentNavItem.value?.subtitle ||
-    '管理当前工作空间中的业务数据与系统状态。',
-)
-const userInitial = computed(() => (authStore.username || 'D').slice(0, 1).toUpperCase())
+const userInitial = computed(() => (authStore.username || '用户').slice(0, 1).toUpperCase())
 
 function handleToggleSidebar(): void {
   if (window.matchMedia('(max-width: 960px)').matches) {
     mobileSidebarOpen.value = !mobileSidebarOpen.value
-    return
   }
-
-  sidebarCollapsed.value = !sidebarCollapsed.value
 }
 
 function handleNavigate(item: { path: string }): void {
@@ -132,7 +122,6 @@ function getNavSectionLabel(section: string): string {
     v-else
     class="admin-shell"
     :class="{
-      'is-collapsed': sidebarCollapsed,
       'is-mobile-open': mobileSidebarOpen,
     }"
   >
@@ -140,46 +129,40 @@ function getNavSectionLabel(section: string): string {
 
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <div class="brand-badge">DW</div>
-        <div v-if="!sidebarCollapsed" class="brand-copy">
-          <strong>DriveWeb</strong>
-          <span>{{ access.isPlatformDomain ? '平台管理后台' : '企业运营后台' }}</span>
+        <div class="brand-badge">风控</div>
+        <div class="brand-copy">
+          <strong>风控管理平台</strong>
         </div>
       </div>
 
       <div class="sidebar-scroll">
         <div v-for="section in navSections" :key="section.key" class="sidebar-group">
-          <div v-if="!sidebarCollapsed" class="sidebar-section">
+          <div class="sidebar-section">
             <span>{{ section.label }}</span>
           </div>
 
-          <button
-            v-for="item in section.items"
-            :key="item.key"
-            class="sidebar-item"
-            :class="{ active: item.key === activeNavKey }"
-            type="button"
-            :title="sidebarCollapsed ? item.label : ''"
-            @click="handleNavigate(item)"
-          >
-            <span class="sidebar-item-badge">{{ item.badge }}</span>
-
-            <span v-if="!sidebarCollapsed" class="sidebar-item-copy">
-              <span class="sidebar-item-label">{{ item.label }}</span>
-            </span>
-          </button>
+          <div class="sidebar-submenu">
+            <button
+              v-for="item in section.items"
+              :key="item.key"
+              class="sidebar-item"
+              :class="{ active: item.key === activeNavKey }"
+              type="button"
+              @click="handleNavigate(item)"
+            >
+              <span class="sidebar-item-copy">
+                <span class="sidebar-item-label">{{ item.label }}</span>
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
       <div class="sidebar-footer">
-        <div v-if="!sidebarCollapsed" class="footer-card">
+        <div class="footer-card">
           <p class="footer-label">当前角色</p>
           <p class="footer-value">{{ authStore.roleText }}</p>
           <p class="footer-note">当前范围 {{ authStore.scopeText }}</p>
-        </div>
-
-        <div v-else class="footer-mini" :title="authStore.roleText">
-          {{ visibleNavItems.length }}
         </div>
       </div>
     </aside>
@@ -195,7 +178,7 @@ function getNavSectionLabel(section: string): string {
 
           <div class="topbar-page">
             <div class="breadcrumb">
-              <span>DriveWeb</span>
+              <span>风控平台</span>
               <span class="breadcrumb-separator">/</span>
               <span>{{ currentSectionLabel }}</span>
               <span class="breadcrumb-separator">/</span>
@@ -204,7 +187,6 @@ function getNavSectionLabel(section: string): string {
 
             <div class="topbar-page-copy">
               <strong>{{ currentPageTitle }}</strong>
-              <span>{{ currentPageSubtitle }}</span>
             </div>
           </div>
 
@@ -248,17 +230,12 @@ function getNavSectionLabel(section: string): string {
 <style scoped>
 .admin-shell {
   --sidebar-width: 256px;
-  --sidebar-collapsed-width: 80px;
   min-height: 100vh;
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   background:
     radial-gradient(circle at top left, rgba(22, 119, 255, 0.08), transparent 320px),
     linear-gradient(180deg, #f5f8ff 0%, var(--page-bg) 220px);
-}
-
-.admin-shell.is-collapsed {
-  grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
 }
 
 .shell-mask {
@@ -287,16 +264,16 @@ function getNavSectionLabel(section: string): string {
 
 .brand-badge {
   display: grid;
-  width: 36px;
-  height: 36px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
   flex-shrink: 0;
   place-items: center;
   border-radius: 10px;
   background: linear-gradient(135deg, #1677ff, #0958d9);
   color: #ffffff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.08em;
   box-shadow: 0 8px 18px rgba(22, 119, 255, 0.22);
 }
 
@@ -307,22 +284,15 @@ function getNavSectionLabel(section: string): string {
   font-weight: 600;
 }
 
-.brand-copy span {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-faint);
-  font-size: 12px;
-}
-
 .sidebar-scroll {
   flex: 1;
   overflow: auto;
-  padding: 12px 12px 18px;
+  padding: 12px;
 }
 
 .sidebar-group {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
@@ -331,26 +301,28 @@ function getNavSectionLabel(section: string): string {
 }
 
 .sidebar-section span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: #f0f5ff;
-  color: #597ef7;
+  display: block;
+  color: var(--text-faint);
   font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.sidebar-submenu {
+  display: grid;
+  gap: 4px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(229, 234, 243, 0.9);
 }
 
 .sidebar-item {
   display: flex;
   width: 100%;
   align-items: center;
-  gap: 12px;
   min-height: 44px;
-  padding: 8px 12px;
-  border: 0;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
   background: transparent;
   cursor: pointer;
   text-align: left;
@@ -364,26 +336,8 @@ function getNavSectionLabel(section: string): string {
 }
 
 .sidebar-item.active {
-  background: #e6f4ff;
-  box-shadow: inset 3px 0 0 var(--brand);
-}
-
-.sidebar-item-badge {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  place-items: center;
-  border-radius: 8px;
-  background: #f0f5ff;
-  color: #1677ff;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.sidebar-item.active .sidebar-item-badge {
-  background: #1677ff;
-  color: #ffffff;
+  border-color: rgba(22, 119, 255, 0.14);
+  background: linear-gradient(180deg, rgba(22, 119, 255, 0.1), rgba(22, 119, 255, 0.06));
 }
 
 .sidebar-item-copy {
@@ -397,23 +351,6 @@ function getNavSectionLabel(section: string): string {
   font-size: 14px;
   font-weight: 500;
   line-height: 1.25;
-}
-
-.admin-shell.is-collapsed .sidebar-brand {
-  justify-content: center;
-  padding-right: 12px;
-  padding-left: 12px;
-}
-
-.admin-shell.is-collapsed .sidebar-item {
-  justify-content: center;
-  padding: 8px 0;
-}
-
-.admin-shell.is-collapsed .sidebar-item-badge {
-  width: 32px;
-  height: 32px;
-  font-size: 14px;
 }
 
 .sidebar-footer {
@@ -445,20 +382,6 @@ function getNavSectionLabel(section: string): string {
   margin: 6px 0 0;
   color: var(--text-soft);
   font-size: 12px;
-}
-
-.footer-mini {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  margin: 0 auto;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #f7faff;
-  color: var(--text-main);
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .shell-main {
@@ -497,7 +420,7 @@ function getNavSectionLabel(section: string): string {
 .topbar-page-copy {
   display: grid;
   min-width: 0;
-  gap: 3px;
+  gap: 2px;
 }
 
 .topbar-page-copy strong {
@@ -510,17 +433,8 @@ function getNavSectionLabel(section: string): string {
   white-space: nowrap;
 }
 
-.topbar-page-copy span {
-  overflow: hidden;
-  color: var(--text-faint);
-  font-size: 13px;
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .menu-toggle {
-  display: grid;
+  display: none;
   width: 36px;
   height: 36px;
   align-content: center;
@@ -669,8 +583,7 @@ function getNavSectionLabel(section: string): string {
 }
 
 @media (max-width: 960px) {
-  .admin-shell,
-  .admin-shell.is-collapsed {
+  .admin-shell {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -710,6 +623,10 @@ function getNavSectionLabel(section: string): string {
 
   .account-copy {
     display: none;
+  }
+
+  .menu-toggle {
+    display: grid;
   }
 }
 

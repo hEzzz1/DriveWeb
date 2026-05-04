@@ -119,11 +119,7 @@ async function handleDisableActivationCode(): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Organization"
-      title="我的企业"
-      subtitle="企业域仅查看本企业资料，激活码也收口到本页，不再复用平台企业列表入口。"
-    >
+    <WorkspacePageHeader title="我的企业">
       <template #actions>
         <el-button :loading="loading" @click="fetchProfile">刷新资料</el-button>
       </template>

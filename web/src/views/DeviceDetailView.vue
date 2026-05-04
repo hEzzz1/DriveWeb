@@ -322,11 +322,7 @@ async function handleUnassignVehicle(): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Device Detail"
-      title="设备详情"
-      subtitle="设备详情页展示当前企业归属、分车状态、端侧 token 轮换时间，并支持编辑、启停和重新分车。"
-    >
+    <WorkspacePageHeader title="设备详情">
       <template #actions>
         <el-button :loading="loading" @click="fetchDetail">刷新</el-button>
         <el-button v-if="detail && access.canManageDevices" @click="openEditDialog">编辑</el-button>

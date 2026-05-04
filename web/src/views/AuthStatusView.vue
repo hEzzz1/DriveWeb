@@ -118,11 +118,7 @@ const overviewItems = computed(() => [
 
 <template>
   <div class="status-page">
-    <WorkspacePageHeader
-      eyebrow="Account"
-      title="账号与安全"
-      subtitle="查看当前登录状态、访问范围和能力概览，不展示令牌、请求头或内部接口信息。"
-    />
+    <WorkspacePageHeader title="账号与安全" />
 
     <el-alert
       v-if="authStore.willExpireSoon"
@@ -227,35 +223,6 @@ const overviewItems = computed(() => [
   animation: reveal 0.45s ease-out;
 }
 
-.page-head {
-  display: flex;
-  justify-content: flex-start;
-  align-items: flex-end;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.eyebrow {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-weight: 700;
-  font-size: 12px;
-  color: #0f755f;
-}
-
-h1 {
-  margin: 10px 0 8px;
-  font-size: 30px;
-  line-height: 1.25;
-  color: #12363f;
-}
-
-.subhead {
-  margin: 0;
-  color: #58737b;
-}
-
 .expire-alert {
   margin-bottom: 20px;
 }
@@ -273,14 +240,14 @@ h1 {
 
 .info-card,
 .role-card {
-  border-radius: 16px;
-  border: 1px solid #d7e5e2;
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel-bg);
 }
 
 .card-title {
   font-weight: 700;
-  color: #184148;
+  color: var(--text-main);
 }
 
 .info-card p {
@@ -289,11 +256,11 @@ h1 {
   grid-template-columns: 100px 1fr;
   align-items: baseline;
   gap: 8px;
-  color: #2c5058;
+  color: var(--text-main);
 }
 
 .info-card p span {
-  color: #6a858c;
+  color: var(--text-faint);
   font-size: 13px;
 }
 
@@ -305,28 +272,28 @@ h1 {
 
 .overview-item {
   padding: 12px;
-  border: 1px solid #e2ecea;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: #f7fbfa;
+  background: var(--panel-bg-soft);
 }
 
 .overview-item span {
   display: block;
-  color: #6a858c;
+  color: var(--text-faint);
   font-size: 12px;
 }
 
 .overview-item strong {
   display: block;
   margin-top: 6px;
-  color: #184148;
+  color: var(--text-main);
   font-size: 18px;
   font-weight: 700;
 }
 
 .safety-note {
   margin-top: 14px;
-  color: #58737b;
+  color: var(--text-soft);
   line-height: 1.6;
 }
 
@@ -341,19 +308,19 @@ h1 {
   gap: 12px;
   align-items: center;
   padding: 10px 12px;
-  border: 1px solid #e2ecea;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: #f7fbfa;
+  background: var(--panel-bg-soft);
 }
 
 .role-item p {
   margin: 0;
-  color: #355a61;
+  color: var(--text-main);
 }
 
 .empty-text {
   margin: 0;
-  color: #5f7b82;
+  color: var(--text-faint);
 }
 
 .membership-list,
@@ -369,8 +336,8 @@ h1 {
   gap: 8px;
   padding: 8px 10px;
   border-radius: 10px;
-  background: #f7fbfa;
-  color: #355a61;
+  background: var(--panel-bg-soft);
+  color: var(--text-main);
 }
 
 @keyframes reveal {
@@ -387,11 +354,6 @@ h1 {
 @media (max-width: 880px) {
   .status-page {
     padding: 24px 18px 28px;
-  }
-
-  .page-head {
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .cards {

@@ -116,7 +116,7 @@ async function fetchData(): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader eyebrow="System" title="系统运维" :subtitle="currentSection.description">
+    <WorkspacePageHeader title="系统运维">
       <template #actions>
         <el-button :loading="loading" type="primary" @click="fetchData">刷新状态</el-button>
       </template>

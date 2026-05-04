@@ -257,11 +257,7 @@ function calculateAverage(items: TrendBucket[], getter: (item: TrendBucket) => n
 
 <template>
   <div class="trend-page">
-    <WorkspacePageHeader
-      eyebrow="Stats"
-      title="趋势分析"
-      subtitle="筛选结果会同步到 URL，刷新后可直接回放当前分析视图。"
-    />
+    <WorkspacePageHeader title="趋势分析" />
 
     <el-card class="panel-card" shadow="never">
       <el-form class="filter-grid" label-position="top">
@@ -418,38 +414,11 @@ function calculateAverage(items: TrendBucket[], getter: (item: TrendBucket) => n
   gap: 16px;
 }
 
-.page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.eyebrow {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-weight: 700;
-  font-size: 12px;
-  color: #0f755f;
-}
-
-h1 {
-  margin: 8px 0 6px;
-  font-size: 30px;
-  line-height: 1.25;
-  color: #12363f;
-}
-
-.subhead {
-  margin: 0;
-  color: #58737b;
-}
-
 .panel-card,
 .metric-card {
-  border-radius: 16px;
-  border: 1px solid #d7e5e2;
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel-bg);
 }
 
 .filter-grid {
@@ -487,14 +456,14 @@ h1 {
   display: block;
   margin-top: 8px;
   font-size: 22px;
-  color: #173d45;
+  color: var(--text-main);
 }
 
 .metric-label,
 .card-title {
   margin: 0;
   font-weight: 700;
-  color: #184148;
+  color: var(--text-main);
 }
 
 .card-head {
@@ -518,13 +487,13 @@ h1 {
 
 .compare-item {
   padding: 14px;
-  border: 1px solid #e1ece9;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: #f8fbfb;
+  background: var(--panel-bg-soft);
 }
 
 .compare-item span {
-  color: #688388;
+  color: var(--text-faint);
   font-size: 13px;
 }
 

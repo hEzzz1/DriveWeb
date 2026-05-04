@@ -1,20 +1,16 @@
 <script setup lang="ts">
 defineProps<{
-  eyebrow?: string
   title: string
-  subtitle?: string
 }>()
 </script>
 
 <template>
   <section class="workspace-page-header">
     <div class="header-main">
-      <p v-if="eyebrow" class="header-eyebrow">{{ eyebrow }}</p>
       <div class="header-title-row">
         <h1>{{ title }}</h1>
         <slot name="meta" />
       </div>
-      <p v-if="subtitle" class="header-subtitle">{{ subtitle }}</p>
     </div>
 
     <div v-if="$slots.actions" class="header-actions">
@@ -42,15 +38,6 @@ defineProps<{
   min-width: 0;
 }
 
-.header-eyebrow {
-  margin: 0 0 10px;
-  color: var(--brand);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
 .header-title-row {
   display: flex;
   align-items: center;
@@ -67,14 +54,6 @@ defineProps<{
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.header-subtitle {
-  max-width: 960px;
-  margin: 10px 0 0;
-  color: var(--text-soft);
-  font-size: 14px;
-  line-height: 1.7;
 }
 
 .header-actions {

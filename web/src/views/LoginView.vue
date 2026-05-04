@@ -10,8 +10,6 @@ interface LoginFormModel {
   password: string
 }
 
-const apiBaseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
-const proxyTarget = import.meta.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8080'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -23,6 +21,7 @@ const formModel = reactive<LoginFormModel>({
   username: '',
   password: '',
 })
+const productModules = ['风险总览', '告警处置', '证据留存', '审计追踪']
 
 const rules: FormRules<LoginFormModel> = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
@@ -89,17 +88,16 @@ async function handleSubmit(): Promise<void> {
 
     <section class="login-shell">
       <aside class="login-intro">
-        <p class="eyebrow">DriveWeb</p>
-        <h1>风控运营管理台</h1>
-        <p class="subtitle">
-          登录后将写入令牌与角色信息，并自动携带访问凭证进入平台或企业工作台。
-        </p>
+        <div class="brand-lockup">
+          <span>风控</span>
+          <strong>风控管理平台</strong>
+        </div>
 
-        <ul class="spec-list">
-          <li>登录接口：<code>POST {{ apiBaseURL }}/auth/login</code></li>
-          <li>统一响应字段：<code>code / message / data / traceId</code></li>
-          <li>支持平台管理员、企业管理员与企业业务角色分域登录</li>
-        </ul>
+        <h1>车辆风险运营工作台</h1>
+
+        <div class="module-grid">
+          <div v-for="item in productModules" :key="item" class="module-card">{{ item }}</div>
+        </div>
       </aside>
 
       <main class="login-card-wrap">
@@ -107,7 +105,6 @@ async function handleSubmit(): Promise<void> {
           <template #header>
             <div class="card-head">
               <h2>账号登录</h2>
-              <span>登录后自动初始化会话</span>
             </div>
           </template>
 
@@ -143,22 +140,12 @@ async function handleSubmit(): Promise<void> {
               type="error"
               :closable="false"
               :title="errorTitle"
-            >
-              <p
-                v-if="loginError.message.includes('无法连接')"
-                class="trace-id"
-              >
-                当前联调目标：{{ apiBaseURL.startsWith('/') ? proxyTarget : apiBaseURL }}
-              </p>
-              <p v-if="loginError.traceId" class="trace-id">traceId: {{ loginError.traceId }}</p>
-            </el-alert>
+            />
 
             <el-button class="submit-btn" type="primary" :loading="loading" @click="handleSubmit">
               {{ loading ? '登录中...' : '立即登录' }}
             </el-button>
           </el-form>
-
-          <p class="hint">联调阶段可使用示例账户：<code>admin / 123456</code></p>
         </el-card>
       </main>
     </section>
@@ -187,7 +174,7 @@ async function handleSubmit(): Promise<void> {
   width: 420px;
   height: 420px;
   border-radius: 35% 65% 65% 35%;
-  background: linear-gradient(130deg, rgba(17, 122, 99, 0.22), rgba(58, 157, 210, 0.08));
+  background: linear-gradient(130deg, rgba(22, 119, 255, 0.18), rgba(22, 119, 255, 0.04));
   top: -70px;
   left: -90px;
 }
@@ -196,7 +183,7 @@ async function handleSubmit(): Promise<void> {
   width: 360px;
   height: 360px;
   border-radius: 50% 40% 60% 45%;
-  background: linear-gradient(120deg, rgba(20, 96, 160, 0.18), rgba(120, 176, 236, 0.1));
+  background: linear-gradient(120deg, rgba(9, 88, 217, 0.16), rgba(105, 177, 255, 0.08));
   bottom: -90px;
   right: -60px;
   animation-delay: 1.6s;
@@ -212,55 +199,60 @@ async function handleSubmit(): Promise<void> {
   border-radius: 24px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(5px);
-  box-shadow: 0 20px 45px rgba(8, 48, 52, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
   animation: reveal 0.5s ease-out;
 }
 
 .login-intro {
   padding: 44px;
-  background: linear-gradient(155deg, #f0fbf6 0%, #eef6ff 75%);
+  background:
+    radial-gradient(circle at top right, rgba(22, 119, 255, 0.12), transparent 38%),
+    linear-gradient(155deg, #f8fbff 0%, #eef4ff 76%);
 }
 
-.eyebrow {
-  margin: 0;
-  font-weight: 700;
-  color: #0d765c;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.brand-lockup {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.brand-lockup span {
+  color: var(--brand);
   font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.brand-lockup strong {
+  color: var(--text-main);
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .login-intro h1 {
-  margin: 14px 0 12px;
-  font-size: 34px;
-  line-height: 1.25;
-  color: #10343d;
-}
-
-.subtitle {
   margin: 0;
-  font-size: 15px;
-  color: #40616b;
-  line-height: 1.65;
+  font-size: 38px;
+  line-height: 1.25;
+  color: var(--text-main);
 }
 
-.subtitle code,
-.spec-list code,
-.hint code {
-  background: rgba(11, 98, 83, 0.08);
-  color: #0f5f4d;
-  border-radius: 8px;
-  padding: 2px 8px;
-  font-size: 13px;
-}
-
-.spec-list {
-  margin: 28px 0 0;
-  padding-left: 18px;
-  color: #2f535c;
+.module-grid {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.module-card {
+  padding: 16px 18px;
+  border: 1px solid rgba(22, 119, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
 }
 
 .login-card-wrap {
@@ -272,25 +264,20 @@ async function handleSubmit(): Promise<void> {
 
 .login-card {
   width: min(440px, 100%);
-  border-radius: 18px;
-  border: 1px solid #d7e5e2;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
 }
 
 .card-head {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .card-head h2 {
   margin: 0;
-  color: #0f3840;
-}
-
-.card-head span {
-  color: #648086;
-  font-size: 13px;
+  color: var(--text-main);
 }
 
 .submit-btn {
@@ -302,18 +289,6 @@ async function handleSubmit(): Promise<void> {
 
 .error-alert {
   margin-bottom: 14px;
-}
-
-.trace-id {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: #7f302f;
-}
-
-.hint {
-  margin: 14px 2px 0;
-  font-size: 13px;
-  color: #607f87;
 }
 
 @keyframes reveal {
@@ -354,8 +329,19 @@ async function handleSubmit(): Promise<void> {
     font-size: 28px;
   }
 
+  .module-grid {
+    grid-template-columns: 1fr;
+  }
+
   .login-card-wrap {
     padding: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura,
+  .login-shell {
+    animation: none;
   }
 }
 </style>

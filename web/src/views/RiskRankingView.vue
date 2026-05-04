@@ -232,11 +232,7 @@ function dimensionDisplay(item: RankingItem): string {
 
 <template>
   <div class="ranking-page">
-    <WorkspacePageHeader
-      eyebrow="Stats"
-      title="风险排行"
-      subtitle="支持车队、车辆、司机、规则维度排行，并可跳回告警列表形成闭环。"
-    />
+    <WorkspacePageHeader title="风险排行" />
 
     <el-card class="panel-card" shadow="never">
       <el-form class="filter-grid" label-position="top">
@@ -379,38 +375,11 @@ function dimensionDisplay(item: RankingItem): string {
   gap: 16px;
 }
 
-.page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.eyebrow {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-weight: 700;
-  font-size: 12px;
-  color: #0f755f;
-}
-
-h1 {
-  margin: 8px 0 6px;
-  font-size: 30px;
-  line-height: 1.25;
-  color: #12363f;
-}
-
-.subhead {
-  margin: 0;
-  color: #58737b;
-}
-
 .panel-card,
 .metric-card {
-  border-radius: 16px;
-  border: 1px solid #d7e5e2;
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel-bg);
 }
 
 .filter-grid {
@@ -447,14 +416,14 @@ h1 {
 .card-title {
   margin: 0;
   font-weight: 700;
-  color: #184148;
+  color: var(--text-main);
 }
 
 .metric-card strong {
   display: block;
   margin-top: 8px;
   font-size: 24px;
-  color: #173d45;
+  color: var(--text-main);
 }
 
 .inline-alert {

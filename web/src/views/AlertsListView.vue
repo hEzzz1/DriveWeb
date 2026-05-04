@@ -382,11 +382,7 @@ function hasEvidence(row: AlertSummary): boolean {
 
 <template>
   <div class="alerts-page">
-    <WorkspacePageHeader
-      eyebrow="Alerts"
-      title="告警中心"
-      subtitle="支持按车队、车辆、司机、等级、状态与时间范围进行筛选查询。"
-    />
+    <WorkspacePageHeader title="告警中心" />
 
     <el-card class="panel-card" shadow="never">
       <el-form class="filter-grid" label-position="top">
@@ -589,20 +585,6 @@ function hasEvidence(row: AlertSummary): boolean {
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: bottom;
-}
-
-.page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-h1 {
-  color: var(--text-main);
-}
-
-.subhead {
-  color: var(--text-faint);
 }
 
 .panel-card {

@@ -128,11 +128,7 @@ async function handleSizeChange(size: number): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Audit"
-      title="审计日志"
-      subtitle="平台域审计只展示平台侧治理和系统操作记录，不承接企业业务原始明细。"
-    />
+    <WorkspacePageHeader title="审计日志" />
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

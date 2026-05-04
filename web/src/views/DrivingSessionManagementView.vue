@@ -148,11 +148,7 @@ async function handleForceSignOut(row?: SessionSummary): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Sessions"
-      title="驾驶会话管理"
-      subtitle="展示设备、车辆、司机、企业、车队、开始结束时间、最近心跳，并支持强制签退活跃会话。"
-    />
+    <WorkspacePageHeader title="驾驶会话管理" />
 
     <div class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

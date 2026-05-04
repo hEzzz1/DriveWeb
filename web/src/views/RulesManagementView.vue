@@ -268,11 +268,7 @@ async function handleSizeChange(size: number): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Rules"
-      title="规则管理"
-      subtitle="统一管理规则筛选、参数编辑、启停、发布与版本回滚。"
-    />
+    <WorkspacePageHeader title="规则管理" />
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">

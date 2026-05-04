@@ -255,11 +255,7 @@ function subjectText(item: OverviewLatestAlertItem): string {
 
 <template>
   <div class="overview-page">
-    <WorkspacePageHeader
-      eyebrow="Overview"
-      title="风险总览"
-      subtitle="聚合最近 5 分钟态势、最新告警与风险分布。"
-    >
+    <WorkspacePageHeader title="风险总览">
       <template #actions>
         <div class="head-meta">
           <el-tag effect="plain" :type="realtimeStatusTagType">{{ realtimeStatusText }}</el-tag>
@@ -397,7 +393,6 @@ function subjectText(item: OverviewLatestAlertItem): string {
   gap: 16px;
 }
 
-.page-head,
 .head-meta,
 .kpi-grid,
 .content-grid,
@@ -406,23 +401,10 @@ function subjectText(item: OverviewLatestAlertItem): string {
   gap: 16px;
 }
 
-.page-head {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-}
-
 .head-meta {
   justify-items: end;
   color: var(--text-faint);
   font-size: 12px;
-}
-
-h1 {
-  color: var(--text-main);
-}
-
-.subhead {
-  color: var(--text-faint);
 }
 
 .kpi-grid {
@@ -543,7 +525,6 @@ h1 {
 }
 
 @media (max-width: 760px) {
-  .page-head,
   .content-grid,
   .health-grid,
   .kpi-grid {

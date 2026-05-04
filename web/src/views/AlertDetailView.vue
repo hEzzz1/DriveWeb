@@ -671,11 +671,7 @@ function downloadUrl(url: string, filename: string): void {
 
 <template>
   <div class="detail-page">
-    <WorkspacePageHeader
-      eyebrow="Alert Detail"
-      title="告警详情"
-      subtitle="查看单条告警上下文、风险指标与处置轨迹。"
-    >
+    <WorkspacePageHeader title="告警详情">
       <template #actions>
         <el-button @click="handleBack">返回列表</el-button>
         <el-button :loading="loading" @click="fetchDetail">刷新</el-button>
@@ -952,21 +948,6 @@ function downloadUrl(url: string, filename: string): void {
   gap: 16px;
 }
 
-.page-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-}
-
-h1 {
-  color: var(--text-main);
-}
-
-.subhead {
-  color: var(--text-faint);
-}
-
 .head-actions {
   display: flex;
   gap: 10px;
@@ -1187,11 +1168,6 @@ h1 {
 }
 
 @media (max-width: 760px) {
-  .page-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .action-buttons {
     flex-direction: column;
   }

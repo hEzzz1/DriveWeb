@@ -325,11 +325,7 @@ function handleSelectionChange(rows: EnterpriseSummary[]): void {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Enterprises"
-      title="企业管理"
-      subtitle="把待启用处理、企业录入和状态维护收敛到一个连续工作台，减少来回切换和重复筛选。"
-    >
+    <WorkspacePageHeader title="企业管理">
       <template #actions>
         <el-button v-if="access.canManageEnterprises" type="primary" @click="createVisible = true">新建企业</el-button>
       </template>

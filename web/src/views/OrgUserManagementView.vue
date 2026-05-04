@@ -305,11 +305,7 @@ async function handleOpenAuditDetail(row: AuditSummary): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader
-      eyebrow="Organization"
-      title="普通用户"
-      subtitle="企业域只管理本企业普通用户，不承接平台账号和企业管理员。可分配角色限定为 ORG_OPERATOR、ORG_ANALYST、ORG_VIEWER。"
-    />
+    <WorkspacePageHeader title="普通用户" />
 
     <section class="stats-grid">
       <el-card v-for="item in summaryItems" :key="item.label" class="metric-card" shadow="never">
