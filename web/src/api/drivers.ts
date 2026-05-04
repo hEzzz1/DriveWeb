@@ -18,7 +18,7 @@ function normalizeDriver(item: DriverApiItem): DriverDetail {
   return {
     id: item.id,
     enterpriseId: item.enterpriseId,
-    fleetId: item.fleetId,
+    fleetId: item.fleetId ?? null,
     driverCode: item.driverCode || undefined,
     name: item.name,
     phone: item.phone || undefined,
@@ -87,6 +87,13 @@ export function reassignDriverFleet(
     url: `/org/drivers/${id}/fleet`,
     method: 'PUT',
     data: payload,
+  }).then(normalizeDriver)
+}
+
+export function unassignDriverFleet(id: number | string): Promise<DriverDetail> {
+  return request<DriverApiItem>({
+    url: `/org/drivers/${id}/fleet`,
+    method: 'DELETE',
   }).then(normalizeDriver)
 }
 

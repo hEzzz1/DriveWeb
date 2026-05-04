@@ -1,5 +1,7 @@
 import type {
   SystemServicesResponse,
+  SystemErrorTraceItem,
+  SystemErrorTracePage,
   SystemHealthSnapshot,
   SystemMonitoringSnapshot,
   SystemSummarySnapshot,
@@ -39,5 +41,24 @@ export function getSystemSummary(): Promise<SystemSummarySnapshot> {
   return request<SystemSummarySnapshot>({
     method: 'GET',
     url: '/platform/system/summary',
+  })
+}
+
+export function getSystemErrorTraces(params?: {
+  traceId?: string
+  page?: number
+  size?: number
+}): Promise<SystemErrorTracePage> {
+  return request<SystemErrorTracePage>({
+    method: 'GET',
+    url: '/platform/system/diagnostics/errors',
+    params,
+  })
+}
+
+export function getSystemErrorTrace(traceId: string): Promise<SystemErrorTraceItem> {
+  return request<SystemErrorTraceItem>({
+    method: 'GET',
+    url: `/platform/system/diagnostics/errors/${encodeURIComponent(traceId)}`,
   })
 }

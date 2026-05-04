@@ -13,6 +13,7 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
   edit: []
   reassign: []
+  unassign: []
   resetPin: []
   toggleStatus: []
 }>()
@@ -36,7 +37,7 @@ const emit = defineEmits<{
             <el-descriptions-item label="手机号">{{ detail.phone || '-' }}</el-descriptions-item>
             <el-descriptions-item label="驾驶证号">{{ detail.licenseNo || '-' }}</el-descriptions-item>
             <el-descriptions-item label="所属企业">{{ detail.enterpriseName || detail.enterpriseId }}</el-descriptions-item>
-            <el-descriptions-item label="所属车队">{{ detail.fleetName || detail.fleetId }}</el-descriptions-item>
+            <el-descriptions-item label="所属车队">{{ detail.fleetName || detail.fleetId || '未分配' }}</el-descriptions-item>
             <el-descriptions-item label="活跃会话">
               {{ detail.hasActiveSession ? `进行中${detail.activeSessionId ? ` #${detail.activeSessionId}` : ''}` : '无' }}
             </el-descriptions-item>
@@ -48,6 +49,7 @@ const emit = defineEmits<{
           <div v-if="canManage" class="action-row">
             <el-button @click="emit('edit')">编辑资料</el-button>
             <el-button type="primary" plain @click="emit('reassign')">调整车队</el-button>
+            <el-button v-if="detail.fleetId && !detail.hasActiveSession" type="warning" plain @click="emit('unassign')">移出车队</el-button>
             <el-button plain @click="emit('resetPin')">重置签到码</el-button>
             <el-button :type="detail.enabled ? 'warning' : 'success'" plain @click="emit('toggleStatus')">
               {{ detail.enabled ? '禁用驾驶员' : '启用驾驶员' }}

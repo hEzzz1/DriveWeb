@@ -12,7 +12,7 @@ export interface DriverSummary {
   id: number
   enterpriseId: number
   enterpriseName?: string
-  fleetId: number
+  fleetId?: number | null
   fleetName?: string
   driverCode?: string
   name: string
@@ -33,7 +33,7 @@ export type DriverListData = PageResult<DriverSummary>
 
 export interface CreateDriverPayload {
   enterpriseId: number
-  fleetId: number
+  fleetId?: number | null
   driverCode?: string
   name: string
   phone?: string
@@ -64,7 +64,7 @@ export interface ResetDriverPinPayload {
 export interface DriverApiItem {
   id: number
   enterpriseId: number
-  fleetId: number
+  fleetId?: number | null
   driverCode?: string | null
   name: string
   phone?: string | null

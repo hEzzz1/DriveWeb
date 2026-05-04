@@ -10,7 +10,7 @@ import DriverEditDialog from '../components/drivers/DriverEditDialog.vue'
 import DriverListTable from '../components/drivers/DriverListTable.vue'
 import DriverReassignFleetDialog from '../components/drivers/DriverReassignFleetDialog.vue'
 import { getEnterpriseList } from '../api/enterprises'
-import { createDriver, getDriverDetail, getDriverList, reassignDriverFleet, resetDriverPin, updateDriver, updateDriverStatus } from '../api/drivers'
+import { createDriver, getDriverDetail, getDriverList, reassignDriverFleet, resetDriverPin, unassignDriverFleet, updateDriver, updateDriverStatus } from '../api/drivers'
 import { getFleetList } from '../api/fleets'
 import { getSessionList } from '../api/sessions'
 import { useAccess } from '../composables/useAccess'
@@ -35,6 +35,7 @@ const createSaving = ref(false)
 const editSaving = ref(false)
 const statusSaving = ref(false)
 const reassignSaving = ref(false)
+const unassignSaving = ref(false)
 const errorText = ref('')
 
 const items = ref<DriverSummary[]>([])
@@ -177,7 +178,7 @@ function enrichDriver(item: DriverDetail): DriverDetail {
   return {
     ...item,
     enterpriseName: enterpriseMap.value.get(item.enterpriseId)?.name || item.enterpriseName,
-    fleetName: fleetMap.value.get(item.fleetId)?.name || item.fleetName,
+    fleetName: item.fleetId ? fleetMap.value.get(item.fleetId)?.name || item.fleetName : '未分配',
     hasActiveSession: Boolean(activeSession),
     activeSessionId: activeSession?.sessionId,
   }
@@ -292,6 +293,35 @@ async function handleReassignFleet(payload: Parameters<typeof reassignDriverFlee
   }
 }
 
+async function handleUnassignFleet(row?: DriverSummary): Promise<void> {
+  const target = row ? enrichDriver(await getDriverDetail(row.id)) : activeDetail.value
+  if (!target || !target.fleetId) {
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确认将驾驶员「${target.name}」移出当前车队吗？移出后不能在边缘端签到。`, '移出车队', {
+      type: 'warning',
+      confirmButtonText: '确认移出',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+
+  unassignSaving.value = true
+
+  try {
+    const detail = enrichDriver(await unassignDriverFleet(target.id))
+    activeDetail.value = activeDetail.value?.id === detail.id ? detail : activeDetail.value
+    syncTableRow(detail)
+    await fetchActiveSessions()
+    ElMessage.success('驾驶员已移出车队')
+  } finally {
+    unassignSaving.value = false
+  }
+}
+
 async function handleResetPin(row?: DriverSummary): Promise<void> {
   const target = row ? enrichDriver(await getDriverDetail(row.id)) : activeDetail.value
   if (!target) {
@@ -376,6 +406,7 @@ function syncTableRow(detail: DriverDetail): void {
         @detail="openDetail"
         @edit="(row) => { openDetail(row); editVisible = true }"
         @reassign="(row) => { openDetail(row); reassignVisible = true }"
+        @unassign="handleUnassignFleet"
         @reset-pin="handleResetPin"
         @toggle-status="handleToggleStatus"
         @page-change="(page) => { currentPage = page; fetchList() }"
@@ -411,10 +442,11 @@ function syncTableRow(detail: DriverDetail): void {
     <DriverDetailDrawer
       v-model:visible="detailVisible"
       :detail="activeDetail"
-      :loading="detailLoading || statusSaving"
+      :loading="detailLoading || statusSaving || unassignSaving"
       :can-manage="access.canManageDrivers"
       @edit="editVisible = true"
       @reassign="reassignVisible = true"
+      @unassign="handleUnassignFleet()"
       @reset-pin="handleResetPin()"
       @toggle-status="handleToggleStatus()"
     />

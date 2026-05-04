@@ -41,6 +41,30 @@ export interface SystemSummarySnapshot {
   monitoring: SystemMonitoringSnapshot
 }
 
+export interface SystemErrorTraceItem {
+  id: number
+  traceId: string
+  occurredAt: string
+  method?: string | null
+  requestPath?: string | null
+  queryString?: string | null
+  httpStatus: number
+  code: number
+  message: string
+  exceptionClass?: string | null
+  summary?: string | null
+  operatorId?: number | null
+  ip?: string | null
+  userAgent?: string | null
+}
+
+export interface SystemErrorTracePage {
+  total: number
+  page: number
+  size: number
+  items: SystemErrorTraceItem[]
+}
+
 export const healthLevelLabelMap: Record<string, string> = {
   UP: '正常',
   DOWN: '异常',

@@ -21,7 +21,7 @@ const emit = defineEmits<{
 const formRef = ref<FormInstance>()
 const form = reactive<CreateDriverPayload>({
   enterpriseId: 0,
-  fleetId: 0,
+  fleetId: null,
   driverCode: '',
   name: '',
   phone: '',
@@ -31,7 +31,6 @@ const form = reactive<CreateDriverPayload>({
 
 const rules: FormRules = {
   enterpriseId: [{ required: true, message: '请选择所属企业', trigger: 'change' }],
-  fleetId: [{ required: true, message: '请选择所属车队', trigger: 'change' }],
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
 }
 
@@ -45,7 +44,7 @@ watch(
     }
 
     form.enterpriseId = props.defaultEnterpriseId || 0
-    form.fleetId = 0
+    form.fleetId = null
     form.driverCode = ''
     form.name = ''
     form.phone = ''
@@ -58,8 +57,8 @@ watch(
 watch(
   () => form.enterpriseId,
   () => {
-    if (!fleetOptions.value.some((item) => item.id === Number(form.fleetId))) {
-      form.fleetId = 0
+    if (form.fleetId && !fleetOptions.value.some((item) => item.id === Number(form.fleetId))) {
+      form.fleetId = null
     }
   },
 )
@@ -77,7 +76,7 @@ async function handleSave(): Promise<void> {
 
   emit('save', {
     enterpriseId: Number(form.enterpriseId),
-    fleetId: Number(form.fleetId),
+    fleetId: form.fleetId ? Number(form.fleetId) : undefined,
     driverCode: form.driverCode?.trim() || undefined,
     name: form.name.trim(),
     phone: form.phone?.trim() || undefined,
@@ -97,7 +96,7 @@ async function handleSave(): Promise<void> {
         <el-input v-else :model-value="String(defaultEnterpriseId || '-')" disabled />
       </el-form-item>
       <el-form-item label="所属车队" prop="fleetId">
-        <el-select v-model="form.fleetId" class="full-width" filterable placeholder="请选择车队">
+        <el-select v-model="form.fleetId" class="full-width" clearable filterable placeholder="可选，未选择时为未分配">
           <el-option v-for="item in fleetOptions" :key="item.id" :label="item.name" :value="item.id" />
         </el-select>
       </el-form-item>

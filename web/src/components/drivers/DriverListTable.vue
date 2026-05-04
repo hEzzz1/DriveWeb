@@ -16,6 +16,7 @@ const emit = defineEmits<{
   edit: [row: DriverSummary]
   toggleStatus: [row: DriverSummary]
   reassign: [row: DriverSummary]
+  unassign: [row: DriverSummary]
   resetPin: [row: DriverSummary]
   'page-change': [page: number]
   'size-change': [size: number]
@@ -49,7 +50,7 @@ const emit = defineEmits<{
       </el-table-column>
       <el-table-column prop="fleetName" label="所属车队" min-width="160">
         <template #default="{ row }">
-          {{ row.fleetName || row.fleetId }}
+          {{ row.fleetName || row.fleetId || '未分配' }}
         </template>
       </el-table-column>
       <el-table-column label="状态" width="100">
@@ -76,6 +77,7 @@ const emit = defineEmits<{
           <el-button link type="primary" @click="emit('detail', row)">详情</el-button>
           <el-button v-if="canManage" link @click="emit('edit', row)">编辑</el-button>
           <el-button v-if="canManage" link @click="emit('reassign', row)">调整车队</el-button>
+          <el-button v-if="canManage && row.fleetId && !row.hasActiveSession" link type="warning" @click="emit('unassign', row)">移出车队</el-button>
           <el-button v-if="canManage" link @click="emit('resetPin', row)">重置签到码</el-button>
           <el-button v-if="canManage" link :type="row.enabled ? 'warning' : 'success'" @click="emit('toggleStatus', row)">
             {{ row.enabled ? '禁用' : '启用' }}

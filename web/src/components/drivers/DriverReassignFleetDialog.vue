@@ -36,7 +36,7 @@ watch(
       return
     }
 
-    form.fleetId = driver.fleetId
+    form.fleetId = driver.fleetId || 0
     formRef.value?.clearValidate()
   },
   { immediate: true },

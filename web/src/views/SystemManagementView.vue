@@ -10,6 +10,8 @@ import SystemHealthCard from '../components/system/SystemHealthCard.vue'
 import VersionInfoCard from '../components/system/VersionInfoCard.vue'
 import {
   getServiceStatus,
+  getSystemErrorTrace,
+  getSystemErrorTraces,
   getSystemHealth,
   getSystemMonitoring,
   getSystemSummary,
@@ -17,6 +19,7 @@ import {
 } from '../api/system'
 import type {
   ServiceStatusItem,
+  SystemErrorTraceItem,
   SystemHealthSnapshot,
   SystemMonitoringSnapshot,
   SystemSummarySnapshot,
@@ -34,6 +37,12 @@ const monitoring = ref<SystemMonitoringSnapshot | null>(null)
 const version = ref<VersionInfoItem | null>(null)
 const summary = ref<SystemSummarySnapshot | null>(null)
 const errorTraceRecords = ref<ErrorTraceRecord[]>([])
+const serverErrorRecords = ref<SystemErrorTraceItem[]>([])
+const serverErrorDetail = ref<SystemErrorTraceItem | null>(null)
+const diagnosticsTraceId = ref('')
+const diagnosticsPage = ref(1)
+const diagnosticsSize = ref(10)
+const diagnosticsTotal = ref(0)
 
 const summaryItems = computed(() => [
   { label: '服务数量', value: services.value.length },
@@ -86,13 +95,20 @@ function handleClearTraceRecords(): void {
 async function fetchData(): Promise<void> {
   loading.value = true
 
-  const [summaryResult, healthResult, servicesResult, monitoringResult, versionResult] =
+  const [summaryResult, healthResult, servicesResult, monitoringResult, versionResult, diagnosticsResult] =
     await Promise.allSettled([
       getSystemSummary(),
       getSystemHealth(),
       getServiceStatus(),
       getSystemMonitoring(),
       getVersionInfo(),
+      route.name === 'system-diagnostics'
+        ? getSystemErrorTraces({
+            page: diagnosticsPage.value,
+            size: diagnosticsSize.value,
+            traceId: diagnosticsTraceId.value.trim() || undefined,
+          })
+        : Promise.resolve(null),
     ])
 
   summary.value = summaryResult.status === 'fulfilled' ? summaryResult.value : null
@@ -130,7 +146,51 @@ async function fetchData(): Promise<void> {
       ? '系统运维数据加载失败'
       : ''
 
+  if (diagnosticsResult.status === 'fulfilled' && diagnosticsResult.value) {
+    serverErrorRecords.value = diagnosticsResult.value.items || []
+    diagnosticsTotal.value = diagnosticsResult.value.total || 0
+    diagnosticsPage.value = diagnosticsResult.value.page || diagnosticsPage.value
+    diagnosticsSize.value = diagnosticsResult.value.size || diagnosticsSize.value
+  } else if (route.name === 'system-diagnostics') {
+    serverErrorRecords.value = []
+    diagnosticsTotal.value = 0
+  }
+
   loading.value = false
+}
+
+async function handleTraceSearch(): Promise<void> {
+  diagnosticsPage.value = 1
+  serverErrorDetail.value = null
+  await fetchData()
+
+  const traceId = diagnosticsTraceId.value.trim()
+  if (!traceId) {
+    return
+  }
+
+  try {
+    serverErrorDetail.value = await getSystemErrorTrace(traceId)
+  } catch {
+    serverErrorDetail.value = null
+  }
+}
+
+function resetTraceSearch(): void {
+  diagnosticsTraceId.value = ''
+  diagnosticsPage.value = 1
+  serverErrorDetail.value = null
+  fetchData()
+}
+
+function handleDiagnosticsPageChange(page: number): void {
+  diagnosticsPage.value = page
+  fetchData()
+}
+
+function formatRequestPath(row: SystemErrorTraceItem): string {
+  const query = row.queryString ? `?${row.queryString}` : ''
+  return `${row.method || '-'} ${row.requestPath || '-'}${query}`
 }
 </script>
 
@@ -138,7 +198,7 @@ async function fetchData(): Promise<void> {
   <div class="page-shell">
     <WorkspacePageHeader :title="currentSection.title">
       <template #actions>
-        <el-button v-if="route.name === 'system-diagnostics'" plain @click="handleClearTraceRecords">清空记录</el-button>
+        <el-button v-if="route.name === 'system-diagnostics'" plain @click="handleClearTraceRecords">清空浏览器记录</el-button>
         <el-button :loading="loading" type="primary" @click="fetchData">刷新状态</el-button>
       </template>
     </WorkspacePageHeader>
@@ -175,10 +235,64 @@ async function fetchData(): Promise<void> {
 
     <PageSectionCard
       v-if="route.name === 'system-diagnostics'"
-      title="最近接口异常"
-      description="平台会保留最近 50 条接口异常，复制追踪编号后可在服务日志中精确定位。"
+      title="最近服务端异常"
+      description="后端会保留最近接口异常，可通过追踪编号查看错误摘要。"
     >
-      <el-empty v-if="errorTraceRecords.length === 0" description="暂无接口异常记录" />
+      <div class="diagnostics-toolbar">
+        <el-input v-model="diagnosticsTraceId" clearable placeholder="输入追踪编号" />
+        <el-button type="primary" :loading="loading" @click="handleTraceSearch">查询</el-button>
+        <el-button @click="resetTraceSearch">重置</el-button>
+      </div>
+
+      <el-descriptions v-if="serverErrorDetail" class="diagnostic-detail" :column="2" border>
+        <el-descriptions-item label="追踪编号">{{ serverErrorDetail.traceId }}</el-descriptions-item>
+        <el-descriptions-item label="发生时间">{{ formatDateTime(serverErrorDetail.occurredAt) }}</el-descriptions-item>
+        <el-descriptions-item label="请求">{{ formatRequestPath(serverErrorDetail) }}</el-descriptions-item>
+        <el-descriptions-item label="状态码">{{ serverErrorDetail.httpStatus }}</el-descriptions-item>
+        <el-descriptions-item label="业务码">{{ serverErrorDetail.code }}</el-descriptions-item>
+        <el-descriptions-item label="异常类型">{{ serverErrorDetail.exceptionClass || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="错误提示" :span="2">{{ serverErrorDetail.message }}</el-descriptions-item>
+        <el-descriptions-item label="错误摘要" :span="2">{{ serverErrorDetail.summary || '-' }}</el-descriptions-item>
+      </el-descriptions>
+
+      <el-empty v-if="serverErrorRecords.length === 0" description="暂无服务端异常记录" />
+      <el-table v-else :data="serverErrorRecords" stripe>
+        <el-table-column label="发生时间" min-width="170">
+          <template #default="{ row }">{{ formatDateTime(row.occurredAt) }}</template>
+        </el-table-column>
+        <el-table-column prop="message" label="错误提示" min-width="220" />
+        <el-table-column label="请求" min-width="240">
+          <template #default="{ row }">{{ formatRequestPath(row) }}</template>
+        </el-table-column>
+        <el-table-column prop="httpStatus" label="状态码" width="100" />
+        <el-table-column prop="code" label="业务码" width="110" />
+        <el-table-column prop="exceptionClass" label="异常类型" min-width="220" />
+        <el-table-column label="追踪编号" min-width="240">
+          <template #default="{ row }">
+            <el-tag effect="plain">{{ row.traceId }}</el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div v-if="diagnosticsTotal > diagnosticsSize" class="pager">
+        <span>共 {{ diagnosticsTotal }} 条</span>
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total="diagnosticsTotal"
+          :current-page="diagnosticsPage"
+          :page-size="diagnosticsSize"
+          @current-change="handleDiagnosticsPageChange"
+        />
+      </div>
+    </PageSectionCard>
+
+    <PageSectionCard
+      v-if="route.name === 'system-diagnostics'"
+      title="浏览器侧接口记录"
+      description="仅展示当前浏览器捕获到的接口异常，用于辅助核对服务端追踪编号。"
+    >
+      <el-empty v-if="errorTraceRecords.length === 0" description="暂无浏览器侧异常记录" />
       <el-table v-else :data="errorTraceRecords" stripe>
         <el-table-column label="发生时间" min-width="170">
           <template #default="{ row }">{{ formatDateTime(row.occurredAt) }}</template>
@@ -219,8 +333,31 @@ async function fetchData(): Promise<void> {
   gap: 16px;
 }
 
+.diagnostics-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) auto auto;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.diagnostic-detail {
+  margin-bottom: 14px;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
 @media (max-width: 900px) {
   .status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .diagnostics-toolbar {
     grid-template-columns: 1fr;
   }
 }
