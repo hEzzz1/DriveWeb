@@ -825,23 +825,29 @@ function downloadUrl(url: string, filename: string): void {
                 size="small"
               />
               <el-button
+                class="evidence-action-button"
                 size="small"
                 plain
-                :icon="RefreshRight"
                 :loading="evidenceLoading"
                 @click="retryLoadEvidence"
               >
-                重试
+                <span class="evidence-action-button-content">
+                  <el-icon v-if="!evidenceLoading"><RefreshRight /></el-icon>
+                  <span>重试</span>
+                </span>
               </el-button>
               <el-button
+                class="evidence-action-button"
                 size="small"
                 type="primary"
                 plain
-                :icon="Download"
                 :loading="evidenceDownloadLoading"
                 @click="downloadEvidence"
               >
-                下载
+                <span class="evidence-action-button-content">
+                  <el-icon v-if="!evidenceDownloadLoading"><Download /></el-icon>
+                  <span>下载</span>
+                </span>
               </el-button>
             </div>
           </div>
@@ -853,11 +859,23 @@ function downloadUrl(url: string, filename: string): void {
             <div v-else-if="evidenceLoadError" class="evidence-placeholder evidence-error">
               <p>{{ evidenceLoadError }}</p>
               <div class="evidence-placeholder-actions">
-                <el-button size="small" type="primary" plain :icon="RefreshRight" @click="retryLoadEvidence">
-                  重试加载
+                <el-button class="evidence-action-button" size="small" type="primary" plain @click="retryLoadEvidence">
+                  <span class="evidence-action-button-content">
+                    <el-icon><RefreshRight /></el-icon>
+                    <span>重试加载</span>
+                  </span>
                 </el-button>
-                <el-button size="small" plain :icon="Download" :loading="evidenceDownloadLoading" @click="downloadEvidence">
-                  下载原文件
+                <el-button
+                  class="evidence-action-button"
+                  size="small"
+                  plain
+                  :loading="evidenceDownloadLoading"
+                  @click="downloadEvidence"
+                >
+                  <span class="evidence-action-button-content">
+                    <el-icon v-if="!evidenceDownloadLoading"><Download /></el-icon>
+                    <span>下载原文件</span>
+                  </span>
                 </el-button>
               </div>
             </div>
@@ -905,8 +923,18 @@ function downloadUrl(url: string, filename: string): void {
               <p>原始证据文件</p>
               <div class="evidence-placeholder-actions">
                 <a v-if="evidenceSourceUrl" :href="evidenceSourceUrl" target="_blank" rel="noreferrer">打开</a>
-                <el-button size="small" type="primary" plain :icon="Download" :loading="evidenceDownloadLoading" @click="downloadEvidence">
-                  下载
+                <el-button
+                  class="evidence-action-button"
+                  size="small"
+                  type="primary"
+                  plain
+                  :loading="evidenceDownloadLoading"
+                  @click="downloadEvidence"
+                >
+                  <span class="evidence-action-button-content">
+                    <el-icon v-if="!evidenceDownloadLoading"><Download /></el-icon>
+                    <span>下载</span>
+                  </span>
                 </el-button>
               </div>
             </div>
@@ -1046,6 +1074,18 @@ function downloadUrl(url: string, filename: string): void {
   gap: 8px;
 }
 
+.evidence-action-button {
+  flex-shrink: 0;
+  min-width: 72px;
+}
+
+.evidence-action-button-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
 .action-panel {
   display: grid;
   gap: 14px;
@@ -1058,9 +1098,15 @@ function downloadUrl(url: string, filename: string): void {
 }
 
 .action-buttons {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 150px));
+  justify-content: start;
   gap: 10px;
+}
+
+.action-buttons :deep(.el-button) {
+  width: 100%;
+  margin-left: 0;
 }
 
 .metrics-grid {

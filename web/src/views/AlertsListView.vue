@@ -483,6 +483,7 @@ function hasEvidence(row: AlertSummary): boolean {
       <el-table
         v-loading="loading"
         class="alert-table"
+        :class="{ 'is-alert-table-empty': !loading && tableData.length === 0 }"
         :data="tableData"
         row-key="id"
         empty-text="暂无告警数据"
@@ -534,6 +535,7 @@ function hasEvidence(row: AlertSummary): boolean {
               <el-button
                 v-for="action in getRowActions(row)"
                 :key="action"
+                class="row-action-button"
                 link
                 :type="action === 'CONFIRM' ? 'primary' : action === 'FALSE_POSITIVE' ? 'warning' : 'info'"
                 @click.stop="handleOpenAction(row, action)"
@@ -546,7 +548,7 @@ function hasEvidence(row: AlertSummary): boolean {
         </el-table-column>
       </el-table>
 
-      <div class="pager-wrap">
+      <div v-if="total > 0" class="pager-wrap">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -638,14 +640,33 @@ function hasEvidence(row: AlertSummary): boolean {
   width: 100%;
 }
 
+.alert-table.is-alert-table-empty :deep(.el-table__empty-block) {
+  min-height: 104px;
+  height: 104px;
+}
+
+.alert-table.is-alert-table-empty :deep(.el-table__empty-text) {
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
 .alert-table :deep(.el-table__row) {
   cursor: pointer;
 }
 
 .row-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px 10px;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0 12px;
+}
+
+.row-action-button {
+  white-space: nowrap;
+}
+
+.row-action-button + .row-action-button {
+  margin-left: 0;
 }
 
 .row-action-empty {
@@ -687,6 +708,7 @@ function hasEvidence(row: AlertSummary): boolean {
   }
 
   .row-actions {
+    flex-wrap: wrap;
     gap: 0 8px;
   }
 }
