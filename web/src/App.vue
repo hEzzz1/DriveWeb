@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   canAccessWorkspaceDefinition,
@@ -28,6 +28,7 @@ authStore.hydrate()
 const access = useAccess()
 
 const mobileSidebarOpen = ref(false)
+const expandedSectionKeys = ref<WorkspaceSectionKey[]>([])
 
 const isPublicPage = computed(() => Boolean(route.meta.public))
 const workspaceAccessContext = computed(() => ({
@@ -89,6 +90,19 @@ const currentSectionLabel = computed(
 )
 const currentPageTitle = computed(() => route.meta.pageTitle || currentNavItem.value?.label || '工作区')
 const userInitial = computed(() => (authStore.username || '用户').slice(0, 1).toUpperCase())
+const activeSectionKey = computed<WorkspaceSectionKey | undefined>(
+  () => currentNavItem.value?.section as WorkspaceSectionKey | undefined,
+)
+
+watch(
+  activeSectionKey,
+  (sectionKey) => {
+    if (sectionKey && !expandedSectionKeys.value.includes(sectionKey)) {
+      expandedSectionKeys.value = [...expandedSectionKeys.value, sectionKey]
+    }
+  },
+  { immediate: true },
+)
 
 function handleToggleSidebar(): void {
   if (window.matchMedia('(max-width: 960px)').matches) {
@@ -99,6 +113,16 @@ function handleToggleSidebar(): void {
 function handleNavigate(item: { path: string }): void {
   mobileSidebarOpen.value = false
   router.push(item.path)
+}
+
+function handleToggleSection(sectionKey: WorkspaceSectionKey): void {
+  expandedSectionKeys.value = expandedSectionKeys.value.includes(sectionKey)
+    ? expandedSectionKeys.value.filter((key) => key !== sectionKey)
+    : [...expandedSectionKeys.value, sectionKey]
+}
+
+function isSectionExpanded(sectionKey: WorkspaceSectionKey): boolean {
+  return expandedSectionKeys.value.includes(sectionKey)
 }
 
 function handleOpenSession(): void {
@@ -137,11 +161,18 @@ function getNavSectionLabel(section: string): string {
 
       <div class="sidebar-scroll">
         <div v-for="section in navSections" :key="section.key" class="sidebar-group">
-          <div class="sidebar-section">
+          <button
+            class="sidebar-section"
+            :class="{ active: section.key === activeSectionKey }"
+            type="button"
+            :aria-expanded="isSectionExpanded(section.key)"
+            @click="handleToggleSection(section.key)"
+          >
             <span>{{ section.label }}</span>
-          </div>
+            <span class="sidebar-section-arrow" aria-hidden="true"></span>
+          </button>
 
-          <div class="sidebar-submenu">
+          <div v-show="isSectionExpanded(section.key)" class="sidebar-submenu">
             <button
               v-for="item in section.items"
               :key="item.key"
@@ -170,7 +201,12 @@ function getNavSectionLabel(section: string): string {
     <section class="shell-main">
       <header class="topbar">
         <div class="topbar-left">
-          <button class="menu-toggle" type="button" aria-label="切换导航" @click="handleToggleSidebar">
+          <button
+            class="menu-toggle"
+            type="button"
+            aria-label="切换导航"
+            @click="handleToggleSidebar"
+          >
             <span></span>
             <span></span>
             <span></span>
@@ -251,6 +287,7 @@ function getNavSectionLabel(section: string): string {
   background: var(--sidebar-bg);
   border-right: 1px solid rgba(5, 5, 5, 0.06);
   box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+  transition: transform 0.22s ease;
 }
 
 .sidebar-brand {
@@ -297,7 +334,28 @@ function getNavSectionLabel(section: string): string {
 }
 
 .sidebar-section {
-  margin: 0 8px 6px;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.sidebar-section:hover,
+.sidebar-section.active {
+  border-color: rgba(22, 119, 255, 0.1);
+  background: rgba(22, 119, 255, 0.06);
 }
 
 .sidebar-section span {
@@ -308,10 +366,29 @@ function getNavSectionLabel(section: string): string {
   letter-spacing: 0.06em;
 }
 
+.sidebar-section.active span {
+  color: #0958d9;
+}
+
+.sidebar-section-arrow {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-right: 2px solid #94a3b8;
+  border-bottom: 2px solid #94a3b8;
+  transform: rotate(-45deg);
+  transition: transform 0.18s ease;
+}
+
+.sidebar-section[aria-expanded='true'] .sidebar-section-arrow {
+  transform: rotate(45deg);
+}
+
 .sidebar-submenu {
   display: grid;
   gap: 4px;
-  padding-left: 8px;
+  margin: 0 0 4px 10px;
+  padding-left: 10px;
   border-left: 1px solid rgba(229, 234, 243, 0.9);
 }
 
