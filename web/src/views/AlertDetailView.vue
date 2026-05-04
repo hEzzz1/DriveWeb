@@ -89,23 +89,51 @@ const evidenceIsFrameArchive = computed(() => {
   return detail.value?.evidenceType === 'FRAME_SEQUENCE'
     || isFrameArchiveSource(evidenceSourceUrl.value, evidenceSourceMimeType.value)
 })
+const closestEvidenceFramePreview = computed(() => {
+  const frames = evidenceFramePreviews.value
+  if (!frames.length) {
+    return null
+  }
+
+  const capturedAtMs = detail.value?.evidenceCapturedAtMs
+  if (capturedAtMs === null || capturedAtMs === undefined || !Number.isFinite(capturedAtMs)) {
+    return frames[0]
+  }
+
+  return frames.reduce((closest, frame) => {
+    if (frame.capturedAtMs === undefined) {
+      return closest
+    }
+    if (closest.capturedAtMs === undefined) {
+      return frame
+    }
+    return Math.abs(frame.capturedAtMs - capturedAtMs) < Math.abs(closest.capturedAtMs - capturedAtMs)
+      ? frame
+      : closest
+  }, frames[0])
+})
 const evidenceImagePreviewUrl = computed(() => {
   if (evidenceStillImageUrl.value) {
     return evidenceStillImageUrl.value
   }
 
-  return evidenceIsImage.value ? evidenceSourceUrl.value : ''
+  if (evidenceIsImage.value) {
+    return evidenceSourceUrl.value
+  }
+
+  return closestEvidenceFramePreview.value?.url || ''
 })
 const evidencePreviewModes = computed(() => {
   const modes: Array<{ label: string; value: EvidencePreviewMode }> = []
 
   if (evidenceIsVideo.value) {
+    modes.push({ label: '告警图片', value: 'image' })
     modes.push({ label: '视频', value: 'video' })
-    modes.push({ label: '图片', value: 'image' })
   } else if (evidenceIsImage.value) {
     modes.push({ label: '图片', value: 'image' })
   } else if (evidenceIsFrameArchive.value) {
-    modes.push({ label: '图片', value: 'frames' })
+    modes.push({ label: '告警图片', value: 'image' })
+    modes.push({ label: '图片序列', value: 'frames' })
   }
 
   modes.push({ label: '原文件', value: 'file' })
@@ -288,7 +316,7 @@ async function loadEvidencePreview(data: AlertDetail): Promise<void> {
     evidencePreviewMode.value = resolvePreferredEvidencePreviewMode(data)
 
     if (isVideoSource(evidenceObjectUrl.value, evidenceObjectMimeType.value)) {
-      void buildVideoStillImage(evidenceObjectUrl.value)
+      void buildVideoStillImage(evidenceObjectUrl.value, data)
     }
 
     if (data.evidenceType === 'FRAME_SEQUENCE' || isFrameArchiveSource(data.evidenceUrl, evidenceObjectMimeType.value)) {
@@ -380,7 +408,7 @@ function resolvePreferredEvidencePreviewMode(data: AlertDetail): EvidencePreview
   const mimeType = evidenceObjectMimeType.value || data.evidenceMimeType || ''
 
   if (isVideoSource(sourceUrl, mimeType)) {
-    return 'video'
+    return 'image'
   }
 
   if (isImageSource(sourceUrl, mimeType)) {
@@ -388,7 +416,7 @@ function resolvePreferredEvidencePreviewMode(data: AlertDetail): EvidencePreview
   }
 
   if (data.evidenceType === 'FRAME_SEQUENCE' || isFrameArchiveSource(sourceUrl, mimeType)) {
-    return 'frames'
+    return 'image'
   }
 
   return 'file'
@@ -496,12 +524,12 @@ function revokeEvidenceStillImage(): void {
   evidenceStillError.value = ''
 }
 
-async function buildVideoStillImage(sourceUrl: string): Promise<void> {
+async function buildVideoStillImage(sourceUrl: string, data: AlertDetail): Promise<void> {
   evidenceStillLoading.value = true
   evidenceStillError.value = ''
 
   try {
-    const previewUrl = await captureVideoFrame(sourceUrl)
+    const previewUrl = await captureVideoFrame(sourceUrl, resolveVideoStillTimeSeconds(data))
     if (evidenceObjectUrl.value === sourceUrl) {
       evidenceStillImageUrl.value = previewUrl
     } else {
@@ -518,7 +546,25 @@ async function buildVideoStillImage(sourceUrl: string): Promise<void> {
   }
 }
 
-function captureVideoFrame(sourceUrl: string): Promise<string> {
+function resolveVideoStillTimeSeconds(data: AlertDetail): number | undefined {
+  const capturedAtMs = data.evidenceCapturedAtMs
+  const windowStartMs = data.edgeWindowStartMs
+  if (
+    capturedAtMs === null
+    || capturedAtMs === undefined
+    || windowStartMs === null
+    || windowStartMs === undefined
+    || !Number.isFinite(capturedAtMs)
+    || !Number.isFinite(windowStartMs)
+    || capturedAtMs < windowStartMs
+  ) {
+    return undefined
+  }
+
+  return (capturedAtMs - windowStartMs) / 1000
+}
+
+function captureVideoFrame(sourceUrl: string, targetTimeSeconds?: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video')
     const canvas = document.createElement('canvas')
@@ -581,7 +627,10 @@ function captureVideoFrame(sourceUrl: string): Promise<string> {
     video.addEventListener('loadedmetadata', () => {
       if (Number.isFinite(video.duration) && video.duration > 0.2) {
         try {
-          video.currentTime = Math.min(1, video.duration / 2)
+          const targetTime = targetTimeSeconds === undefined
+            ? Math.min(1, video.duration / 2)
+            : Math.min(Math.max(0.05, targetTimeSeconds), Math.max(0.05, video.duration - 0.05))
+          video.currentTime = targetTime
         } catch {
           drawFrame()
         }
@@ -819,7 +868,15 @@ function downloadUrl(url: string, filename: string): void {
               playsinline
               preload="metadata"
             />
-            <img v-else-if="evidencePreviewMode === 'image' && evidenceImagePreviewUrl" :src="evidenceImagePreviewUrl" alt="evidence" />
+            <figure
+              v-else-if="evidencePreviewMode === 'image' && evidenceImagePreviewUrl"
+              class="evidence-primary-frame"
+            >
+              <img :src="evidenceImagePreviewUrl" alt="evidence" />
+              <figcaption v-if="closestEvidenceFramePreview?.capturedAtMs">
+                告警时刻：{{ formatTimestampMs(closestEvidenceFramePreview.capturedAtMs) }}
+              </figcaption>
+            </figure>
             <div v-else-if="evidencePreviewMode === 'image'" class="evidence-placeholder">
               <el-icon size="24"><Picture /></el-icon>
               <p v-if="evidenceStillLoading">图片预览生成中</p>
@@ -1034,6 +1091,24 @@ function downloadUrl(url: string, filename: string): void {
   height: 100%;
   max-height: 420px;
   object-fit: contain;
+}
+
+.evidence-primary-frame {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  display: grid;
+  place-items: center;
+}
+
+.evidence-primary-frame figcaption {
+  width: 100%;
+  padding: 8px 10px;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.86);
 }
 
 .evidence-preview video {
