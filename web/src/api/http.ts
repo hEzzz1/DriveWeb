@@ -2,6 +2,7 @@ import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import type { ApiResponse } from '../types/api'
 import { ApiError } from '../types/api'
+import { recordApiError } from '../utils/error-trace'
 
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 const proxyTarget = import.meta.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8080'
@@ -112,6 +113,11 @@ export async function request<T>(config: RequestConfig): Promise<T> {
     return unwrapResponse(response.data, response.status)
   } catch (error) {
     const normalizedError = normalizeError(error)
+    recordApiError(
+      normalizedError,
+      config.method,
+      typeof config.url === 'string' ? config.url : undefined,
+    )
 
     if (!config.silentError) {
       showGlobalError(normalizedError)

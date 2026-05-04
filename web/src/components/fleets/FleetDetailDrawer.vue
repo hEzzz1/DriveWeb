@@ -32,6 +32,7 @@ const emit = defineEmits<{
             </el-descriptions-item>
             <el-descriptions-item label="所属企业">{{ detail.enterpriseName || detail.enterpriseId }}</el-descriptions-item>
             <el-descriptions-item label="驾驶员数量">{{ detail.driverCount ?? '-' }}</el-descriptions-item>
+            <el-descriptions-item label="车辆数量">{{ detail.vehicleCount ?? '-' }}</el-descriptions-item>
             <el-descriptions-item label="车队名称">{{ detail.name }}</el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatDateTime(detail.createdAt) }}</el-descriptions-item>
             <el-descriptions-item label="更新时间">{{ formatDateTime(detail.updatedAt) }}</el-descriptions-item>
@@ -44,6 +45,9 @@ const emit = defineEmits<{
               {{ detail.enabled ? '停用车队' : '启用车队' }}
             </el-button>
           </div>
+          <p v-if="canManage && ((detail.driverCount ?? 0) > 0 || (detail.vehicleCount ?? 0) > 0)" class="binding-note">
+            停用车队不会自动迁移驾驶员或车辆；需要调整归属时，请在驾驶员、车辆或设备详情中分别处理。
+          </p>
         </div>
       </template>
     </el-skeleton>
@@ -60,5 +64,12 @@ const emit = defineEmits<{
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.binding-note {
+  margin: 0;
+  color: var(--text-faint);
+  line-height: 1.6;
+  font-size: 13px;
 }
 </style>

@@ -42,6 +42,7 @@ const workspaceViewMap: Record<string, RouteRecordRaw['component']> = {
   health: SystemManagementView,
   services: SystemManagementView,
   version: SystemManagementView,
+  diagnostics: SystemManagementView,
   overview: RealtimeOverviewView,
   alerts: AlertsListView,
   'alert-detail': AlertDetailView,
@@ -190,6 +191,10 @@ const router = createRouter({
     {
       path: '/system/version',
       redirect: '/platform/system/version',
+    },
+    {
+      path: '/system/diagnostics',
+      redirect: '/platform/system/diagnostics',
     },
     {
       path: '/:pathMatch(.*)*',

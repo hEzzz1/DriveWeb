@@ -248,8 +248,8 @@ async function handleRotateToken(): Promise<void> {
 
   try {
     await ElMessageBox.confirm(
-      `确认轮换设备「${current.deviceCode}」的 token 吗？轮换后端侧需要重新保存新 token 才能继续上报。`,
-      '轮换设备 token',
+      `确认轮换设备「${current.deviceCode}」的通信凭证吗？轮换后需要在边缘端保存新凭证才能继续上报。`,
+      '轮换设备通信凭证',
       {
         type: 'warning',
         confirmButtonText: '确认轮换',
@@ -264,7 +264,7 @@ async function handleRotateToken(): Promise<void> {
   try {
     const result = await rotateDeviceToken(current.id)
     detail.value = enrichDevice(await getDeviceDetail(current.id))
-    await ElMessageBox.alert(`新 token：\n${result.deviceToken}`, '设备 token 已轮换', {
+    await ElMessageBox.alert(`新通信凭证：\n${result.deviceToken}`, '设备通信凭证已轮换', {
       confirmButtonText: '我知道了',
     })
   } finally {
@@ -335,7 +335,7 @@ async function handleUnassignVehicle(): Promise<void> {
         >
           {{ statusActionText() }}
         </el-button>
-        <el-button v-if="detail && access.canManageDevices" plain :loading="tokenRotating" @click="handleRotateToken">轮换 token</el-button>
+        <el-button v-if="detail && access.canManageDevices" plain :loading="tokenRotating" @click="handleRotateToken">轮换通信凭证</el-button>
       </template>
     </WorkspacePageHeader>
 
@@ -346,7 +346,7 @@ async function handleUnassignVehicle(): Promise<void> {
             <el-descriptions-item label="设备码">{{ detail.deviceCode }}</el-descriptions-item>
             <el-descriptions-item label="设备名">{{ detail.deviceName }}</el-descriptions-item>
             <el-descriptions-item label="旧版激活码">{{ maskSecret(detail.activationCode) }}</el-descriptions-item>
-            <el-descriptions-item label="token轮换">{{ formatDateTime(detail.tokenRotatedAt) }}</el-descriptions-item>
+            <el-descriptions-item label="凭证轮换">{{ formatDateTime(detail.tokenRotatedAt) }}</el-descriptions-item>
             <el-descriptions-item label="所属企业">{{ detail.enterpriseName || detail.enterpriseId || '-' }}</el-descriptions-item>
             <el-descriptions-item label="车队">{{ detail.fleetName || '-' }}</el-descriptions-item>
             <el-descriptions-item label="车辆">{{ detail.vehiclePlateNumber || '-' }}</el-descriptions-item>
@@ -370,7 +370,7 @@ async function handleUnassignVehicle(): Promise<void> {
                 {{ sessionStageText(detail.sessionStage) }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="当前司机">{{ currentDriverText() }}</el-descriptions-item>
+            <el-descriptions-item label="当前驾驶员">{{ currentDriverText() }}</el-descriptions-item>
             <el-descriptions-item label="活动会话">{{ activeSessionText() }}</el-descriptions-item>
             <el-descriptions-item label="最近激活">{{ formatDateTime(detail.lastActivatedAt) }}</el-descriptions-item>
             <el-descriptions-item label="最近在线">{{ formatDateTime(detail.lastSeenAt) }}</el-descriptions-item>

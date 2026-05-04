@@ -26,14 +26,14 @@ defineProps<{
 <style scoped>
 .section-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
 
 .section-head h3 {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
   color: var(--text-main);
   font-weight: 700;
   line-height: 1.3;
@@ -50,6 +50,6 @@ defineProps<{
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-top: 2px;
+  flex-wrap: wrap;
 }
 </style>

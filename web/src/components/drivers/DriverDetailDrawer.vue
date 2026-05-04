@@ -48,7 +48,7 @@ const emit = defineEmits<{
           <div v-if="canManage" class="action-row">
             <el-button @click="emit('edit')">编辑资料</el-button>
             <el-button type="primary" plain @click="emit('reassign')">调整车队</el-button>
-            <el-button plain @click="emit('resetPin')">重置 PIN</el-button>
+            <el-button plain @click="emit('resetPin')">重置签到码</el-button>
             <el-button :type="detail.enabled ? 'warning' : 'success'" plain @click="emit('toggleStatus')">
               {{ detail.enabled ? '禁用驾驶员' : '启用驾驶员' }}
             </el-button>

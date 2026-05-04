@@ -21,7 +21,7 @@ const formModel = reactive<LoginFormModel>({
   username: '',
   password: '',
 })
-const productModules = ['风险总览', '告警处置', '证据留存', '审计追踪']
+const productModules = ['实时监测', '告警处置', '证据留存', '审计追踪']
 
 const rules: FormRules<LoginFormModel> = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
@@ -89,11 +89,11 @@ async function handleSubmit(): Promise<void> {
     <section class="login-shell">
       <aside class="login-intro">
         <div class="brand-lockup">
-          <span>风控</span>
-          <strong>风控管理平台</strong>
+          <span>监测</span>
+          <strong>驾驶员疲劳与分心实时检测系统</strong>
         </div>
 
-        <h1>车辆风险运营工作台</h1>
+        <h1>驾驶员疲劳与分心实时检测系统</h1>
 
         <div class="module-grid">
           <div v-for="item in productModules" :key="item" class="module-card">{{ item }}</div>

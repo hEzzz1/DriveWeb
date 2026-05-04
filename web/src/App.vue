@@ -153,9 +153,9 @@ function getNavSectionLabel(section: string): string {
 
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <div class="brand-badge">风控</div>
+        <div class="brand-badge">监测</div>
         <div class="brand-copy">
-          <strong>风控管理平台</strong>
+          <strong>驾驶员疲劳与分心实时检测系统</strong>
         </div>
       </div>
 
@@ -214,7 +214,7 @@ function getNavSectionLabel(section: string): string {
 
           <div class="topbar-page">
             <div class="breadcrumb">
-              <span>风控平台</span>
+              <span>驾驶安全平台</span>
               <span class="breadcrumb-separator">/</span>
               <span>{{ currentSectionLabel }}</span>
               <span class="breadcrumb-separator">/</span>

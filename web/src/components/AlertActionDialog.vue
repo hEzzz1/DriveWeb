@@ -25,7 +25,7 @@ const actionConfig = computed(() => {
     return {
       title: '确认告警',
       prompt: '请确认此风险已被人工确认，并补充需要保留的处理说明。',
-      placeholder: '例如：已电话提醒司机',
+      placeholder: '例如：已电话提醒驾驶员',
       confirmText: '确认提交',
     }
   }

@@ -22,16 +22,15 @@ defineProps<{
 <style scoped>
 .workspace-page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 24px 28px;
-  border: 1px solid rgba(5, 5, 5, 0.06);
-  border-radius: 20px;
-  background:
-    linear-gradient(135deg, rgba(22, 119, 255, 0.06), rgba(255, 255, 255, 0) 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.94));
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+  gap: 16px;
+  min-height: 86px;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-panel);
 }
 
 .header-main {
@@ -48,8 +47,8 @@ defineProps<{
 .header-title-row h1 {
   margin: 0;
   overflow: hidden;
-  color: #0f172a;
-  font-size: 28px;
+  color: var(--text-main);
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.15;
   text-overflow: ellipsis;
@@ -61,7 +60,9 @@ defineProps<{
   flex-shrink: 0;
   align-items: center;
   gap: 10px;
-  min-height: 44px;
+  min-height: 40px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 @media (max-width: 900px) {
@@ -70,7 +71,7 @@ defineProps<{
   }
 
   .header-title-row h1 {
-    font-size: 24px;
+    font-size: 22px;
   }
 }
 

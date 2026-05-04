@@ -365,7 +365,7 @@ function subjectText(item: OverviewLatestAlertItem): string {
         <div class="info-list">
           <p><span>当前用户</span>{{ authStore.username || '-' }}</p>
           <p><span>当前角色</span>{{ authStore.roleText }}</p>
-          <p><span>Token 过期</span>{{ authStore.expireAtText }}</p>
+          <p><span>会话过期</span>{{ authStore.expireAtText }}</p>
         </div>
       </el-card>
 

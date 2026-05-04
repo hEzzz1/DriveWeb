@@ -157,9 +157,7 @@ const overviewItems = computed(() => [
           </article>
         </div>
 
-        <p class="safety-note">
-          成熟后台默认隐藏 Bearer Token、接口地址、原始权限码和其他仅用于调试的技术细节。
-        </p>
+        <p class="safety-note">系统仅展示当前账号必要的访问范围和业务能力。</p>
       </el-card>
     </section>
 

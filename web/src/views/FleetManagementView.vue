@@ -170,6 +170,7 @@ function enrichFleet(item: FleetDetail): FleetDetail {
     ...item,
     enterpriseName: enterpriseMap.value.get(item.enterpriseId)?.name || matched?.enterpriseName,
     driverCount: matched?.driverCount,
+    vehicleCount: matched?.vehicleCount,
   }
 }
 
@@ -212,13 +213,21 @@ async function handleToggleStatus(row?: FleetSummary): Promise<void> {
 
   const nextStatus = target.enabled ? 0 : 1
   const actionText = nextStatus === 1 ? '启用' : '停用'
+  const resourceText =
+    nextStatus === 0 && ((target.driverCount ?? 0) > 0 || (target.vehicleCount ?? 0) > 0)
+      ? `当前车队仍有 ${target.driverCount ?? 0} 名驾驶员、${target.vehicleCount ?? 0} 辆车，停用不会自动迁移资源。`
+      : ''
 
   try {
-    await ElMessageBox.confirm(`确认${actionText}车队「${target.name}」吗？`, `${actionText}车队`, {
+    await ElMessageBox.confirm(
+      `确认${actionText}车队「${target.name}」吗？${resourceText ? `\n${resourceText}` : ''}`,
+      `${actionText}车队`,
+      {
       type: 'warning',
       confirmButtonText: actionText,
       cancelButtonText: '取消',
-    })
+      },
+    )
   } catch {
     return
   }

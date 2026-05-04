@@ -414,13 +414,13 @@ function hasEvidence(row: AlertSummary): boolean {
           </el-select>
         </el-form-item>
 
-        <el-form-item label="司机">
+        <el-form-item label="驾驶员">
           <el-select
             v-model="filterModel.driverId"
             clearable
             filterable
             :loading="referenceLoading"
-            placeholder="全部司机"
+            placeholder="全部驾驶员"
           >
             <el-option
               v-for="option in filteredDriverOptions"
@@ -500,7 +500,7 @@ function hasEvidence(row: AlertSummary): boolean {
         <el-table-column label="车辆" min-width="140">
           <template #default="{ row }">{{ getVehicleLabel(row) }}</template>
         </el-table-column>
-        <el-table-column label="司机" min-width="140">
+        <el-table-column label="驾驶员" min-width="140">
           <template #default="{ row }">{{ getDriverLabel(row) }}</template>
         </el-table-column>
         <el-table-column label="证据" width="90">

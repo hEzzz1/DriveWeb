@@ -300,12 +300,12 @@ async function handleResetPin(row?: DriverSummary): Promise<void> {
 
   let pin = ''
   try {
-    const result = await ElMessageBox.prompt('请输入新的 4-6 位 PIN', '重置驾驶员 PIN', {
+    const result = await ElMessageBox.prompt('请输入新的 4-6 位签到码', '重置驾驶员签到码', {
       inputPlaceholder: '例如 1234',
       confirmButtonText: '确认重置',
       cancelButtonText: '取消',
       inputPattern: /^[0-9]{4,6}$/,
-      inputErrorMessage: 'PIN 仅支持 4-6 位数字',
+      inputErrorMessage: '签到码仅支持 4-6 位数字',
     })
     pin = result.value
   } catch {
@@ -313,7 +313,7 @@ async function handleResetPin(row?: DriverSummary): Promise<void> {
   }
 
   await resetDriverPin(target.id, { pin })
-  ElMessage.success('驾驶员 PIN 已重置')
+  ElMessage.success('驾驶员签到码已重置')
 }
 
 function syncTableRow(detail: DriverDetail): void {

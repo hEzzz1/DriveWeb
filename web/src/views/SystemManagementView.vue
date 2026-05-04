@@ -22,6 +22,8 @@ import type {
   SystemSummarySnapshot,
   VersionInfoItem,
 } from '../types/system'
+import { clearErrorTraceRecords, listErrorTraceRecords, type ErrorTraceRecord } from '../utils/error-trace'
+import { formatDateTime } from '../utils/time'
 
 const route = useRoute()
 const loading = ref(false)
@@ -31,6 +33,7 @@ const services = ref<ServiceStatusItem[]>([])
 const monitoring = ref<SystemMonitoringSnapshot | null>(null)
 const version = ref<VersionInfoItem | null>(null)
 const summary = ref<SystemSummarySnapshot | null>(null)
+const errorTraceRecords = ref<ErrorTraceRecord[]>([])
 
 const summaryItems = computed(() => [
   { label: '服务数量', value: services.value.length },
@@ -53,6 +56,13 @@ const currentSection = computed(() => {
     }
   }
 
+  if (route.name === 'system-diagnostics') {
+    return {
+      title: '问题排查',
+      description: '查看最近接口异常、请求地址、状态码与追踪编号。',
+    }
+  }
+
   return {
     title: '系统健康',
     description: '查看健康概览、监控摘要和系统总体运行状态。',
@@ -60,8 +70,18 @@ const currentSection = computed(() => {
 })
 
 onMounted(async () => {
+  refreshTraceRecords()
   await fetchData()
 })
+
+function refreshTraceRecords(): void {
+  errorTraceRecords.value = listErrorTraceRecords()
+}
+
+function handleClearTraceRecords(): void {
+  clearErrorTraceRecords()
+  refreshTraceRecords()
+}
 
 async function fetchData(): Promise<void> {
   loading.value = true
@@ -116,8 +136,9 @@ async function fetchData(): Promise<void> {
 
 <template>
   <div class="page-shell">
-    <WorkspacePageHeader title="系统运维">
+    <WorkspacePageHeader :title="currentSection.title">
       <template #actions>
+        <el-button v-if="route.name === 'system-diagnostics'" plain @click="handleClearTraceRecords">清空记录</el-button>
         <el-button :loading="loading" type="primary" @click="fetchData">刷新状态</el-button>
       </template>
     </WorkspacePageHeader>
@@ -150,6 +171,30 @@ async function fetchData(): Promise<void> {
       description="展示后端应用名称、版本、构建时间和提交号。"
     >
       <VersionInfoCard :item="version" />
+    </PageSectionCard>
+
+    <PageSectionCard
+      v-if="route.name === 'system-diagnostics'"
+      title="最近接口异常"
+      description="平台会保留最近 50 条接口异常，复制追踪编号后可在服务日志中精确定位。"
+    >
+      <el-empty v-if="errorTraceRecords.length === 0" description="暂无接口异常记录" />
+      <el-table v-else :data="errorTraceRecords" stripe>
+        <el-table-column label="发生时间" min-width="170">
+          <template #default="{ row }">{{ formatDateTime(row.occurredAt) }}</template>
+        </el-table-column>
+        <el-table-column prop="message" label="错误提示" min-width="220" />
+        <el-table-column label="请求" min-width="240">
+          <template #default="{ row }">{{ row.method }} {{ row.url }}</template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态码" width="100" />
+        <el-table-column prop="code" label="业务码" width="110" />
+        <el-table-column label="追踪编号" min-width="240">
+          <template #default="{ row }">
+            <el-tag effect="plain">{{ row.traceId }}</el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
     </PageSectionCard>
 
     <PageSectionCard

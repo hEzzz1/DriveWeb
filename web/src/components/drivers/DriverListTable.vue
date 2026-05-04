@@ -75,8 +75,8 @@ const emit = defineEmits<{
         <template #default="{ row }">
           <el-button link type="primary" @click="emit('detail', row)">详情</el-button>
           <el-button v-if="canManage" link @click="emit('edit', row)">编辑</el-button>
-          <el-button v-if="canManage" link @click="emit('reassign', row)">调车队</el-button>
-          <el-button v-if="canManage" link @click="emit('resetPin', row)">重置 PIN</el-button>
+          <el-button v-if="canManage" link @click="emit('reassign', row)">调整车队</el-button>
+          <el-button v-if="canManage" link @click="emit('resetPin', row)">重置签到码</el-button>
           <el-button v-if="canManage" link :type="row.enabled ? 'warning' : 'success'" @click="emit('toggleStatus', row)">
             {{ row.enabled ? '禁用' : '启用' }}
           </el-button>

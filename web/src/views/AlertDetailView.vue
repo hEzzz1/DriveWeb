@@ -809,7 +809,7 @@ function downloadUrl(url: string, filename: string): void {
         <el-descriptions :column="3" border>
           <el-descriptions-item label="车队">{{ fleetLabel }}</el-descriptions-item>
           <el-descriptions-item label="车辆">{{ vehicleLabel }}</el-descriptions-item>
-          <el-descriptions-item label="司机">{{ driverLabel }}</el-descriptions-item>
+          <el-descriptions-item label="驾驶员">{{ driverLabel }}</el-descriptions-item>
         </el-descriptions>
       </el-card>
 

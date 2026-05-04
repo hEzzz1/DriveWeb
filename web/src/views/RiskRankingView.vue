@@ -263,7 +263,7 @@ function dimensionDisplay(item: RankingItem): string {
             :options="[
               { label: '车队排行', value: 'FLEET_ID' },
               { label: '车辆排行', value: 'VEHICLE_ID' },
-              { label: '司机排行', value: 'DRIVER_ID' },
+              { label: '驾驶员排行', value: 'DRIVER_ID' },
               { label: '规则排行', value: 'RULE_ID' },
             ]"
           />

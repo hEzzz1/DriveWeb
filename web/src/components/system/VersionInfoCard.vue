@@ -14,7 +14,7 @@ defineProps<{
     <div v-else class="list-wrap">
       <div class="list-item">
         <div>
-          <strong>{{ item.applicationName || 'DriveServer' }}</strong>
+          <strong>{{ item.applicationName || '检测服务' }}</strong>
           <p>Git Commit：{{ item.gitCommit || '-' }}</p>
         </div>
         <div class="status-meta">

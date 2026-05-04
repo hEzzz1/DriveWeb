@@ -177,7 +177,7 @@ async function handleForceSignOut(row?: SessionSummary): Promise<void> {
             </el-select>
           </el-form-item>
           <el-form-item label="会话编号">
-            <el-input v-model="filters.keyword" clearable placeholder="支持按 sessionNo 查询" style="width: 220px" />
+            <el-input v-model="filters.keyword" clearable placeholder="支持按会话编号查询" style="width: 220px" />
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="currentPage = 1; fetchList()">查询</el-button>
@@ -197,7 +197,7 @@ async function handleForceSignOut(row?: SessionSummary): Promise<void> {
           <el-table-column label="车辆" min-width="120">
             <template #default="{ row }">{{ row.vehiclePlateNumber || row.vehicleId }}</template>
           </el-table-column>
-          <el-table-column label="司机" min-width="140">
+          <el-table-column label="驾驶员" min-width="140">
             <template #default="{ row }">{{ row.driverName || row.driverCode || row.driverId }}</template>
           </el-table-column>
           <el-table-column label="企业" min-width="140">
@@ -252,7 +252,7 @@ async function handleForceSignOut(row?: SessionSummary): Promise<void> {
             </el-descriptions-item>
             <el-descriptions-item label="设备">{{ activeDetail.deviceCode || activeDetail.deviceId }}</el-descriptions-item>
             <el-descriptions-item label="车辆">{{ activeDetail.vehiclePlateNumber || activeDetail.vehicleId }}</el-descriptions-item>
-            <el-descriptions-item label="司机">{{ activeDetail.driverName || activeDetail.driverCode || activeDetail.driverId }}</el-descriptions-item>
+            <el-descriptions-item label="驾驶员">{{ activeDetail.driverName || activeDetail.driverCode || activeDetail.driverId }}</el-descriptions-item>
             <el-descriptions-item label="企业">{{ activeDetail.enterpriseName || activeDetail.enterpriseId }}</el-descriptions-item>
             <el-descriptions-item label="车队">{{ activeDetail.fleetName || activeDetail.fleetId }}</el-descriptions-item>
             <el-descriptions-item label="最近心跳">{{ formatDateTime(activeDetail.lastHeartbeatAt) }}</el-descriptions-item>
