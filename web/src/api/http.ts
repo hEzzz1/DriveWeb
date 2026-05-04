@@ -120,3 +120,21 @@ export async function request<T>(config: RequestConfig): Promise<T> {
     throw normalizedError
   }
 }
+
+export async function requestBlob(config: RequestConfig): Promise<Blob> {
+  try {
+    const response = await http.request<Blob>({
+      ...config,
+      responseType: 'blob',
+    })
+    return response.data
+  } catch (error) {
+    const normalizedError = normalizeError(error)
+
+    if (!config.silentError) {
+      showGlobalError(normalizedError)
+    }
+
+    throw normalizedError
+  }
+}

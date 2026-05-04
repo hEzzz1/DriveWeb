@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Download, Picture, RefreshRight, VideoPlay } from '@element-plus/icons-vue'
 import AlertActionDialog from '../components/AlertActionDialog.vue'
 import WorkspacePageHeader from '../components/layout/WorkspacePageHeader.vue'
-import { disposeAlert, getAlertActionLogs, getAlertDetail } from '../api/alerts'
+import { disposeAlert, getAlertActionLogs, getAlertDetail, getAlertEvidenceBlob } from '../api/alerts'
 import { getDriverDetail } from '../api/drivers'
 import { getFleetDetail } from '../api/fleets'
 import { getVehicleDetail } from '../api/vehicles'
@@ -27,6 +28,14 @@ import {
   getStatusTagType,
 } from '../utils/alerts'
 
+type EvidenceFramePreview = {
+  name: string
+  url: string
+  capturedAtMs?: number
+}
+
+type EvidencePreviewMode = 'video' | 'image' | 'frames' | 'file'
+
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -37,6 +46,18 @@ const actionLogs = ref<AlertActionLog[]>([])
 const dialogVisible = ref(false)
 const activeAction = ref<AlertActionType>('CONFIRM')
 const actionSubmitting = ref(false)
+const evidenceObjectUrl = ref('')
+const evidenceObjectMimeType = ref('')
+const evidenceBlob = ref<Blob | null>(null)
+const evidenceLoading = ref(false)
+const evidenceDownloadLoading = ref(false)
+const evidenceLoadError = ref('')
+const evidenceArchivePreviewError = ref('')
+const evidenceFramePreviews = ref<EvidenceFramePreview[]>([])
+const evidenceStillImageUrl = ref('')
+const evidenceStillLoading = ref(false)
+const evidenceStillError = ref('')
+const evidencePreviewMode = ref<EvidencePreviewMode>('file')
 
 const alertId = computed(() => {
   const value = route.params.id
@@ -60,9 +81,35 @@ const driverLabel = ref('-')
 const availableActions = computed(() => getAvailableAlertActions(detail.value?.status))
 const hasEvidence = computed(() => Boolean(detail.value?.evidenceUrl))
 const evidenceUrl = computed(() => detail.value?.evidenceUrl || '')
-const evidenceIsImage = computed(() => {
-  const mimeType = detail.value?.evidenceMimeType || ''
-  return evidenceUrl.value.startsWith('data:image/') || mimeType.startsWith('image/')
+const evidenceSourceUrl = computed(() => evidenceObjectUrl.value || evidenceUrl.value)
+const evidenceSourceMimeType = computed(() => evidenceObjectMimeType.value || detail.value?.evidenceMimeType || '')
+const evidenceIsImage = computed(() => isImageSource(evidenceSourceUrl.value, evidenceSourceMimeType.value))
+const evidenceIsVideo = computed(() => isVideoSource(evidenceSourceUrl.value, evidenceSourceMimeType.value))
+const evidenceIsFrameArchive = computed(() => {
+  return detail.value?.evidenceType === 'FRAME_SEQUENCE'
+    || isFrameArchiveSource(evidenceSourceUrl.value, evidenceSourceMimeType.value)
+})
+const evidenceImagePreviewUrl = computed(() => {
+  if (evidenceStillImageUrl.value) {
+    return evidenceStillImageUrl.value
+  }
+
+  return evidenceIsImage.value ? evidenceSourceUrl.value : ''
+})
+const evidencePreviewModes = computed(() => {
+  const modes: Array<{ label: string; value: EvidencePreviewMode }> = []
+
+  if (evidenceIsVideo.value) {
+    modes.push({ label: '视频', value: 'video' })
+    modes.push({ label: '图片', value: 'image' })
+  } else if (evidenceIsImage.value) {
+    modes.push({ label: '图片', value: 'image' })
+  } else if (evidenceIsFrameArchive.value) {
+    modes.push({ label: '图片', value: 'frames' })
+  }
+
+  modes.push({ label: '原文件', value: 'file' })
+  return modes
 })
 const evidenceRows = computed(() => {
   if (!detail.value) {
@@ -121,10 +168,21 @@ watch(
   },
 )
 
+watch(evidencePreviewModes, (modes) => {
+  if (!modes.some((mode) => mode.value === evidencePreviewMode.value)) {
+    evidencePreviewMode.value = modes[0]?.value || 'file'
+  }
+})
+
+onBeforeUnmount(() => {
+  revokeEvidenceObjectUrl()
+})
+
 async function fetchDetail(): Promise<void> {
   if (!alertId.value) {
     detail.value = null
     actionLogs.value = []
+    revokeEvidenceObjectUrl()
     return
   }
 
@@ -137,7 +195,7 @@ async function fetchDetail(): Promise<void> {
     ])
     detail.value = data
     actionLogs.value = Array.isArray(logs.items) ? logs.items : []
-    await fetchContextLabels(data)
+    await Promise.all([fetchContextLabels(data), loadEvidencePreview(data)])
   } finally {
     loading.value = false
   }
@@ -192,6 +250,96 @@ function showValue(value: unknown): string {
   return String(value)
 }
 
+function revokeEvidenceObjectUrl(): void {
+  if (evidenceObjectUrl.value) {
+    window.URL.revokeObjectURL(evidenceObjectUrl.value)
+    evidenceObjectUrl.value = ''
+  }
+  revokeEvidenceFramePreviews()
+  revokeEvidenceStillImage()
+  evidenceObjectMimeType.value = ''
+  evidenceBlob.value = null
+  evidenceLoading.value = false
+  evidenceDownloadLoading.value = false
+  evidenceLoadError.value = ''
+  evidenceArchivePreviewError.value = ''
+}
+
+function revokeEvidenceFramePreviews(): void {
+  evidenceFramePreviews.value.forEach((frame) => window.URL.revokeObjectURL(frame.url))
+  evidenceFramePreviews.value = []
+}
+
+async function loadEvidencePreview(data: AlertDetail): Promise<void> {
+  revokeEvidenceObjectUrl()
+
+  if (!data.evidenceUrl || !isInternalEvidenceUrl(data.evidenceUrl)) {
+    evidencePreviewMode.value = resolvePreferredEvidencePreviewMode(data)
+    return
+  }
+
+  evidenceLoading.value = true
+
+  try {
+    const blob = await getAlertEvidenceBlob(data.id)
+    evidenceBlob.value = blob
+    evidenceObjectUrl.value = window.URL.createObjectURL(blob)
+    evidenceObjectMimeType.value = blob.type || data.evidenceMimeType || ''
+    evidencePreviewMode.value = resolvePreferredEvidencePreviewMode(data)
+
+    if (isVideoSource(evidenceObjectUrl.value, evidenceObjectMimeType.value)) {
+      void buildVideoStillImage(evidenceObjectUrl.value)
+    }
+
+    if (data.evidenceType === 'FRAME_SEQUENCE' || isFrameArchiveSource(data.evidenceUrl, evidenceObjectMimeType.value)) {
+      try {
+        evidenceFramePreviews.value = await parseStoredZipFramePreviews(blob)
+      } catch (error) {
+        evidenceArchivePreviewError.value = error instanceof Error ? error.message : '证据包预览失败'
+      }
+    }
+  } catch (error) {
+    evidenceLoadError.value = error instanceof Error ? error.message : '证据加载失败'
+    evidencePreviewMode.value = 'file'
+  } finally {
+    evidenceLoading.value = false
+  }
+}
+
+async function retryLoadEvidence(): Promise<void> {
+  if (!detail.value || evidenceLoading.value) {
+    return
+  }
+
+  await loadEvidencePreview(detail.value)
+}
+
+async function downloadEvidence(): Promise<void> {
+  const current = detail.value
+  if (!current || !current.evidenceUrl || evidenceDownloadLoading.value) {
+    return
+  }
+
+  evidenceDownloadLoading.value = true
+
+  try {
+    const blob = evidenceBlob.value
+      || (isInternalEvidenceUrl(current.evidenceUrl) ? await getAlertEvidenceBlob(current.id) : null)
+
+    if (blob) {
+      saveBlob(blob, evidenceDownloadFilename(blob))
+    } else {
+      downloadUrl(evidenceSourceUrl.value || current.evidenceUrl, evidenceDownloadFilename())
+    }
+
+    ElMessage.success('证据下载已开始')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '证据下载失败，请稍后重试')
+  } finally {
+    evidenceDownloadLoading.value = false
+  }
+}
+
 async function fetchContextLabels(data: AlertDetail): Promise<void> {
   fleetLabel.value = data.fleetName || showValue(data.fleetId)
   vehicleLabel.value = data.vehiclePlateNumber || showValue(data.vehicleId)
@@ -221,6 +369,303 @@ function formatDriverLabel(data: AlertDetail): string {
     return `${data.driverName} / ${data.driverCode}`
   }
   return data.driverName || data.driverCode || ''
+}
+
+function isInternalEvidenceUrl(url: string): boolean {
+  return url.startsWith('/api/v1/org/alerts/') && url.endsWith('/evidence')
+}
+
+function resolvePreferredEvidencePreviewMode(data: AlertDetail): EvidencePreviewMode {
+  const sourceUrl = evidenceObjectUrl.value || data.evidenceUrl || ''
+  const mimeType = evidenceObjectMimeType.value || data.evidenceMimeType || ''
+
+  if (isVideoSource(sourceUrl, mimeType)) {
+    return 'video'
+  }
+
+  if (isImageSource(sourceUrl, mimeType)) {
+    return 'image'
+  }
+
+  if (data.evidenceType === 'FRAME_SEQUENCE' || isFrameArchiveSource(sourceUrl, mimeType)) {
+    return 'frames'
+  }
+
+  return 'file'
+}
+
+function isImageSource(url: string, mimeType: string): boolean {
+  const normalizedUrl = url.toLowerCase()
+  const normalizedMimeType = mimeType.toLowerCase()
+  return normalizedUrl.startsWith('data:image/')
+    || normalizedMimeType.startsWith('image/')
+    || /\.(png|jpe?g|webp)(\?|#|$)/i.test(url)
+}
+
+function isVideoSource(url: string, mimeType: string): boolean {
+  const normalizedUrl = url.toLowerCase()
+  const normalizedMimeType = mimeType.toLowerCase()
+  return normalizedUrl.startsWith('data:video/')
+    || normalizedMimeType.startsWith('video/')
+    || /\.(mp4|webm|mov)(\?|#|$)/i.test(url)
+}
+
+function isFrameArchiveSource(url: string, mimeType: string): boolean {
+  const normalizedMimeType = mimeType.toLowerCase()
+  return normalizedMimeType === 'application/zip'
+    || normalizedMimeType === 'application/x-zip-compressed'
+    || /\.zip(\?|#|$)/i.test(url)
+}
+
+async function parseStoredZipFramePreviews(blob: Blob): Promise<EvidenceFramePreview[]> {
+  const buffer = await blob.arrayBuffer()
+  const view = new DataView(buffer)
+  const decoder = new TextDecoder()
+  const previews: EvidenceFramePreview[] = []
+  let offset = 0
+
+  while (offset + 30 <= view.byteLength && previews.length < 36) {
+    const signature = view.getUint32(offset, true)
+
+    if (signature !== 0x04034b50) {
+      break
+    }
+
+    const flags = view.getUint16(offset + 6, true)
+    const method = view.getUint16(offset + 8, true)
+    const compressedSize = view.getUint32(offset + 18, true)
+    const uncompressedSize = view.getUint32(offset + 22, true)
+    const nameLength = view.getUint16(offset + 26, true)
+    const extraLength = view.getUint16(offset + 28, true)
+    const nameStart = offset + 30
+    const dataStart = nameStart + nameLength + extraLength
+    const dataEnd = dataStart + compressedSize
+
+    if ((flags & 0x0008) !== 0 || dataStart > view.byteLength || dataEnd > view.byteLength) {
+      break
+    }
+
+    const name = decoder.decode(new Uint8Array(buffer, nameStart, nameLength))
+
+    if (method === 0 && compressedSize === uncompressedSize && isArchiveFrameEntry(name)) {
+      const frameBytes = new Uint8Array(buffer.slice(dataStart, dataEnd))
+      const frameBlob = new Blob([frameBytes], { type: frameMimeType(name) })
+      previews.push({
+        name,
+        url: window.URL.createObjectURL(frameBlob),
+        capturedAtMs: archiveFrameCapturedAtMs(name),
+      })
+    }
+
+    offset = dataEnd
+  }
+
+  return previews
+}
+
+function isArchiveFrameEntry(name: string): boolean {
+  return /^frames\/[^/]+\.(jpe?g|png|webp)$/i.test(name)
+}
+
+function frameMimeType(name: string): string {
+  if (/\.png$/i.test(name)) {
+    return 'image/png'
+  }
+  if (/\.webp$/i.test(name)) {
+    return 'image/webp'
+  }
+  return 'image/jpeg'
+}
+
+function archiveFrameCapturedAtMs(name: string): number | undefined {
+  const match = name.match(/_(\d{10,})_/)
+  if (!match) {
+    return undefined
+  }
+  const value = Number(match[1])
+  return Number.isFinite(value) ? value : undefined
+}
+
+function revokeEvidenceStillImage(): void {
+  if (evidenceStillImageUrl.value) {
+    window.URL.revokeObjectURL(evidenceStillImageUrl.value)
+    evidenceStillImageUrl.value = ''
+  }
+
+  evidenceStillLoading.value = false
+  evidenceStillError.value = ''
+}
+
+async function buildVideoStillImage(sourceUrl: string): Promise<void> {
+  evidenceStillLoading.value = true
+  evidenceStillError.value = ''
+
+  try {
+    const previewUrl = await captureVideoFrame(sourceUrl)
+    if (evidenceObjectUrl.value === sourceUrl) {
+      evidenceStillImageUrl.value = previewUrl
+    } else {
+      window.URL.revokeObjectURL(previewUrl)
+    }
+  } catch (error) {
+    if (evidenceObjectUrl.value === sourceUrl) {
+      evidenceStillError.value = error instanceof Error ? error.message : '图片预览生成失败'
+    }
+  } finally {
+    if (evidenceObjectUrl.value === sourceUrl) {
+      evidenceStillLoading.value = false
+    }
+  }
+}
+
+function captureVideoFrame(sourceUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    const canvas = document.createElement('canvas')
+    let settled = false
+
+    const finish = (error?: Error, previewUrl?: string) => {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      window.clearTimeout(timeout)
+      video.removeAttribute('src')
+      video.load()
+
+      if (error) {
+        reject(error)
+      } else if (previewUrl) {
+        resolve(previewUrl)
+      } else {
+        reject(new Error('图片预览生成失败'))
+      }
+    }
+
+    const drawFrame = () => {
+      const width = video.videoWidth
+      const height = video.videoHeight
+
+      if (width <= 0 || height <= 0) {
+        finish(new Error('图片预览生成失败'))
+        return
+      }
+
+      canvas.width = width
+      canvas.height = height
+      const context = canvas.getContext('2d')
+
+      if (!context) {
+        finish(new Error('图片预览生成失败'))
+        return
+      }
+
+      context.drawImage(video, 0, 0, width, height)
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          finish(new Error('图片预览生成失败'))
+          return
+        }
+
+        finish(undefined, window.URL.createObjectURL(blob))
+      }, 'image/jpeg', 0.82)
+    }
+
+    const timeout = window.setTimeout(() => finish(new Error('图片预览生成超时')), 4_000)
+
+    video.muted = true
+    video.preload = 'metadata'
+    video.playsInline = true
+    video.addEventListener('error', () => finish(new Error('图片预览生成失败')), { once: true })
+    video.addEventListener('loadedmetadata', () => {
+      if (Number.isFinite(video.duration) && video.duration > 0.2) {
+        try {
+          video.currentTime = Math.min(1, video.duration / 2)
+        } catch {
+          drawFrame()
+        }
+      } else {
+        drawFrame()
+      }
+    }, { once: true })
+    video.addEventListener('seeked', drawFrame, { once: true })
+    video.src = sourceUrl
+    video.load()
+  })
+}
+
+function evidenceDownloadFilename(blob?: Blob): string {
+  const current = detail.value
+  const alertPart = sanitizeFilename(current?.alertNo || `alert_${current?.id || 'unknown'}`)
+  const mimeType = blob?.type || evidenceSourceMimeType.value || current?.evidenceMimeType || ''
+  const extension = evidenceExtension(mimeType, current?.evidenceType || '', current?.evidenceUrl || '')
+  return `${alertPart}_evidence.${extension}`
+}
+
+function evidenceExtension(mimeType: string, evidenceType: string, sourceUrl: string): string {
+  const normalizedMimeType = mimeType.toLowerCase()
+  const urlMatch = sourceUrl.match(/\.([a-z0-9]+)(?:[?#]|$)/i)
+
+  if (normalizedMimeType === 'image/jpeg') {
+    return 'jpg'
+  }
+  if (normalizedMimeType === 'image/png') {
+    return 'png'
+  }
+  if (normalizedMimeType === 'image/webp') {
+    return 'webp'
+  }
+  if (normalizedMimeType === 'video/mp4') {
+    return 'mp4'
+  }
+  if (normalizedMimeType === 'video/webm') {
+    return 'webm'
+  }
+  if (normalizedMimeType === 'video/quicktime') {
+    return 'mov'
+  }
+  if (normalizedMimeType === 'application/zip' || normalizedMimeType === 'application/x-zip-compressed') {
+    return 'zip'
+  }
+  if (urlMatch) {
+    return urlMatch[1].toLowerCase()
+  }
+  if (evidenceType === 'FRAME_SEQUENCE') {
+    return 'zip'
+  }
+  if (evidenceType === 'VIDEO_CLIP') {
+    return 'mp4'
+  }
+  if (evidenceType === 'KEY_FRAME') {
+    return 'jpg'
+  }
+
+  return 'bin'
+}
+
+function sanitizeFilename(value: string): string {
+  return value
+    .trim()
+    .replace(/[^\w.-]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    || 'alert_evidence'
+}
+
+function saveBlob(blob: Blob, filename: string): void {
+  const objectUrl = window.URL.createObjectURL(blob)
+  downloadUrl(objectUrl, filename)
+  window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1_000)
+}
+
+function downloadUrl(url: string, filename: string): void {
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.rel = 'noreferrer'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 </script>
 
@@ -325,13 +770,93 @@ function formatDriverLabel(data: AlertDetail): string {
 
       <el-card v-if="hasEvidence" class="panel-card" shadow="never">
         <template #header>
-          <div class="card-title">告警证据</div>
+          <div class="evidence-card-header">
+            <div class="card-title">告警证据</div>
+            <div class="evidence-actions">
+              <el-segmented
+                v-if="evidencePreviewModes.length > 1"
+                v-model="evidencePreviewMode"
+                :options="evidencePreviewModes"
+                size="small"
+              />
+              <el-button
+                size="small"
+                plain
+                :icon="RefreshRight"
+                :loading="evidenceLoading"
+                @click="retryLoadEvidence"
+              >
+                重试
+              </el-button>
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                :icon="Download"
+                :loading="evidenceDownloadLoading"
+                @click="downloadEvidence"
+              >
+                下载
+              </el-button>
+            </div>
+          </div>
         </template>
 
         <div class="evidence-grid">
           <div class="evidence-preview">
-            <img v-if="evidenceIsImage" :src="evidenceUrl" alt="evidence" />
-            <a v-else :href="evidenceUrl" target="_blank" rel="noreferrer">打开证据链接</a>
+            <div v-if="evidenceLoading" class="evidence-placeholder">证据加载中</div>
+            <div v-else-if="evidenceLoadError" class="evidence-placeholder evidence-error">
+              <p>{{ evidenceLoadError }}</p>
+              <div class="evidence-placeholder-actions">
+                <el-button size="small" type="primary" plain :icon="RefreshRight" @click="retryLoadEvidence">
+                  重试加载
+                </el-button>
+                <el-button size="small" plain :icon="Download" :loading="evidenceDownloadLoading" @click="downloadEvidence">
+                  下载原文件
+                </el-button>
+              </div>
+            </div>
+            <video
+              v-else-if="evidencePreviewMode === 'video' && evidenceIsVideo"
+              :src="evidenceSourceUrl"
+              controls
+              playsinline
+              preload="metadata"
+            />
+            <img v-else-if="evidencePreviewMode === 'image' && evidenceImagePreviewUrl" :src="evidenceImagePreviewUrl" alt="evidence" />
+            <div v-else-if="evidencePreviewMode === 'image'" class="evidence-placeholder">
+              <el-icon size="24"><Picture /></el-icon>
+              <p v-if="evidenceStillLoading">图片预览生成中</p>
+              <p v-else>{{ evidenceStillError || '当前证据暂无图片预览' }}</p>
+            </div>
+            <div v-else-if="evidencePreviewMode === 'frames' && evidenceIsFrameArchive" class="evidence-archive">
+              <div v-if="evidenceFramePreviews.length" class="evidence-archive-grid">
+                <figure
+                  v-for="frame in evidenceFramePreviews"
+                  :key="frame.name"
+                  class="evidence-archive-frame"
+                >
+                  <img :src="frame.url" :alt="frame.name" />
+                  <figcaption>
+                    {{ frame.capturedAtMs ? formatTimestampMs(frame.capturedAtMs) : frame.name }}
+                  </figcaption>
+                </figure>
+              </div>
+              <div v-else class="evidence-placeholder">
+                <p v-if="evidenceArchivePreviewError">{{ evidenceArchivePreviewError }}</p>
+                <a :href="evidenceSourceUrl" target="_blank" rel="noreferrer">打开证据包</a>
+              </div>
+            </div>
+            <div v-else class="evidence-placeholder evidence-file-preview">
+              <el-icon size="24"><VideoPlay v-if="evidenceIsVideo" /><Picture v-else /></el-icon>
+              <p>原始证据文件</p>
+              <div class="evidence-placeholder-actions">
+                <a v-if="evidenceSourceUrl" :href="evidenceSourceUrl" target="_blank" rel="noreferrer">打开</a>
+                <el-button size="small" type="primary" plain :icon="Download" :loading="evidenceDownloadLoading" @click="downloadEvidence">
+                  下载
+                </el-button>
+              </div>
+            </div>
           </div>
 
           <el-descriptions :column="2" border>
@@ -468,6 +993,21 @@ h1 {
   color: var(--text-main);
 }
 
+.evidence-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.evidence-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
 .action-panel {
   display: grid;
   gap: 14px;
@@ -513,6 +1053,82 @@ h1 {
   height: 100%;
   max-height: 420px;
   object-fit: contain;
+}
+
+.evidence-preview video {
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  background: #000;
+}
+
+.evidence-archive {
+  width: 100%;
+  max-height: 420px;
+  overflow: auto;
+  padding: 10px;
+}
+
+.evidence-archive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.evidence-archive-frame {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.evidence-archive-frame img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #000;
+}
+
+.evidence-archive-frame figcaption {
+  min-height: 18px;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.evidence-placeholder {
+  color: #ffffff;
+  font-weight: 600;
+  padding: 16px;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  line-height: 1.5;
+}
+
+.evidence-placeholder p {
+  margin: 0;
+}
+
+.evidence-placeholder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.evidence-error {
+  max-width: 360px;
+}
+
+.evidence-file-preview {
+  max-width: 320px;
 }
 
 .evidence-preview a {
@@ -578,6 +1194,15 @@ h1 {
 
   .action-buttons {
     flex-direction: column;
+  }
+
+  .evidence-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .evidence-actions {
+    justify-content: flex-start;
   }
 
   .metrics-grid {

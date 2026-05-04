@@ -5,7 +5,7 @@ import type {
   AlertListData,
   AlertListQuery,
 } from '../types/alerts'
-import { request } from './http'
+import { request, requestBlob } from './http'
 
 export function getAlertList(params: AlertListQuery): Promise<AlertListData> {
   return request<AlertListData>({
@@ -26,6 +26,14 @@ export function getAlertActionLogs(id: number | string): Promise<AlertActionLogs
   return request<AlertActionLogsData>({
     method: 'GET',
     url: `/org/alerts/${id}/action-logs`,
+  })
+}
+
+export function getAlertEvidenceBlob(id: number | string): Promise<Blob> {
+  return requestBlob({
+    method: 'GET',
+    url: `/org/alerts/${id}/evidence`,
+    silentError: true,
   })
 }
 
